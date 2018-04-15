@@ -1,0 +1,64 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Java template
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+docs/guides
+classes
+*.patch
+dependency-reduced-pom.xml
+derby*
+.gradle
+gradle.properties
+build/
+*~
+\#*
+target
+out
+.project
+.classpath
+.settings
+.externalToolBuilders/
+.scala_dependencies
+.factorypath
+.cache
+.cache-main
+.cache-tests
+*.iws
+*.ipr
+*.iml
+.idea
+.DS_Store
+.shell_history
+.mailmap
+.java-version
+.cache-main
+.cache-tests
+Thumbs.db
+.cache-main
+.cache-tests
+bin
+*.cache
+*.jfr
+devenv.local
+*~

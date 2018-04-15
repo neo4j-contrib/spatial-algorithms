@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spatial-3d-parent</artifactId>
+        <groupId>org.amanzi</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>spatial-3d-docs</artifactId>
+
+    <name>Spatial 3D :: Docs</name>
+    <description>Utilities and Algorithms for 3D Spatial Analysis - Documentation</description>
+
+    <properties>
+        <docsversion>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}</docsversion>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.amanzi</groupId>
+            <artifactId>spatial-3d-algo</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctor-maven-plugin</artifactId>
+                <version>1.5.6</version>
+                <inherited>false</inherited>
+                <configuration>
+                    <backend>html5</backend>
+                    <imagesDir>images</imagesDir>
+                    <sourceDirectory>${basedir}/asciidoc</sourceDirectory>
+                    <sourceDocumentName>index.adoc</sourceDocumentName>
+                    <outputDirectory>${basedir}/target/docs/${docsversion}</outputDirectory>
+                    <attributes>
+                        <docs-version>${docsversion}</docs-version>
+                        <neo4j-version>${project.version}</neo4j-version>
+                        <source-highlighter>coderay</source-highlighter>
+                        <coderay-css>style</coderay-css>
+                    </attributes>
+                    <requires>
+                        <require>asciidoctor-diagram</require>
+                    </requires>
+                    <resources>
+                        <resource>
+                            <directory>${basedir}/images</directory>
+                            <targetPath>${basedir}/target/docs/${docsversion}/images</targetPath>
+                        </resource>
+                    </resources>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>generate-docs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>process-asciidoc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctorj-diagram</artifactId>
+                        <version>1.3.1</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>parse-version</id>
+                        <goals>
+                            <goal>parse-version</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
