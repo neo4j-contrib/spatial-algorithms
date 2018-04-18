@@ -65,4 +65,12 @@ public class Point {
     public String toString() {
         return format("Point%s", Arrays.toString(coordinate));
     }
+
+    public Point withShift(double... shifts) {
+        double[] shifted = Arrays.copyOf(this.coordinate, this.coordinate.length);
+        for (int i = 0; i < shifted.length; i++) {
+            shifted[i] += shifts[i];
+        }
+        return new Point(shifted);
+    }
 }
