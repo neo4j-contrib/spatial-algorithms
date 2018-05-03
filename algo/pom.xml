@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.amanzi</groupId>
         <artifactId>spatial-3d-parent</artifactId>
-        <version>1.0.0</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>spatial-3d-algo</artifactId>
@@ -20,33 +20,6 @@
             <groupId>org.amanzi</groupId>
             <artifactId>spatial-3d-core</artifactId>
             <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>net.biville.florent</groupId>
-            <artifactId>neo4j-sproc-compiler</artifactId>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-kernel</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-io</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

@@ -5,7 +5,7 @@
 
     <groupId>org.amanzi</groupId>
     <artifactId>spatial-3d-parent</artifactId>
-    <version>1.0.0</version>
+    <version>0.1.0</version>
     <packaging>pom</packaging>
     <name>Spatial 3D</name>
     <description>Utilities and Algorithms for 3D Spatial Analysis</description>
@@ -13,6 +13,7 @@
     <modules>
         <module>core</module>
         <module>algo</module>
+        <module>neo4j</module>
         <module>doc</module>
     </modules>
 
@@ -76,13 +77,6 @@
                 <version>${neo4j.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>net.biville.florent</groupId>
-                <artifactId>neo4j-sproc-compiler</artifactId>
-                <version>1.2</version>
-                <scope>provided</scope>
-                <optional>true</optional>
             </dependency>
 
             <!-- Benchmark Dependencies -->

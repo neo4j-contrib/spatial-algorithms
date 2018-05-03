@@ -2,20 +2,22 @@ package org.amanzi.spatial.algo;
 
 import org.amanzi.spatial.core.Point;
 import org.amanzi.spatial.core.Polygon;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Within {
     public static boolean within(Polygon polygon, Point point) {
+        return within(polygon, point, false);
+    }
+
+    public static boolean within(Polygon polygon, Point point, boolean touching) {
         for (Polygon.SimplePolygon shell : polygon.getShells()) {
-            if (!within(shell, point)) {
+            if (!within(shell, point, touching)) {
                 return false;
             }
         }
-        for (Polygon.SimplePolygon hole : polygon.getShells()) {
-            if (within(hole, point)) {
+        for (Polygon.SimplePolygon hole : polygon.getHoles()) {
+            if (within(hole, point, touching)) {
                 return false;
             }
         }
@@ -23,6 +25,10 @@ public class Within {
     }
 
     public static boolean within(Polygon.SimplePolygon shell, Point point) {
+        return within(shell, point, false);
+    }
+
+    public static boolean within(Polygon.SimplePolygon shell, Point point, boolean touching) {
         int fixedDim = 0;
         int compareDim = 1;
         Point[] points = shell.getPoints();
@@ -34,8 +40,10 @@ public class Within {
             Integer compare2 = ternaryComparePointsIgnoringOneDimension(p2.getCoordinate(), point.getCoordinate(), fixedDim);
             if (compare1 == null || compare2 == null) {
                 // Ignore?
-            } else if (compare1 * compare2 >= 0) {
+            } else if (compare1 * compare2 > 0) {
                 // both on same side - ignore
+            } else if (compare1 * compare2 == 0 && !touching) {
+                // point touches one or both end points, but we are ignoring touching points
             } else {
                 Integer compare = ternaryComparePointsIgnoringOneDimension(p1.getCoordinate(), p2.getCoordinate(), fixedDim);
                 if (compare < 0) {
@@ -47,22 +55,31 @@ public class Within {
         }
         int intersections = 0;
         for (Point[] side : sides) {
-            if (crosses(side, point, fixedDim, compareDim)) {
+            double crossingValue = crossingAt(side, point, fixedDim, compareDim);
+            if (touching && crossingValue == 0) {
+                return true;
+            }
+            if (crossingValue >= 0) {
                 intersections += 1;
             }
         }
         return intersections % 2 == 1;
     }
 
-    public static boolean crosses(Point[] side, Point point, int fixedDim, int compareDim) {
+    static double crossingAt(Point[] side, Point point, int fixedDim, int compareDim) {
         double[] c = point.getCoordinate();
         double[] min = new double[]{side[0].getCoordinate()[fixedDim], side[0].getCoordinate()[compareDim]};
         double[] max = new double[]{side[1].getCoordinate()[fixedDim], side[1].getCoordinate()[compareDim]};
         double[] diff = new double[]{max[0] - min[0], max[1] - min[1]};
-        double ratio = (c[1] - min[1]) / diff[1];
-        double offset = ratio * diff[0];
-        double crossingValue = min[0] + offset;
-        return crossingValue >= c[0];
+        if (diff[1] == 0) {
+            // touching a line that runs along the fixed dimension
+            return 0;
+        } else {
+            double ratio = (c[1] - min[1]) / diff[1];
+            double offset = ratio * diff[0];
+            double crossingValue = min[0] + offset;
+            return crossingValue - c[0];
+        }
     }
 
     public static Integer ternaryComparePointsIgnoringOneDimension(double[] c1, double[] c2, int ignoreDim) {
