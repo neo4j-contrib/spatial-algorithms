@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.amanzi</groupId>
         <artifactId>spatial-3d-parent</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.0-neo4j-3.4.5</version>
     </parent>
 
     <artifactId>spatial-3d-neo4j</artifactId>
@@ -71,7 +71,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
+                <version>${maven-shade-plugin-version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>

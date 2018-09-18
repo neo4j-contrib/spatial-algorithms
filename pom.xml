@@ -2,13 +2,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>org.amanzi</groupId>
     <artifactId>spatial-3d-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.0-neo4j-3.4.5</version>
     <packaging>pom</packaging>
     <name>Spatial 3D</name>
-    <description>Utilities and Algorithms for 3D Spatial Analysis</description>
+    <description>Utilities and Algorithms for 2D and 3D Spatial Analysis</description>
 
     <modules>
         <module>core</module>
@@ -19,9 +18,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <neo4j.version>3.4.0-SNAPSHOT</neo4j.version>
+        <neo4j.version>3.4.5</neo4j.version>
         <jmh.version>1.19</jmh.version>
         <javac.target>1.8</javac.target>
+        <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
+        <maven-shade-plugin-version>2.4.3</maven-shade-plugin-version>
     </properties>
 
     <organization>
@@ -106,8 +107,9 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <!-- Neo4j Procedures require Java 8 -->
                     <compilerVersion>${javac.target}</compilerVersion>
@@ -145,18 +147,27 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>com.mycila.maven-license-plugin</groupId>
-                <artifactId>maven-license-plugin</artifactId>
-                <version>1.10.b1</version>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.18.1</version>
                 <configuration>
-                    <header>gplv3-header.txt</header>
-                    <strictCheck>true</strictCheck>
-                    <failIfMissing>true</failIfMissing>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
+                    <threadCount>1</threadCount>
+                    <forkCount>1</forkCount>
+                    <reuseForks>false</reuseForks>
+                    <argLine>-server -Xms1024m -Xmx2048m</argLine>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshot-repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
 </project>
