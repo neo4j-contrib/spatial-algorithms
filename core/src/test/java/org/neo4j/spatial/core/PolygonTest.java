@@ -1,4 +1,4 @@
-package org.amanzi.spatial.core;
+package org.neo4j.spatial.core;
 
 
 import org.junit.Rule;

@@ -1,6 +1,6 @@
-package org.amanzi.spatial.algo;
+package org.neo4j.spatial.algo;
 
-import org.amanzi.spatial.core.Point;
+import org.neo4j.spatial.core.Point;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

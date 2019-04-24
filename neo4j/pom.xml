@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.amanzi</groupId>
+        <groupId>org.neo4j</groupId>
         <artifactId>spatial-3d-parent</artifactId>
         <version>0.1.0-neo4j-3.4.5</version>
     </parent>
@@ -17,13 +17,13 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.amanzi</groupId>
+            <groupId>org.neo4j</groupId>
             <artifactId>spatial-3d-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>org.amanzi</groupId>
+            <groupId>org.neo4j</groupId>
             <artifactId>spatial-3d-algo</artifactId>
             <version>${project.version}</version>
         </dependency>

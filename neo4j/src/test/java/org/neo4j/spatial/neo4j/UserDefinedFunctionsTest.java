@@ -1,4 +1,4 @@
-package org.amanzi.spatial.neo4j;
+package org.neo4j.spatial.neo4j;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -47,7 +47,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 1, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 1));
-        testCall(db, "CALL amanzi.polygon($points)", map("points", points), result -> {
+        testCall(db, "CALL neo4j.polygon($points)", map("points", points), result -> {
             assertThat("Should have one polygon", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get list of points", record, instanceOf(List.class));
@@ -59,12 +59,12 @@ public class UserDefinedFunctionsTest {
 
     @Test
     public void shouldFailToMakePolygonFromNullField() {
-        testCallFails(db, "CALL amanzi.polygon($points)", map("points", null), "Invalid 'points', should be a list of at least 3, but was: null");
+        testCallFails(db, "CALL neo4j.polygon($points)", map("points", null), "Invalid 'points', should be a list of at least 3, but was: null");
     }
 
     @Test
     public void shouldFailToMakePolygonFromEmptyField() {
-        testCallFails(db, "CALL amanzi.polygon($points)", map("points", new ArrayList<Point>()), "Invalid 'points', should be a list of at least 3, but was: 0");
+        testCallFails(db, "CALL neo4j.polygon($points)", map("points", new ArrayList<Point>()), "Invalid 'points', should be a list of at least 3, but was: 0");
     }
 
     @Test
@@ -72,7 +72,7 @@ public class UserDefinedFunctionsTest {
         ArrayList<Point> points = new ArrayList<>();
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 1, 0));
-        testCallFails(db, "CALL amanzi.polygon($points)", map("points", points), "Invalid 'points', should be a list of at least 3, but was: 2");
+        testCallFails(db, "CALL neo4j.polygon($points)", map("points", points), "Invalid 'points', should be a list of at least 3, but was: 2");
     }
 
     public static void testCall(GraphDatabaseService db, String call, Consumer<Map<String, Object>> consumer) {
@@ -85,7 +85,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 10));
-        testCall(db, "CALL amanzi.polygon($points) YIELD polygon WITH amanzi.boundingBoxFor(polygon) as bbox RETURN bbox", map("points", points), result -> {
+        testCall(db, "CALL neo4j.polygon($points) YIELD polygon WITH neo4j.boundingBoxFor(polygon) as bbox RETURN bbox", map("points", points), result -> {
             assertThat("Should have one result", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get bbox as map", record, instanceOf(Map.class));
@@ -105,7 +105,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 10));
         Point a = Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1);
         Point b = Values.pointValue(CoordinateReferenceSystem.WGS84, 9, 9);
-        testCall(db, "CALL amanzi.polygon($points) YIELD polygon WITH polygon, amanzi.boundingBoxFor(polygon) as bbox RETURN amanzi.withinPolygon($a,polygon) as a, amanzi.withinPolygon($b,polygon) as b", map("points", points, "a", a, "b", b), result -> {
+        testCall(db, "CALL neo4j.polygon($points) YIELD polygon WITH polygon, neo4j.boundingBoxFor(polygon) as bbox RETURN neo4j.withinPolygon($a,polygon) as a, neo4j.withinPolygon($b,polygon) as b", map("points", points, "a", a, "b", b), result -> {
             assertThat("Should get result as map", result, instanceOf(Map.class));
             Map<String, Object> results = (Map<String, Object>) result;
             assertThat("Should have 'a' key", results.containsKey("a"), equalTo(true));

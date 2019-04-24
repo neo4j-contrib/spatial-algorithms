@@ -1,7 +1,7 @@
-package org.amanzi.spatial.algo;
+package org.neo4j.spatial.algo;
 
-import org.amanzi.spatial.core.Point;
-import org.amanzi.spatial.core.Polygon;
+import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polygon;
 import org.junit.Ignore;
 import org.junit.Test;
 

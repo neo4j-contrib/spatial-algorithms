@@ -1,21 +1,20 @@
-package org.amanzi.spatial.neo4j;
+package org.neo4j.spatial.neo4j;
 
-import org.amanzi.spatial.algo.Within;
-import org.amanzi.spatial.core.Polygon;
+import org.neo4j.spatial.algo.Within;
+import org.neo4j.spatial.core.Polygon;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.procedure.UserFunction;
-import org.neo4j.values.storable.CoordinateReferenceSystem;
 
 import java.util.*;
 import java.util.stream.Stream;
 
 public class UserDefinedFunctions {
 
-    @Procedure("amanzi.polygon")
+    @Procedure("neo4j.polygon")
     public Stream<PolygonResult> makePolygon(@Name("points") List<Point> points) {
         if (points == null || points.size() < 3) {
             throw new IllegalArgumentException("Invalid 'points', should be a list of at least 3, but was: " + (points == null ? "null" : points.size()));
@@ -29,7 +28,7 @@ public class UserDefinedFunctions {
         }
     }
 
-    @UserFunction("amanzi.boundingBoxFor")
+    @UserFunction("neo4j.boundingBoxFor")
     public Map<String, Point> boundingBoxFor(@Name("polygon") List<Point> polygon) {
         if (polygon == null || polygon.size() < 4) {
             throw new IllegalArgumentException("Invalid 'polygon', should be a list of at least 4, but was: " + (polygon == null ? "null" : polygon.size()));
@@ -57,7 +56,7 @@ public class UserDefinedFunctions {
         }
     }
 
-    @UserFunction("amanzi.withinPolygon")
+    @UserFunction("neo4j.withinPolygon")
     public boolean withinPolygon(@Name("point") Point point, @Name("polygon") List<Point> polygon, @Name(value = "touching", defaultValue = "false") boolean touching) {
         if (polygon == null || polygon.size() < 4) {
             throw new IllegalArgumentException("Invalid 'polygon', should be a list of at least 4, but was: " + polygon.size());
@@ -75,21 +74,21 @@ public class UserDefinedFunctions {
         }
     }
 
-    private org.amanzi.spatial.core.Point[] asPoints(List<Point> polygon) {
-        org.amanzi.spatial.core.Point[] points = new org.amanzi.spatial.core.Point[polygon.size()];
+    private org.neo4j.spatial.core.Point[] asPoints(List<Point> polygon) {
+        org.neo4j.spatial.core.Point[] points = new org.neo4j.spatial.core.Point[polygon.size()];
         for (int i = 0; i < points.length; i++) {
             points[i] = asPoint(polygon.get(i));
         }
         return points;
     }
 
-    private org.amanzi.spatial.core.Point asPoint(Point point) {
+    private org.neo4j.spatial.core.Point asPoint(Point point) {
         List<Double> coordinates = point.getCoordinate().getCoordinate();
         double[] coords = new double[coordinates.size()];
         for (int i = 0; i < coords.length; i++) {
             coords[i] = coordinates.get(i);
         }
-        return new org.amanzi.spatial.core.Point(coords);
+        return new org.neo4j.spatial.core.Point(coords);
     }
 
     private Point asPoint(CRS crs, double[] coords) {

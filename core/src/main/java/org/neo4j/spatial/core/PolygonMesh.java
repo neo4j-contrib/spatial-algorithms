@@ -1,4 +1,4 @@
-package org.amanzi.spatial.core;
+package org.neo4j.spatial.core;
 
 import java.lang.reflect.Array;
 import java.util.*;

@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.amanzi</groupId>
+    <groupId>org.neo4j</groupId>
     <artifactId>spatial-3d-parent</artifactId>
     <version>0.1.0-neo4j-3.4.5</version>
     <packaging>pom</packaging>
@@ -13,7 +13,6 @@
         <module>core</module>
         <module>algo</module>
         <module>neo4j</module>
-        <module>doc</module>
     </modules>
 
     <properties>
@@ -26,15 +25,15 @@
     </properties>
 
     <organization>
-        <name>Amanzi HB</name>
-        <url>https://amanzi.com</url>
+        <name>Neo4j</name>
+        <url>https://neo4j.com</url>
     </organization>
 
     <developers>
         <developer>
             <id>craigtaverner</id>
-            <organization>Amanzi HB</organization>
-            <url>https://amanzi.com</url>
+            <organization>Neo4j</organization>
+            <url>https://neo4j.com</url>
         </developer>
     </developers>
 
