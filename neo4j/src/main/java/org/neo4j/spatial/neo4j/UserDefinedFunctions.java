@@ -88,7 +88,7 @@ public class UserDefinedFunctions {
         for (int i = 0; i < coords.length; i++) {
             coords[i] = coordinates.get(i);
         }
-        return new org.neo4j.spatial.core.Point(coords);
+        return org.neo4j.spatial.core.Point.point(coords);
     }
 
     private Point asPoint(CRS crs, double[] coords) {
