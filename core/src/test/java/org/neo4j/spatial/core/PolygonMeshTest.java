@@ -19,7 +19,7 @@ public class PolygonMeshTest {
 
     @Test
     public void shouldWorkWithBox() {
-        PolygonMesh box = makeBox(new Point(0, 0, 0), new double[]{10, 10, 10});
+        PolygonMesh box = makeBox(Point.point(0, 0, 0), new double[]{10, 10, 10});
         debugPolygonMesh("Box", box);
         assertThat("Box should have six faces", box.getFaces().length, equalTo(6));
         assertThat("Box should have eight vertices", box.getPoints().length, equalTo(8));
@@ -28,7 +28,7 @@ public class PolygonMeshTest {
 
     @Test
     public void shouldWorkWithIcosohedron() {
-        PolygonMesh icosohedron = makeIcosohedron(new Point(0, 0, 0), 10);
+        PolygonMesh icosohedron = makeIcosohedron(Point.point(0, 0, 0), 10);
         debugPolygonMesh("Icosohedron", icosohedron);
         assertThat("Icosohedron should have eight faces", icosohedron.getFaces().length, equalTo(8));
         assertThat("Icosohedron should have six vertices", icosohedron.getPoints().length, equalTo(6));

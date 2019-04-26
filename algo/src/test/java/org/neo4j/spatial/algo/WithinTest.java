@@ -15,11 +15,11 @@ public class WithinTest {
     @Test
     public void shouldBeWithinSquare() {
         Polygon.SimplePolygon square = makeSquare(new double[]{-10, -10}, 20);
-        assertThat(Within.within(square, new Point(0, 0)), equalTo(true));
-        assertThat(Within.within(square, new Point(-20, 0)), equalTo(false));
-        assertThat(Within.within(square, new Point(20, 0)), equalTo(false));
-        assertThat(Within.within(square, new Point(0, -20)), equalTo(false));
-        assertThat(Within.within(square, new Point(0, 20)), equalTo(false));
+        assertThat(Within.within(square, Point.point(0, 0)), equalTo(true));
+        assertThat(Within.within(square, Point.point(-20, 0)), equalTo(false));
+        assertThat(Within.within(square, Point.point(20, 0)), equalTo(false));
+        assertThat(Within.within(square, Point.point(0, -20)), equalTo(false));
+        assertThat(Within.within(square, Point.point(0, 20)), equalTo(false));
     }
 
     @Ignore
@@ -27,16 +27,16 @@ public class WithinTest {
     public void shouldBeTouchingSquare() {
         Polygon.SimplePolygon square = makeSquare(new double[]{-10, -10}, 20);
         for (boolean touching : new boolean[]{false, true}) {
-            assertThat(Within.within(square, new Point(-10, -20), touching), equalTo(false));
-            assertThat(Within.within(square, new Point(-10, -10), touching), equalTo(touching));
-            assertThat(Within.within(square, new Point(-10, 0), touching), equalTo(touching));
-            assertThat(Within.within(square, new Point(-10, 10), touching), equalTo(touching));
-            assertThat(Within.within(square, new Point(-10, 20), touching), equalTo(false));
-            assertThat(Within.within(square, new Point(-20, -10), touching), equalTo(false));
-            assertThat(Within.within(square, new Point(-10, -10), touching), equalTo(touching));
-            assertThat(Within.within(square, new Point(0, -10), touching), equalTo(touching));
-            assertThat(Within.within(square, new Point(10, -10), touching), equalTo(touching));
-            assertThat(Within.within(square, new Point(20, -10), touching), equalTo(false));
+            assertThat(Within.within(square, Point.point(-10, -20), touching), equalTo(false));
+            assertThat(Within.within(square, Point.point(-10, -10), touching), equalTo(touching));
+            assertThat(Within.within(square, Point.point(-10, 0), touching), equalTo(touching));
+            assertThat(Within.within(square, Point.point(-10, 10), touching), equalTo(touching));
+            assertThat(Within.within(square, Point.point(-10, 20), touching), equalTo(false));
+            assertThat(Within.within(square, Point.point(-20, -10), touching), equalTo(false));
+            assertThat(Within.within(square, Point.point(-10, -10), touching), equalTo(touching));
+            assertThat(Within.within(square, Point.point(0, -10), touching), equalTo(touching));
+            assertThat(Within.within(square, Point.point(10, -10), touching), equalTo(touching));
+            assertThat(Within.within(square, Point.point(20, -10), touching), equalTo(false));
         }
     }
 
@@ -47,10 +47,10 @@ public class WithinTest {
     }
 
     private static Polygon.SimplePolygon makeSquare(double[] bottomLeftCoords, double width) {
-        Point bottomLeft = new Point(bottomLeftCoords);
-        Point bottomRight = new Point(move(bottomLeftCoords, 0, width));
-        Point topRight = new Point(move(bottomRight.getCoordinate(), 1, width));
-        Point topLeft = new Point(move(topRight.getCoordinate(), 0, -width));
+        Point bottomLeft = Point.point(bottomLeftCoords);
+        Point bottomRight = Point.point(move(bottomLeftCoords, 0, width));
+        Point topRight = Point.point(move(bottomRight.getCoordinate(), 1, width));
+        Point topLeft = Point.point(move(topRight.getCoordinate(), 0, -width));
         return Polygon.simple(bottomLeft, bottomRight, topRight, topLeft);
     }
 

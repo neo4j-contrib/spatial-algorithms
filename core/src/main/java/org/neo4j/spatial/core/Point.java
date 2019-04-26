@@ -4,47 +4,26 @@ import java.util.Arrays;
 
 import static java.lang.String.format;
 
-public class Point {
-    private final double[] coordinate;
-
-    public Point(double... coordinate) {
-        if (coordinate.length < 1) {
-            throw new IllegalArgumentException("Cannot create point with zero dimensions");
-        }
-        this.coordinate = coordinate;
+public interface Point {
+    static Point point(double... coordinate) {
+        return new InMemoryPoint(coordinate);
     }
 
-    public int dimension() {
-        return coordinate.length;
-    }
+    double[] getCoordinate();
 
-    public boolean equals(Point other) {
-        return Arrays.equals(this.coordinate, other.coordinate);
-    }
-
-    public boolean equals(Object other) {
-        return other instanceof Point && this.equals((Point) other);
-    }
-
-    // TODO: move to algorithms package
-    public double distance(Point other) {
-        double dsqr = 0;
-        for (int i = 0; i < this.coordinate.length; i++) {
-            double diff = this.coordinate[i] - other.coordinate[i];
-            dsqr += diff * diff;
-        }
-        return Math.sqrt(dsqr);
+    default int dimension() {
+        return getCoordinate().length;
     }
 
     /**
      * If the points are not comparable, this method returns null. That can happen if the points have different
      * dimensions, or if the coordinates are not all greater, all less than or all the same.
      */
-    public Integer ternaryCompareTo(Point other) {
+    default Integer ternaryCompareTo(Point other) {
         Integer result = null;
-        if (this.coordinate.length != other.coordinate.length) return null;
-        for (int i = 0; i < this.coordinate.length; i++) {
-            double diff = this.coordinate[i] - other.coordinate[i];
+        if (this.getCoordinate().length != other.getCoordinate().length) return null;
+        for (int i = 0; i < this.getCoordinate().length; i++) {
+            double diff = this.getCoordinate()[i] - other.getCoordinate()[i];
             int ans = (diff > 0) ? 1 : ((diff < 0) ? -1 : 0);
             if (result == null) {
                 result = ans;
@@ -58,19 +37,43 @@ public class Point {
         return result;
     }
 
+    default Point withShift(double... shifts) {
+        double[] shifted = Arrays.copyOf(this.getCoordinate(), this.getCoordinate().length);
+        for (int i = 0; i < shifted.length; i++) {
+            shifted[i] += shifts[i];
+        }
+        return Point.point(shifted);
+    }
+
+    default String toWKT() {
+        return "POINT(" + getCoordinate()[0] + " " + getCoordinate()[1] + ")";
+    }
+}
+
+class InMemoryPoint implements Point {
+    private final double[] coordinate;
+
+    public InMemoryPoint(double... coordinate) {
+        if (coordinate.length < 1) {
+            throw new IllegalArgumentException("Cannot create point with zero dimensions");
+        }
+        this.coordinate = coordinate;
+    }
+
+    public boolean equals(Point other) {
+        return Arrays.equals(this.coordinate, other.getCoordinate());
+    }
+
+    public boolean equals(Object other) {
+        return other instanceof Point && this.equals((Point) other);
+    }
+
+    @Override
     public double[] getCoordinate() {
         return coordinate;
     }
 
     public String toString() {
-        return format("Point%s", Arrays.toString(coordinate));
-    }
-
-    public Point withShift(double... shifts) {
-        double[] shifted = Arrays.copyOf(this.coordinate, this.coordinate.length);
-        for (int i = 0; i < shifted.length; i++) {
-            shifted[i] += shifts[i];
-        }
-        return new Point(shifted);
+        return format("InMemoryPoint%s", Arrays.toString(coordinate));
     }
 }

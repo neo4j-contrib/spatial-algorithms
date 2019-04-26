@@ -16,9 +16,9 @@ public class PolygonTest {
 
     @Test
     public void shouldAcceptValid2DCoordinates() {
-        Point one = new Point(0, 0);
-        Point two = new Point(1, 0);
-        Point three = new Point(0, 1);
+        Point one = Point.point(0, 0);
+        Point two = Point.point(1, 0);
+        Point three = Point.point(0, 1);
         Polygon polygon = Polygon.simple(one, two, three);
         assertThat(polygon.isSimple(), is(true));
         Polygon.SimplePolygon[] shells = polygon.getShells();
@@ -34,9 +34,9 @@ public class PolygonTest {
 
     @Test
     public void shouldAcceptValid3DCoordinates() {
-        Point one = new Point(0, 0, 0);
-        Point two = new Point(1, 0, 0);
-        Point three = new Point(0, 1, 0);
+        Point one = Point.point(0, 0, 0);
+        Point two = Point.point(1, 0, 0);
+        Point three = Point.point(0, 1, 0);
         Polygon polygon = Polygon.simple(one, two, three);
         assertThat(polygon.isSimple(), is(true));
         Polygon.SimplePolygon[] shells = polygon.getShells();
@@ -57,10 +57,10 @@ public class PolygonTest {
     }
 
     private static Polygon.SimplePolygon makeSquare(double[] bottomLeftCoords, double width) {
-        Point bottomLeft = new Point(bottomLeftCoords);
-        Point bottomRight = new Point(move(bottomLeftCoords, 0, width));
-        Point topRight = new Point(move(bottomRight.getCoordinate(), 1, width));
-        Point topLeft = new Point(move(topRight.getCoordinate(), 0, -width));
+        Point bottomLeft = Point.point(bottomLeftCoords);
+        Point bottomRight = Point.point(move(bottomLeftCoords, 0, width));
+        Point topRight = Point.point(move(bottomRight.getCoordinate(), 1, width));
+        Point topLeft = Point.point(move(topRight.getCoordinate(), 0, -width));
         return Polygon.simple(bottomLeft, bottomRight, topRight, topLeft);
     }
 
@@ -76,7 +76,7 @@ public class PolygonTest {
         assertThat(holes.length, equalTo(1));
         assertThat(shells[0], equalTo(shell));
         assertThat(holes[0], equalTo(hole));
-        assertThat(polygon.dimension(), equalTo(shell.points[0].dimension()));
+        assertThat(polygon.dimension(), equalTo(shell.getPoints()[0].dimension()));
         Point[] points = polygon.getPoints();
         assertThat(points.length, equalTo(10));
         assertThat(points[0], equalTo(points[4]));
@@ -84,10 +84,38 @@ public class PolygonTest {
         Point[] shellPoints = shell.getPoints();
         assertThat(shellPoints.length, equalTo(5));
         assertThat(shellPoints[0], equalTo(shellPoints[4]));
-        assertThat(shellPoints[0], equalTo(new Point(0, 0)));
+        assertThat(shellPoints[0], equalTo(Point.point(0, 0)));
         Point[] holePoints = hole.getPoints();
         assertThat(holePoints.length, equalTo(5));
         assertThat(holePoints[0], equalTo(holePoints[4]));
-        assertThat(holePoints[0], equalTo(new Point(4, 4)));
+        assertThat(holePoints[0], equalTo(Point.point(4, 4)));
+    }
+
+    @Test
+    public void shouldSee2EqualPolygonsWithUnequalStart() {
+        Polygon.SimplePolygon[] variations = new Polygon.SimplePolygon[4];
+        for (int i = 0; i < 4; i++) {
+            variations[i] = makeSquareWithStart(i);
+        }
+
+        for (int i = 0; i < 3; i++) {
+            assertThat("two squares should be treated as equal", variations[i], equalTo(variations[i+1]));
+        }
+    }
+
+    private static Polygon.SimplePolygon makeSquareWithStart(int offset) {
+        Point[] points = new Point[4];
+        Point[] base = new Point[]{
+                Point.point(-10,-10),
+                Point.point(10,-10),
+                Point.point(10,10),
+                Point.point(-10,10)
+        };
+
+        for (int i = 0; i < points.length; i++) {
+            points[i] = base[(i + offset) % base.length];
+        }
+
+        return Polygon.simple(points);
     }
 }

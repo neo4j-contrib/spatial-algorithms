@@ -17,17 +17,17 @@ public class DistanceTest {
     public void shouldNotWorkWithInvalidPoints() {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("Cannot calculate distance between points of different dimension: 3 != 2");
-        Distance.distance(new Point(1, 2, 3), new Point(3, 4));
+        Distance.distance(Point.point(1, 2, 3), Point.point(3, 4));
     }
 
     @Test
     public void shouldWorkWithValid2DPoints() {
-        assertThat(Distance.distance(new Point(0, 0), new Point(0, 0)), equalTo(0.0));
-        assertThat(Distance.distance(new Point(0, 0), new Point(1, 0)), equalTo(1.0));
-        assertThat(Distance.distance(new Point(0, 0), new Point(0, 1)), equalTo(1.0));
-        assertThat(Distance.distance(new Point(1, 0), new Point(0, 0)), equalTo(1.0));
-        assertThat(Distance.distance(new Point(0, 1), new Point(0, 0)), equalTo(1.0));
-        assertThat(Distance.distance(new Point(0, 0), new Point(1, 1)), closeTo(1.414, 0.001));
-        assertThat(Distance.distance(new Point(-1, -1), new Point(1, 1)), closeTo(2.828, 0.001));
+        assertThat(Distance.distance(Point.point(0, 0), Point.point(0, 0)), equalTo(0.0));
+        assertThat(Distance.distance(Point.point(0, 0), Point.point(1, 0)), equalTo(1.0));
+        assertThat(Distance.distance(Point.point(0, 0), Point.point(0, 1)), equalTo(1.0));
+        assertThat(Distance.distance(Point.point(1, 0), Point.point(0, 0)), equalTo(1.0));
+        assertThat(Distance.distance(Point.point(0, 1), Point.point(0, 0)), equalTo(1.0));
+        assertThat(Distance.distance(Point.point(0, 0), Point.point(1, 1)), closeTo(1.414, 0.001));
+        assertThat(Distance.distance(Point.point(-1, -1), Point.point(1, 1)), closeTo(2.828, 0.001));
     }
 }
