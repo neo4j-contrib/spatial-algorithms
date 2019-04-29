@@ -1,5 +1,6 @@
 package org.neo4j.spatial.algo;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import org.neo4j.spatial.core.Point;
@@ -102,6 +103,44 @@ public class ConvexHullTest {
         )));
     }
 
+    @Ignore
+    @Test
+    public void convexHullPrecision() {
+        //TODO Is this precision high enough?
+        Polygon.SimplePolygon testPolygon = makeHighPrecisionPolygon();
+        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(testPolygon);
+
+        System.out.println(testPolygon.toWKT());
+        System.out.println(convexHull.toWKT());
+
+        assertThat("expected polygon of size 5", convexHull.getPoints().length, equalTo(5));
+        assertThat("expected convex hull", convexHull, equalTo(Polygon.simple(
+                Point.point(0,0),
+                Point.point(1,0),
+                Point.point(1,1),
+                Point.point(0,1)
+        )));
+    }
+
+    @Test
+    public void convexHullMultiShell() {
+        Polygon.MultiPolygon multi= makeMultiShell();
+        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(multi);
+
+        System.out.println(multi.toWKT());
+        System.out.println(convexHull.toWKT());
+
+        assertThat("expected polygon of size 7", convexHull.getPoints().length, equalTo(7));
+        assertThat("expected convex hull", convexHull, equalTo(Polygon.simple(
+                Point.point(-10,-10),
+                Point.point(40.0, -10.0),
+                Point.point(40.0, 10.0),
+                Point.point(30.0, 20.0),
+                Point.point(0.0, 20.0),
+                Point.point(-10.0, 10.0)
+        )));
+    }
+
     private static Polygon.SimplePolygon makeSimpleTestPolygon() {
         return Polygon.simple(
                 Point.point(-10,-10),
@@ -198,5 +237,40 @@ public class ConvexHullTest {
                 Point.point(-10,10),
                 Point.point(-1, 0)
         );
+    }
+
+    private Polygon.SimplePolygon makeHighPrecisionPolygon() {
+        return Polygon.simple(
+                Point.point(0,0),
+                Point.point(1,0),
+                Point.point(1,1.0000000000000001),
+                Point.point(0,1.0000000000000001)
+                );
+    }
+
+    private Polygon.MultiPolygon makeMultiShell() {
+        Polygon shell1 = Polygon.simple(
+                Point.point(-10,-10),
+                Point.point(10,-10),
+                Point.point(1, 0),
+                Point.point(10,10),
+                Point.point(0,20),
+                Point.point(-10,10),
+                Point.point(-1, 0)
+        );
+
+        int offset = 30;
+
+        Polygon shell2 = Polygon.simple(
+                Point.point(offset + -10,-10),
+                Point.point(offset + 10,-10),
+                Point.point(offset + 1, 0),
+                Point.point(offset + 10,10),
+                Point.point(offset + 0,20),
+                Point.point(offset + -10,10),
+                Point.point(offset + -1, 0)
+        );
+
+        return shell1.withShell(shell2);
     }
 }

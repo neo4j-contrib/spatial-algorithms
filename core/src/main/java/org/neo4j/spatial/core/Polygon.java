@@ -357,6 +357,22 @@ public interface Polygon {
             return new MultiPolygon(shells, newHoles);
         }
 
+        /**
+         * Outputs the WKT string of the multipolygon
+         * @return The WKT string describing the multipolygon
+         */
+        public String toWKT() {
+            StringJoiner viewer = new StringJoiner(",", "MULTIPOLYGON(", ")");
+            for (SimplePolygon shell : shells) {
+                StringJoiner shellViewer = new StringJoiner(",", "((", "))");
+                for (Point point : shell.getPoints()) {
+                    shellViewer.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
+                }
+                viewer.add(shellViewer.toString());
+            }
+            return viewer.toString();
+        }
+
         @Override
         public String toString() {
             return format("MultiPolygon( shells:%s, holes:%s )", Arrays.toString(shells), Arrays.toString(holes));
