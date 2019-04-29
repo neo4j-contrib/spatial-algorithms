@@ -11,6 +11,21 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class WithinTest {
+    @Test
+    public void shouldBeCompletelyWithinSquare() {
+        Polygon.SimplePolygon inner = makeSquare(new double[]{-10, -10}, 20);
+        Polygon.SimplePolygon outer = makeSquare(new double[]{-15, -15}, 30);
+        assertThat(Within.within(outer, inner), equalTo(true));
+        assertThat(Within.within(inner, outer), equalTo(false));
+    }
+
+    @Test
+    public void shouldBeTouchingWithinSquare() {
+        Polygon.SimplePolygon inner = makeSquare(new double[]{-15, -10}, 20);
+        Polygon.SimplePolygon outer = makeSquare(new double[]{-15, -15}, 30);
+        assertThat(Within.within(outer, inner), equalTo(false));
+        assertThat(Within.within(inner, outer), equalTo(false));
+    }
 
     @Test
     public void shouldBeWithinSquare() {

@@ -6,6 +6,14 @@ import org.neo4j.spatial.core.Polygon;
 import java.util.ArrayList;
 
 public class Within {
+    public static boolean within(Polygon.SimplePolygon outer, Polygon.SimplePolygon inner) {
+        if (Intersect.intersect(outer, inner).length != 0) {
+            return false;
+        }
+
+        return within(outer, inner.getPoints()[0]);
+    }
+
     public static boolean within(Polygon polygon, Point point) {
         return within(polygon, point, false);
     }

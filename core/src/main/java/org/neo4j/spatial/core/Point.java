@@ -64,8 +64,14 @@ class InMemoryPoint implements Point {
         return Arrays.equals(this.coordinate, other.getCoordinate());
     }
 
+    @Override
     public boolean equals(Object other) {
         return other instanceof Point && this.equals((Point) other);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(coordinate);
     }
 
     @Override

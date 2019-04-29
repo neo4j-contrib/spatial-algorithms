@@ -1,6 +1,7 @@
 package org.neo4j.spatial.core;
 
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -30,6 +31,17 @@ public class PolygonTest {
         Point[] points = polygon.getPoints();
         assertThat(points.length, equalTo(4));
         assertThat(points[0], equalTo(points[points.length - 1]));
+    }
+
+    @Ignore
+    @Test
+    public void shouldRejectInvalid2DCoordinates() {
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("Shells may not intersect each other\"");
+        Polygon.SimplePolygon shell1 = makeSquare(new double[]{-10, -10}, 20);
+        Polygon.SimplePolygon shell2 = makeSquare(new double[]{-15, -15}, 20);
+
+        shell1.withShell(shell2);
     }
 
     @Test

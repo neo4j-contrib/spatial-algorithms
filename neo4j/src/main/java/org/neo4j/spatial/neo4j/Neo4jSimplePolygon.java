@@ -81,8 +81,7 @@ public class Neo4jSimplePolygon implements Polygon.SimplePolygon {
         }
 
 
-        org.neo4j.graphdb.spatial.Point[] result = new org.neo4j.graphdb.spatial.Point[resultList.size()];
-        return resultList.toArray(result);
+        return resultList.toArray(new org.neo4j.graphdb.spatial.Point[0]);
     }
 
 

@@ -51,7 +51,7 @@ public interface Polygon {
                 Collections.addAll(shells, polygon.getShells());
             }
         }
-        return shells.toArray(new SimplePolygon[shells.size()]);
+        return shells.toArray(new SimplePolygon[0]);
     }
 
     static SimplePolygon[] allHoles(Polygon... polygons) {
@@ -61,7 +61,7 @@ public interface Polygon {
                 Collections.addAll(holes, polygon.getHoles());
             }
         }
-        return holes.toArray(new SimplePolygon[holes.size()]);
+        return holes.toArray(new SimplePolygon[0]);
     }
 
     static Point[] allPoints(Polygon... polygons) {
@@ -78,7 +78,7 @@ public interface Polygon {
                 }
             }
         }
-        return points.toArray(new Point[points.size()]);
+        return points.toArray(new Point[0]);
     }
 
     interface SimplePolygon extends Polygon {
@@ -105,6 +105,24 @@ public interface Polygon {
         @Override
         default MultiPolygon withHole(Polygon hole) {
             return new MultiPolygon(new SimplePolygon[]{this}, Polygon.allShells(hole));
+        }
+
+        /**
+         * Converts the given polygon into an array of LineSegments describing this polygon
+         *
+         * @param polygon
+         * @return Array of line segments describing the given polygon
+         */
+        static LineSegment[] toLineSegments(SimplePolygon polygon) {
+            LineSegment[] output = new LineSegment[polygon.getPoints().length];
+
+            for (int i = 0; i < output.length; i++) {
+                Point a = polygon.getPoints()[i];
+                Point b = polygon.getPoints()[(i+1) % output.length];
+                output[i] = LineSegment.lineSegment(a, b);
+            }
+
+            return output;
         }
 
         static boolean areEqual(SimplePolygon one, SimplePolygon other) {
@@ -151,7 +169,7 @@ public interface Polygon {
 
         private InMemorySimplePolygon(Point... points) {
             this.points = new PolygonUtil<Point>().closeRing(points);
-            if (points.length < 4) {
+            if (this.points.length < 4) {
                 throw new IllegalArgumentException("Polygon cannot have less than 4 points");
             }
             Polygon.assertAllSameDimension(this.points);
@@ -206,8 +224,9 @@ public interface Polygon {
             Each hole can contain array of polygons etc...
         */
         private MultiPolygon(SimplePolygon[] shells, SimplePolygon[] holes) {
+            checkValidness(shells, holes);
+
             this.shells = shells;
-            //TODO Check: holes are contained; shells don't intersect; holes don't intersect; shells contain shells (no hole); holes contain holes (no shell);
             this.holes = holes;
             Polygon.assertAllSameDimension(this.shells);
             Polygon.assertAllSameDimension(this.holes);
@@ -215,6 +234,90 @@ public interface Polygon {
                 Polygon.assertAllSameDimension(this.shells[0], this.holes[0]);
             }
         }
+
+        /**
+         * Checks if the shells and holes are valid
+         *
+         * @param shells
+         * @param holes
+         */
+        private void checkValidness(SimplePolygon[] shells, SimplePolygon[] holes) {
+            /*if (areIntersecting(shells)) {
+                throw new IllegalArgumentException("Shells may not intersect each other");
+            }
+
+            if (areNotContained(shells, shells)) {
+                throw new IllegalArgumentException("Shells may not contain each other");
+            }
+
+            if (areIntersecting(holes)) {
+                throw new IllegalArgumentException("Holes may not intersect each other");
+            }
+
+            if (areNotContained(holes, holes)) {
+                throw new IllegalArgumentException("Holes may not contain each other");
+            }
+
+            if (areContained(shells, holes)) {
+                throw new IllegalArgumentException("Holes must be contained in shells");
+            }*/
+        }
+
+//        /**
+//         * Pair-wise checks if polygons intersect.
+//         *
+//         * @param polygons
+//         * @return true if and only if no 2 polygons intersect
+//         */
+//        private static boolean areIntersecting(SimplePolygon[] polygons) {
+//            for (int i = 0; i < polygons.length; i++) {
+//                for (int j = 1; j < polygons.length; j++) {
+//                    if (Intersect.intersect(polygons[i], polygons[j]).length == 0) {
+//                        return true;
+//                    }
+//                }
+//            }
+//
+//            return false;
+//        }
+//
+//        /**
+//         * Pair-wise checks if the inner polygons are completely contained in an outer polygon.
+//         *
+//         * @param outers
+//         * @param inners
+//         * @return true if and only if every inner polygon is contained in an outer polygon
+//         */
+//        private static boolean areContained(SimplePolygon[] outers, SimplePolygon[] inners) {
+//            for (SimplePolygon outer : outers) {
+//                for (SimplePolygon inner : inners) {
+//                    if (!Within.within(outer, inner)) {
+//                        return false;
+//                    }
+//                }
+//            }
+//
+//            return true;
+//        }
+//
+//        /**
+//         * Pair-wise checks if none of the inner polygons are completely contained in an outer polygon.
+//         *
+//         * @param outers
+//         * @param inners
+//         * @return true if and only if no inner polygon is contained in an outer polygon
+//         */
+//        private static boolean areNotContained(SimplePolygon[] outers, SimplePolygon[] inners) {
+//            for (SimplePolygon outer : outers) {
+//                for (SimplePolygon inner : inners) {
+//                    if (Within.within(outer, inner)) {
+//                        return false;
+//                    }
+//                }
+//            }
+//
+//            return true;
+//        }
 
         public int dimension() {
             return this.shells[0].dimension();

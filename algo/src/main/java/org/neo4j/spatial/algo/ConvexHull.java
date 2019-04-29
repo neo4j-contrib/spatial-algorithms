@@ -32,9 +32,7 @@ public class ConvexHull {
             stack.push(point);
         }
 
-        Point[] result = new Point[stack.size()];
-        stack.toArray(result);
-        return Polygon.simple(result);
+        return Polygon.simple(stack.toArray(new Point[0]));
     }
 
     /**
