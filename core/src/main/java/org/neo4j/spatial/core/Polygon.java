@@ -114,13 +114,17 @@ public interface Polygon {
          * @return Array of line segments describing the given polygon
          */
         static LineSegment[] toLineSegments(SimplePolygon polygon) {
-            LineSegment[] output = new LineSegment[polygon.getPoints().length];
+            LineSegment[] output = new LineSegment[polygon.getPoints().length - 1];
 
-            for (int i = 0; i < output.length; i++) {
+            for (int i = 0; i < output.length - 1; i++) {
                 Point a = polygon.getPoints()[i];
-                Point b = polygon.getPoints()[(i+1) % output.length];
+                Point b = polygon.getPoints()[i+1];
                 output[i] = LineSegment.lineSegment(a, b);
             }
+
+            Point a = polygon.getPoints()[polygon.getPoints().length - 2];
+            Point b = polygon.getPoints()[0];
+            output[polygon.getPoints().length - 2] = LineSegment.lineSegment(a, b);
 
             return output;
         }

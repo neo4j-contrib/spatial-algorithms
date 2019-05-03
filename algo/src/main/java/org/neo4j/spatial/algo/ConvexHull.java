@@ -1,13 +1,12 @@
 package org.neo4j.spatial.algo;
 
-import java.lang.reflect.Array;
+import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polygon;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
-
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
 
 public class ConvexHull {
     /**
@@ -26,7 +25,7 @@ public class ConvexHull {
 
         for (Point point : sortedPoints) {
             //Remove last point from the stack if we make a clockwise turn (that point makes the hull concave)
-            while (stack.size() > 1 && ccw(stack.get(stack.size()-2), stack.peek(), point) <= 0) {
+            while (stack.size() > 1 && AlgoUtil.ccw(stack.get(stack.size()-2), stack.peek(), point) <= 0) {
                 stack.pop();
             }
             stack.push(point);
@@ -55,7 +54,7 @@ public class ConvexHull {
 
             double angleA = getPolarAngle(reference, a);
             double angleB = getPolarAngle(reference, b);
-            if (angleA == angleB) {
+            if (AlgoUtil.equal(angleA, angleB)) {
                 toDelete.add(i - toDelete.size());
             }
         }
@@ -63,22 +62,6 @@ public class ConvexHull {
             sortedPoints.remove((int) index);
         }
         return sortedPoints;
-    }
-
-    /**
-     * Computes the direction of the of the a-b-c turn by computing the z-component of ab x ac
-     *
-     * @param a starting point
-     * @param b turning point
-     * @param c ending point
-     * @return Integer value with the following property:
-     *          ccw < 0: clockwise turn;
-     *          ccw = 0: collinear;
-     *          ccw > 1: counterclockwise turn
-     */
-    private static int ccw(Point a, Point b, Point c) {
-        double z = (b.getCoordinate()[0] - a.getCoordinate()[0]) * (c.getCoordinate()[1] - a.getCoordinate()[1]) - (b.getCoordinate()[1] - a.getCoordinate()[1]) * (c.getCoordinate()[0] - a.getCoordinate()[0]);
-        return z == 0 ? 0 : (z < 0 ? -1 : 1);
     }
 
     /**
@@ -111,7 +94,7 @@ public class ConvexHull {
         double angleA = getPolarAngle(reference, a);
         double angleB = getPolarAngle(reference, b);
 
-        if (angleA == angleB) {
+        if (AlgoUtil.equal(angleA, angleB)) {
             return Double.compare(Distance.distance(reference, a), Distance.distance(reference, b));
         }
 

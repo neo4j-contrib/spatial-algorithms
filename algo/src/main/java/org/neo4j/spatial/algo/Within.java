@@ -1,5 +1,6 @@
 package org.neo4j.spatial.algo;
 
+import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
@@ -7,7 +8,7 @@ import java.util.ArrayList;
 
 public class Within {
     public static boolean within(Polygon.SimplePolygon outer, Polygon.SimplePolygon inner) {
-        if (Intersect.intersect(outer, inner).length != 0) {
+        if (new NaiveIntersect().intersect(outer, inner).length != 0) {
             return false;
         }
 

@@ -31,6 +31,16 @@ public interface LineSegment {
         return null;
     }
 
+    /**
+     * The difference between x-values for the two endpoints of the line segment
+     *
+     * @param segment
+     * @return The difference between x-values for the two endpoints of the line segment
+     */
+    static double dX(LineSegment segment) {
+        return segment.getPoints()[1].getCoordinate()[0] - segment.getPoints()[0].getCoordinate()[0];
+    }
+
     int dimension();
 
     String toWKT();
@@ -77,7 +87,7 @@ class InMemoryLineSegment implements LineSegment {
 
     @Override
     public String toWKT() {
-        StringJoiner viewer = new StringJoiner(",", "LINESTRING((", "))");
+        StringJoiner viewer = new StringJoiner(",", "LINESTRING(", ")");
         for (Point point : points) {
             viewer.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
         }

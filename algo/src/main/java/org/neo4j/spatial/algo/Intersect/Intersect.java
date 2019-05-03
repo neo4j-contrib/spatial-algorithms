@@ -1,13 +1,12 @@
-package org.neo4j.spatial.algo;
+package org.neo4j.spatial.algo.Intersect;
 
+import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.Line;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
-import java.util.*;
-
-public class Intersect {
+public interface Intersect {
     /**
      * Given two simple polygons, returns all points for which the two polygons intersect.
      *
@@ -15,22 +14,7 @@ public class Intersect {
      * @param b
      * @return Array of intersections
      */
-    public static Point[] intersect(Polygon.SimplePolygon a, Polygon.SimplePolygon b) {
-        Set<Point> intersectionSet = new HashSet<>();
-        LineSegment[] aLS = Polygon.SimplePolygon.toLineSegments(a);
-        LineSegment[] bLS = Polygon.SimplePolygon.toLineSegments(b);
-
-        for (int i = 0; i < aLS.length; i++) {
-            for (int j = 0; j < bLS.length; j++) {
-                Point intersection = intersect(aLS[i], bLS[j]);
-                if (intersection != null) {
-                    intersectionSet.add(intersection);
-                }
-            }
-        }
-
-        return intersectionSet.toArray(new Point[0]);
-    }
+    Point[] intersect(Polygon.SimplePolygon a, Polygon.SimplePolygon b);
 
     /**
      * Given two line segment returns the point of intersection if and only if it exists, else it will return null.
@@ -39,7 +23,7 @@ public class Intersect {
      * @param b
      * @return Point of intersection if it exists, else null
      */
-    public static Point intersect(LineSegment a, LineSegment b) {
+    static Point intersect(LineSegment a, LineSegment b) {
         Point shared = LineSegment.sharedPoint(a, b);
         if (shared != null) {
             return shared;
@@ -59,7 +43,7 @@ public class Intersect {
                 Double y = overlaps(
                         new double[]{a0.getCoordinate()[1], a1.getCoordinate()[1]},
                         new double[]{b0.getCoordinate()[1], b1.getCoordinate()[1]
-                });
+                        });
                 if (y != null) {
                     return Point.point(a0.getCoordinate()[0], y);
                 }
@@ -78,7 +62,7 @@ public class Intersect {
         }
 
         //Two line segments with the same slope only intersect if they have the same offset and overlap (in one point)
-        if (l1.getA() == l2.getA()) {
+        if (AlgoUtil.equal(l1.getA(), l2.getA())) {
             if (l1.getB() != l2.getB()) {
                 return null;
             }
@@ -121,7 +105,7 @@ public class Intersect {
      * @param other1 The second point of the other line segment
      * @return The point of intersection, or null if it does not exist
      */
-    private static Point intersectionWithVertical(Line line, Point v0, Point v1, Point other0, Point other1) {
+    static Point intersectionWithVertical(Line line, Point v0, Point v1, Point other0, Point other1) {
         double x = v0.getCoordinate()[0];
         double y = line.getY(x);
 
@@ -143,7 +127,7 @@ public class Intersect {
      * @param inter2 Array of size two
      * @return The lowest value the two intervals have in common, otherwise null
      */
-    private static Double overlaps(double[] inter1, double[] inter2) {
+    static Double overlaps(double[] inter1, double[] inter2) {
         double lowest1;
         double lowest2;
         double highest1;
@@ -178,7 +162,14 @@ public class Intersect {
         return null;
     }
 
-    private static boolean inInterval(double[] inter, double value) {
+    /**
+     * Checks whether the value is in the given interval
+     *
+     * @param inter The (unordered) interval of size 2
+     * @param value The value to be tested
+     * @return True iff value is lower or equal than one of values of interval and higher or equal than other
+     */
+    static boolean inInterval(double[] inter, double value) {
         double lowest;
         double highest;
 
