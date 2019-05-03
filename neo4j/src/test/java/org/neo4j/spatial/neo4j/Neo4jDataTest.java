@@ -34,10 +34,10 @@ public class Neo4jDataTest {
             Node node = db.createNode(Label.label("PoI"));
             node.setProperty("location", Values.pointValue(CoordinateReferenceSystem.Cartesian, 5.3, 9.1));
             neo4jPoint = new Neo4jPoint(node, "location");
+            assertThat("expected Neo4jPoint to contain correct coordinates", neo4jPoint.getCoordinate(), equalTo(new double[]{5.3, 9.1}));
             tx.success();
         }
 
-        assertThat("expected Neo4jPoint to contain correct coordinates", neo4jPoint.getCoordinate(), equalTo(new double[]{5.3, 9.1}));
     }
 
     @Test
@@ -85,7 +85,7 @@ public class Neo4jDataTest {
 
     @Test
     public void shouldUnderstandSimpleGraphPolygonAsSimplePolygon() {
-        Neo4jSimplePolygon neo4jSimplePolygon;
+        Neo4jSimpleGraphPolygon neo4jSimpleGraphPolygon;
 
         try (Transaction tx = db.beginTx()) {
             Node main = db.createNode(Label.label("Main"));
@@ -104,15 +104,19 @@ public class Neo4jDataTest {
             second.createRelationshipTo(third, RelationshipType.withName("Next"));
             third.createRelationshipTo(fourth, RelationshipType.withName("Next"));
 
-            neo4jSimplePolygon = new Neo4jSimplePolygon(main, "location", "First", "Next");
+            neo4jSimpleGraphPolygon = new Neo4jSimpleGraphPolygon(main, "location", "First", "Next");
+
+            System.out.println(neo4jSimpleGraphPolygon.toWKT());
+
+            assertThat("expected Neo4jSimpleGraphPolygon to contain 5 points", neo4jSimpleGraphPolygon.getPoints().length, equalTo(5));
+            assertThat("expected Neo4jSimpleGraphPolygon to contain correct coordinates on pos 1", neo4jSimpleGraphPolygon.getPoints()[0].getCoordinate(), equalTo(new double[]{-10, -10}));
+            assertThat("expected Neo4jSimpleGraphPolygon to contain correct coordinates on pos 2", neo4jSimpleGraphPolygon.getPoints()[1].getCoordinate(), equalTo(new double[]{10, -10}));
+            assertThat("expected Neo4jSimpleGraphPolygon to contain correct coordinates on pos 3", neo4jSimpleGraphPolygon.getPoints()[2].getCoordinate(), equalTo(new double[]{10, 10}));
+            assertThat("expected Neo4jSimpleGraphPolygon to contain correct coordinates on pos 4", neo4jSimpleGraphPolygon.getPoints()[3].getCoordinate(), equalTo(new double[]{-10, 10}));
+            assertThat("expected Neo4jSimpleGraphPolygon to contain correct coordinates on pos 5", neo4jSimpleGraphPolygon.getPoints()[4].getCoordinate(), equalTo(new double[]{-10, -10}));
+
             tx.success();
         }
 
-        assertThat("expected Neo4jSimplePolygon to contain 5 points", neo4jSimplePolygon.getPoints().length, equalTo(5));
-        assertThat("expected Neo4jSimplePolygon to contain correct coordinates on pos 1", neo4jSimplePolygon.getPoints()[0].getCoordinate(), equalTo(new double[]{-10, -10}));
-        assertThat("expected Neo4jSimplePolygon to contain correct coordinates on pos 2", neo4jSimplePolygon.getPoints()[1].getCoordinate(), equalTo(new double[]{10, -10}));
-        assertThat("expected Neo4jSimplePolygon to contain correct coordinates on pos 3", neo4jSimplePolygon.getPoints()[2].getCoordinate(), equalTo(new double[]{10, 10}));
-        assertThat("expected Neo4jSimplePolygon to contain correct coordinates on pos 4", neo4jSimplePolygon.getPoints()[3].getCoordinate(), equalTo(new double[]{-10, 10}));
-        assertThat("expected Neo4jSimplePolygon to contain correct coordinates on pos 5", neo4jSimplePolygon.getPoints()[4].getCoordinate(), equalTo(new double[]{-10, -10}));
     }
 }

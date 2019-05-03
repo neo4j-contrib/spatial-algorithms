@@ -9,10 +9,12 @@ import java.util.List;
 import static java.lang.String.format;
 
 class Neo4jPoint implements Point {
-    private final org.neo4j.graphdb.spatial.Point point;
+    private final Node node;
+    private final String property;
 
     public Neo4jPoint(Node node, String property) {
-        this.point = (org.neo4j.graphdb.spatial.Point) node.getProperty(property);
+        this.node = node;
+        this.property = property;
     }
 
     public boolean equals(Point other) {
@@ -25,7 +27,8 @@ class Neo4jPoint implements Point {
 
     @Override
     public double[] getCoordinate() {
-        List<Double> coordinateList = this.point.getCoordinate().getCoordinate();
+        org.neo4j.graphdb.spatial.Point location = (org.neo4j.graphdb.spatial.Point) this.node.getProperty(property);
+        List<Double> coordinateList = location.getCoordinate().getCoordinate();
 
         return coordinateList.stream().mapToDouble(d -> d).toArray();
     }
