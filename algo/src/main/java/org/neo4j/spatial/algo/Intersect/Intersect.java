@@ -29,8 +29,8 @@ public interface Intersect {
             return shared;
         }
 
-        Line l1 = new Line(a.getPoints()[0], a.getPoints()[1]);
-        Line l2 = new Line(b.getPoints()[0], b.getPoints()[1]);
+        Line l1 = new Line(a);
+        Line l2 = new Line(b);
 
         Point a0 = a.getPoints()[0];
         Point a1 = a.getPoints()[1];
@@ -52,9 +52,9 @@ public interface Intersect {
         }
 
         if (l1.isVertical()) {
-            return intersectionWithVertical(l2, a0, a1, b0, b1);
+            return intersectionWithVertical(a0, a1, l2, b0, b1);
         } else if (l2.isVertical()) {
-            return intersectionWithVertical(l1, b0, b1, a0, a1);
+            return intersectionWithVertical(b0, b1, l1, a0, a1);
         }
 
         if (l1.getSign(b0) * l1.getSign(b1) > 0 && l2.getSign(a0) * l2.getSign(a1) > 0) {
@@ -98,24 +98,30 @@ public interface Intersect {
     /**
      * Computes the intersection of one vertical and one non-vertical line segment
      *
-     * @param line The line extending from the non-vertical line segment
      * @param v0 The first point of the vertical line segment
      * @param v1 The second point of the vertical line segment
+     * @param line The line extending from the non-vertical line segment
      * @param other0 The first point of the other line segment
      * @param other1 The second point of the other line segment
      * @return The point of intersection, or null if it does not exist
      */
-    static Point intersectionWithVertical(Line line, Point v0, Point v1, Point other0, Point other1) {
+    static Point intersectionWithVertical(Point v0, Point v1, Line line, Point other0, Point other1) {
         double x = v0.getCoordinate()[0];
         double y = line.getY(x);
 
-        if (!((v0.getCoordinate()[1] < y && y < v1.getCoordinate()[1]) || (v1.getCoordinate()[1] < y && y < v0.getCoordinate()[1]))) {
-            return null;
-        } else if (!((other0.getCoordinate()[1] < y && y < other1.getCoordinate()[1]) || (other1.getCoordinate()[1] < y && y < other0.getCoordinate()[1]))) {
-            return null;
-        } else if (!((other0.getCoordinate()[0] < x && x < other1.getCoordinate()[0]) || (other1.getCoordinate()[0] < x && x < other0.getCoordinate()[0]))) {
+        if (!inInterval(new double[]{other0.getCoordinate()[0], other1.getCoordinate()[0]}, x)) {
             return null;
         }
+
+        if (!inInterval(new double[]{other0.getCoordinate()[1], other1.getCoordinate()[1]}, y)) {
+            return null;
+        }
+
+        if (!inInterval(new double[]{v0.getCoordinate()[1], v1.getCoordinate()[1]}, y)) {
+            return null;
+        }
+
+
         return Point.point(x, y);
     }
 
@@ -181,7 +187,7 @@ public interface Intersect {
             highest = inter[0];
         }
 
-        if (lowest <= value && value <= highest) {
+        if (AlgoUtil.lessOrEqual(lowest, value) && AlgoUtil.lessOrEqual(value, highest)) {
             return true;
         }
 

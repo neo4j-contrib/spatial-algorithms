@@ -96,7 +96,25 @@ public class IntersectTest {
                 Point.point(-14, 15)
         );
 
-        assertThat(polygonImpl.intersect(a, b), org.hamcrest.Matchers.arrayContainingInAnyOrder(Point.point(15, 0), Point.point(-5, 0)));
+        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(15, 0), Point.point(-5, 0)});
+    }
+
+    @Test
+    public void shouldFindIntersectionsBetweenSquares() {
+        Polygon.SimplePolygon a = Polygon.simple(
+                Point.point(-10, -10),
+                Point.point(10, -10),
+                Point.point(10, 10),
+                Point.point(-10, 10)
+        );
+        Polygon.SimplePolygon b = Polygon.simple(
+                Point.point(-5, -5),
+                Point.point(15, -5),
+                Point.point(15, 15),
+                Point.point(-5, 15)
+        );
+
+        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(-5, 10), Point.point(10, -5)});
     }
 
     @Test
@@ -112,7 +130,7 @@ public class IntersectTest {
                 Point.point(0, -5)
         );
 
-        assertThat(polygonImpl.intersect(a, b), org.hamcrest.Matchers.arrayContainingInAnyOrder(Point.point(3.3333333333333335, 0), Point.point(-3.3333333333333335, 0)));
+        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(3.3333333333333335, 0), Point.point(-3.3333333333333335, 0)});
     }
 
     @Test
@@ -165,18 +183,7 @@ public class IntersectTest {
                 Point.point(2.082783957901631, 0.15247859101009514)
         };
 
-        assertThat(actual.length, equalTo(expected.length));
-
-        for (int i = 0; i < expected.length; i++) {
-            boolean flag = false;
-            for (int j = 0; j < actual.length; j++) {
-                if (AlgoUtil.equal(actual[j].getCoordinate()[0], expected[i].getCoordinate()[0]) &&
-                        AlgoUtil.equal(actual[j].getCoordinate()[1], expected[i].getCoordinate()[1])) {
-                    flag = true;
-                }
-            }
-            assertThat("Point " + i + " is not present", flag, is(true));
-        }
+        matchPoints(actual, expected);
     }
 
     @Test
@@ -192,7 +199,7 @@ public class IntersectTest {
                 Point.point(0, 5)
         );
 
-        assertThat(polygonImpl.intersect(a, b), org.hamcrest.Matchers.arrayContainingInAnyOrder(Point.point(0, 5)));
+        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(0, 5)});
     }
 
     @Test
@@ -210,5 +217,20 @@ public class IntersectTest {
         );
 
         assertThat(polygonImpl.intersect(a, b), org.hamcrest.Matchers.emptyArray());
+    }
+
+    private void matchPoints(Point[] actual, Point[] expected) {
+        assertThat(actual.length, equalTo(expected.length));
+
+        for (int i = 0; i < expected.length; i++) {
+            boolean flag = false;
+            for (int j = 0; j < actual.length; j++) {
+                if (AlgoUtil.equal(actual[j].getCoordinate()[0], expected[i].getCoordinate()[0]) &&
+                        AlgoUtil.equal(actual[j].getCoordinate()[1], expected[i].getCoordinate()[1])) {
+                    flag = true;
+                }
+            }
+            assertThat("Point " + i + " is not present", flag, is(true));
+        }
     }
 }

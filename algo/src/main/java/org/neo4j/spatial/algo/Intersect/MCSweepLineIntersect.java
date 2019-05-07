@@ -3,15 +3,14 @@ package org.neo4j.spatial.algo.Intersect;
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class MCSweepLineIntersect implements Intersect {
     private List<MonotoneChain> activeChainList;
     private List<MonotoneChain> sweepingChainList;
     private List<Point> outputList;
+
+    private double sweepAngle;
 
     //This variable is used to determine the origin of the monotone chains
     private long splitId;
@@ -37,9 +36,14 @@ public class MCSweepLineIntersect implements Intersect {
         Polygon.SimplePolygon aFiltered = filterCollinear(a);
         Polygon.SimplePolygon bFiltered = filterCollinear(b);
 
+        computeSweepDirection(a, b);
+
+        Polygon.SimplePolygon aRotated = Polygon.simple(rotatePoints(aFiltered.getPoints(), this.sweepAngle));
+        Polygon.SimplePolygon bRotated = Polygon.simple(rotatePoints(bFiltered.getPoints(), this.sweepAngle));
+
         List<MonotoneChain> inputList = new ArrayList<>();
-        List<MonotoneChain> aList = MonotoneChainPartitioner.partition(aFiltered);
-        List<MonotoneChain> bList = MonotoneChainPartitioner.partition(bFiltered);
+        List<MonotoneChain> aList = MonotoneChainPartitioner.partition(aRotated);
+        List<MonotoneChain> bList = MonotoneChainPartitioner.partition(bRotated);
 
         splitId = bList.get(0).getId();
 
@@ -95,7 +99,86 @@ public class MCSweepLineIntersect implements Intersect {
 
         }
 
-        return outputList.toArray(new Point[0]);
+        Point[] outputPoints = outputList.toArray(new Point[0]);
+
+        return rotatePoints(outputPoints, -this.sweepAngle);
+    }
+
+    private Point[] rotatePoints(Point[] points, double angle) {
+        Point[] rotated = new Point[points.length];
+
+        for (int i = 0; i < points.length; i++) {
+            double x = points[i].getCoordinate()[0];
+            double y = points[i].getCoordinate()[1];
+
+            double rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
+            double rotatedY = y * Math.cos(angle) + x * Math.sin(angle);
+
+            rotated[i] = Point.point(rotatedX, rotatedY);
+        }
+
+        return rotated;
+    }
+
+    private void computeSweepDirection(Polygon.SimplePolygon a, Polygon.SimplePolygon b) {
+        Set<Double> angleSet = new HashSet<>();
+
+        angleSet.addAll(computeAngles(a));
+        angleSet.addAll(computeAngles(b));
+
+        List<Double> angles = new ArrayList<>(angleSet);
+        Collections.sort(angles);
+
+        double angle = -1;
+        for (int i = 0; i < angles.size() - 1; i++) {
+            double currentAngle = (angles.get(i+1) + angles.get(i)) / 2d;
+
+            boolean flag = false;
+            double vertical = angle + (Math.PI/2);
+
+            if (vertical < 0) {
+                vertical -= Math.PI;
+            }
+
+            for (Double toCheck : angles) {
+                if (AlgoUtil.equal(toCheck, vertical)) {
+                    flag = true;
+                }
+            }
+
+            if (!flag) {
+                angle = currentAngle;
+                break;
+            }
+        }
+
+        if (angle == -1) {
+            throw new IllegalArgumentException("Vertical line segments found for every possible sweep direction");
+        }
+
+        this.sweepAngle = angle;
+    }
+
+    private Set<Double> computeAngles(Polygon.SimplePolygon polygon) {
+        Set<Double> angles = new HashSet<>();
+
+        for (LineSegment segment : Polygon.SimplePolygon.toLineSegments(polygon)) {
+            Point p = segment.getPoints()[0];
+            Point q = segment.getPoints()[1];
+
+            double dx = q.getCoordinate()[0] - p.getCoordinate()[0];
+            double dy = q.getCoordinate()[1] - p.getCoordinate()[1];
+
+            double angle = Math.atan2(dy, dx);
+
+            if (angle < -0) {
+                angle += Math.PI;
+            }
+
+            angles.add(angle);
+        }
+
+        return angles;
     }
 
     /**

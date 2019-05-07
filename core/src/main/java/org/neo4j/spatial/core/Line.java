@@ -5,6 +5,10 @@ public class Line {
     private double b;
     private boolean vertical = false;
 
+    public Line(LineSegment ls) {
+        this(ls.getPoints()[0], ls.getPoints()[1]);
+    }
+
     public Line(Point p, Point q) {
         double dx = p.getCoordinate()[0] - q.getCoordinate()[0];
         double dy = p.getCoordinate()[1] - q.getCoordinate()[1];

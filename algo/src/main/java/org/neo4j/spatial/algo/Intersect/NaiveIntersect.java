@@ -9,7 +9,7 @@ import java.util.*;
 public class NaiveIntersect implements Intersect {
     @Override
     public Point[] intersect(Polygon.SimplePolygon a, Polygon.SimplePolygon b) {
-        Set<Point> intersectionSet = new HashSet<>();
+        Set<Point> intersections = new HashSet<>();
         LineSegment[] aLS = Polygon.SimplePolygon.toLineSegments(a);
         LineSegment[] bLS = Polygon.SimplePolygon.toLineSegments(b);
 
@@ -17,11 +17,11 @@ public class NaiveIntersect implements Intersect {
             for (int j = 0; j < bLS.length; j++) {
                 Point intersection = Intersect.intersect(aLS[i], bLS[j]);
                 if (intersection != null) {
-                    intersectionSet.add(intersection);
+                    intersections.add(intersection);
                 }
             }
         }
 
-        return intersectionSet.toArray(new Point[0]);
+        return intersections.toArray(new Point[0]);
     }
 }
