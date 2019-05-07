@@ -10,7 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>spatial-3d-viewer</artifactId>
-    <name>Spatial 3D :: org.neo4j.spatial.viewer.Viewer</name>
+    <name>Spatial 3D :: Viewer</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
