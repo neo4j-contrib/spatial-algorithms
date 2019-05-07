@@ -1,6 +1,7 @@
 package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.spatial.core.Point;
 
 import java.util.Arrays;
@@ -31,6 +32,10 @@ class Neo4jPoint implements Point {
         List<Double> coordinateList = location.getCoordinate().getCoordinate();
 
         return coordinateList.stream().mapToDouble(d -> d).toArray();
+    }
+
+    public CRS getCRS() {
+        return ((org.neo4j.graphdb.spatial.Point) this.node.getProperty(property)).getCRS();
     }
 
     public String toString() {

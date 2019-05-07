@@ -10,10 +10,10 @@ import java.util.StringJoiner;
 
 import static java.lang.String.format;
 
-public class Neo4jSimplePolygon implements Polygon.SimplePolygon {
+public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     private final org.neo4j.graphdb.spatial.Point[] points;
 
-    public Neo4jSimplePolygon(Node node, String property) {
+    public Neo4jSimpleArrayPolygon(Node node, String property) {
         org.neo4j.graphdb.spatial.Point[] unclosed = (org.neo4j.graphdb.spatial.Point[]) node.getProperty(property);
         this.points = new PolygonUtil<org.neo4j.graphdb.spatial.Point>().closeRing(unclosed);
         if (points.length < 4) {
@@ -38,7 +38,7 @@ public class Neo4jSimplePolygon implements Polygon.SimplePolygon {
 
     @Override
     public String toString() {
-        return format("Neo4jSimplePolygon%s", Arrays.toString(points));
+        return format("Neo4jSimpleArrayPolygon%s", Arrays.toString(points));
     }
 
     @Override

@@ -3,6 +3,7 @@ package org.neo4j.spatial.neo4j;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.core.Point;
@@ -51,6 +52,11 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         }
         return viewer.toString();
     }
+
+    public CRS getCRS() {
+        return this.points[0].getCRS();
+    }
+
 
     /**
      * Traverses through the graph starting at the main node
