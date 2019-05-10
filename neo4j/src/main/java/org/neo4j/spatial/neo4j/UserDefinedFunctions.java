@@ -4,11 +4,12 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.procedure.Mode;
-import org.neo4j.procedure.Name;
-import org.neo4j.procedure.Procedure;
-import org.neo4j.procedure.UserFunction;
+import org.neo4j.graphdb.traversal.*;
+import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.logging.Log;
+import org.neo4j.procedure.*;
 import org.neo4j.spatial.algo.ConvexHull;
+import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
 import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
 import org.neo4j.spatial.algo.Within;
@@ -18,6 +19,9 @@ import java.util.*;
 import java.util.stream.Stream;
 
 public class UserDefinedFunctions {
+
+    @Context
+    public Log log;
 
     @Procedure("neo4j.polygon")
     public Stream<PolygonResult> makePolygon(@Name("points") List<Point> points) {
@@ -33,8 +37,141 @@ public class UserDefinedFunctions {
         }
     }
 
-    @Procedure(name = "neo4j.OSMPolygon", mode = Mode.WRITE)
-    public void makeOSMPolygon(@Name("main") Node main) {
+    @Procedure(name = "neo4j.createOSMArrayPolygon", mode = Mode.WRITE)
+    public void createOSMArrayPolygon(@Name("main") Node main) {
+        GraphDatabaseService db = main.getGraphDatabase();
+        List<List<Point>> polyLines = new ArrayList<>();
+
+        Set<Node> ways = new HashSet<>();
+        ResourceIterable<Node> wayIterator = new MonoDirectionalTraversalDescription().depthFirst()
+                .relationships(RelationshipType.withName("MEMBER"), Direction.OUTGOING).traverse(main).nodes();
+
+        for (Node way : wayIterator) {
+            if (ways.contains(way)) {
+                continue;
+            }
+
+            ways.add(way);
+
+            Iterator<Label> labelIterator = way.getLabels().iterator();
+            boolean flag = false;
+            while (labelIterator.hasNext()) {
+                Label label = labelIterator.next();
+                if (label.name().equals("OSMWay")) {
+                    flag = true;
+                }
+            }
+
+            if (!flag) {
+                continue;
+            }
+
+            List<Node> wayNodes = new LinkedList<>();
+            List<Node> nodes = new LinkedList<>();
+
+            Node currentWayNode = new MonoDirectionalTraversalDescription().depthFirst()
+                    .relationships(RelationshipType.withName("FIRST_NODE"), Direction.OUTGOING)
+                    .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(RelationshipType.withName("FIRST_NODE")))
+
+                    .traverse(way).iterator().next().endNode();
+
+            TraversalDescription followWay = new MonoDirectionalTraversalDescription()
+                    .depthFirst().relationships(RelationshipType.withName("NEXT"));
+
+            RelationshipType nodeRel = RelationshipType.withName("NODE");
+            while (nodes.isEmpty() || !nodes.get(0).equals(nodes.get(nodes.size() - 1))) {
+                ResourceIterator<Node> wayNodeIterator = followWay.traverse(currentWayNode).nodes().iterator();
+
+                if (!nodes.isEmpty()) {
+                    wayNodeIterator.next();
+                }
+
+
+                while (wayNodeIterator.hasNext()) {
+                    Node wayNode = wayNodeIterator.next();
+                    wayNodes.add(wayNode);
+                    nodes.add(wayNode.getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode());
+                }
+
+                Node lastWayNode = wayNodes.get(wayNodes.size() - 1);
+
+                Map<String, Object> parameters = new HashMap<>();
+                parameters.put("main", main.getId());
+                parameters.put("lastWayNode", lastWayNode.getId());
+
+                Result result = db.execute("MATCH (l:OSMWayNode)-[:NODE]->(:OSMNode)<-[:NODE]-(n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER]-(m:OSMRelation) " +
+                        "WHERE id(l) = $lastWayNode AND id(m) = $main AND l <> n RETURN n AS NEXT, w AS WAY;", parameters);
+
+                flag = false;
+                while (result.hasNext()) {
+                    Map<String, Object> next = result.next();
+                    Node nextWay = (Node) next.get("WAY");
+
+                    if (ways.contains(nextWay)) {
+                        break;
+                    }
+
+                    currentWayNode = (Node) next.get("NEXT");
+                    ways.add(nextWay);
+                    flag = true;
+                    break;
+                }
+
+                if (!flag) {
+                    break;
+                }
+            }
+
+            List<Point> polyLine = new ArrayList<>();
+            for (Node node : nodes) {
+                polyLine.add((Point) node.getProperty("location"));
+            }
+            polyLines.add(polyLine);
+        }
+
+        List<Point> polygon = new ArrayList<>();
+        polygon.addAll(polyLines.get(0));
+        polyLines.remove(0);
+        while (polyLines.size() > 0) {
+            double[] lastFromPolygon = polygon.get(polygon.size() - 1).getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray();
+
+            double minDistance = Double.MAX_VALUE;
+            List<Point> bestPolyLine = null;
+            boolean first = true;
+            for (List<Point> polyLine : polyLines) {
+                double[] firstFromPolyLine = polyLine.get(0).getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray();
+                double[] lastFromPolyLine = polyLine.get(polyLine.size() - 1).getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray();
+
+                double distanceFirst = Distance.distance(lastFromPolygon, firstFromPolyLine);
+                double distanceLast = Distance.distance(lastFromPolygon, lastFromPolyLine);
+
+                if (distanceFirst < minDistance) {
+                    minDistance = distanceFirst;
+                    bestPolyLine = polyLine;
+                    first = true;
+                }
+
+                if (distanceLast < minDistance) {
+                    minDistance = distanceLast;
+                    bestPolyLine = polyLine;
+                    first = false;
+                }
+            }
+
+            if (first) {
+                polygon.addAll(bestPolyLine);
+            } else {
+                List<Point> reversed = bestPolyLine.subList(0, bestPolyLine.size() - 1);
+                Collections.reverse(reversed);
+                polygon.addAll(reversed);
+            }
+            polyLines.remove(bestPolyLine);
+        }
+
+        main.setProperty("polygon", polygon.toArray(new Point[0]));
+    }
+    @Procedure(name = "neo4j.createOSMGraphPolygon", mode = Mode.WRITE)
+    public void createOSMPolygon(@Name("main") Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
 
         Map<String, Object> parameters = new HashMap<>();

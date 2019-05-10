@@ -14,10 +14,7 @@ import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Values;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -51,6 +48,153 @@ public class UserDefinedFunctionsTest {
             assertThat("Should have 4 points", polygon.size(), equalTo(4));
             assertThat("Should be closed polygon", polygon.get(0), equalTo(polygon.get(polygon.size() - 1)));
         });
+    }
+
+    @Test
+    public void shouldCreateOSMArrayPolygonNormalDirectionOverlap() {
+        try (Transaction tx = db.beginTx()) {
+            Node main = db.createNode(Label.label("OSMRelation"));
+            Node[] ways = new Node[4];
+            Node[][] wayNodes = new Node[ways.length][3];
+            Node[][] nodes = new Node[ways.length][wayNodes[0].length - 2];
+            Node[] connectors = createOSMPolygon(main, ways, wayNodes, nodes, ways.length);
+
+            int last = wayNodes[0].length - 1;
+            int first = 0;
+
+            RelationshipType nodeRel = RelationshipType.withName("NODE");
+
+            wayNodes[0][last].createRelationshipTo(connectors[0], nodeRel);
+            wayNodes[1][first].createRelationshipTo(connectors[0], nodeRel);
+
+            wayNodes[1][last].createRelationshipTo(connectors[1], nodeRel);
+            wayNodes[2][first].createRelationshipTo(connectors[1], nodeRel);
+
+            wayNodes[2][last].createRelationshipTo(connectors[2], nodeRel);
+            wayNodes[3][first].createRelationshipTo(connectors[2], nodeRel);
+
+            wayNodes[3][last].createRelationshipTo(connectors[3], nodeRel);
+            wayNodes[0][first].createRelationshipTo(connectors[3], nodeRel);
+
+            testCall(db, "CALL neo4j.createOSMArrayPolygon($main)",
+                    map("main", main), result -> {
+                    });
+
+            tx.success();
+        }
+    }
+
+    @Test
+    public void shouldCreateOSMArrayPolygonRandomDirectionOverlap() {
+        try (Transaction tx = db.beginTx()) {
+            Node main = db.createNode(Label.label("OSMRelation"));
+            Node[] ways = new Node[4];
+            Node[][] wayNodes = new Node[ways.length][3];
+            Node[][] nodes = new Node[ways.length][wayNodes[0].length-2];
+            Node[] connectors = createOSMPolygon(main, ways, wayNodes, nodes, ways.length);
+
+            int last = wayNodes[0].length - 1;
+            int first = 0;
+
+            RelationshipType nodeRel = RelationshipType.withName("NODE");
+
+            wayNodes[0][last].createRelationshipTo(connectors[0], nodeRel);
+            wayNodes[1][first].createRelationshipTo(connectors[0], nodeRel);
+
+            wayNodes[1][last].createRelationshipTo(connectors[1], nodeRel);
+            wayNodes[2][last].createRelationshipTo(connectors[1], nodeRel);
+
+            wayNodes[2][first].createRelationshipTo(connectors[2], nodeRel);
+            wayNodes[3][first].createRelationshipTo(connectors[2], nodeRel);
+
+            wayNodes[3][last].createRelationshipTo(connectors[3], nodeRel);
+            wayNodes[0][first].createRelationshipTo(connectors[3], nodeRel);
+
+            testCall(db, "CALL neo4j.createOSMArrayPolygon($main)",
+                    map("main", main), result -> {
+                    });
+
+            tx.success();
+        }
+    }
+
+    @Test
+    public void shouldCreateOSMArrayPolygonNormalDirectionNoOverlap() {
+        try (Transaction tx = db.beginTx()) {
+            Node main = db.createNode(Label.label("OSMRelation"));
+            Node[] ways = new Node[4];
+            Node[][] wayNodes = new Node[ways.length][2];
+            Node[][] nodes = new Node[ways.length][wayNodes[0].length-2];
+            Node[] connectors = createOSMPolygon(main, ways, wayNodes, nodes, 2*ways.length);
+
+            int last = wayNodes[0].length - 1;
+            int first = 0;
+
+            RelationshipType nodeRel = RelationshipType.withName("NODE");
+
+            for (int i = 0; i < connectors.length; i++) {
+                double p = (i/2);
+
+                if (i % 2 == 1) {
+                    p += 0.1;
+                }
+
+                connectors[i].setProperty("location", Values.pointValue(CoordinateReferenceSystem.Cartesian, p, p));
+            }
+
+            for (int i = 0; i < ways.length; i++) {
+                wayNodes[i][last].createRelationshipTo(connectors[i*2], nodeRel);
+                wayNodes[(i + 1) % ways.length][first].createRelationshipTo(connectors[(i*2)+1], nodeRel);
+            }
+
+            testCall(db, "CALL neo4j.createOSMArrayPolygon($main)",
+                    map("main", main), result -> {
+                    });
+
+            tx.success();
+        }
+    }
+
+    private Node[] createOSMPolygon(Node main, Node[] ways, Node[][] wayNodes, Node[][] nodes, int connectorsLength) {
+        Point placeholderPoint = Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 0);
+
+        Label wayLabel = Label.label("OSMWay");
+        Label wayNodeLabel = Label.label("OSMWayNode");
+        Label nodeLabel = Label.label("OSMNode");
+        RelationshipType memberRel = RelationshipType.withName("MEMBER");
+        RelationshipType firstNodeRel = RelationshipType.withName("FIRST_NODE");
+        RelationshipType nextRel = RelationshipType.withName("NEXT");
+        RelationshipType nodeRel = RelationshipType.withName("NODE");
+
+
+        for (int i = 0; i < ways.length; i++) {
+            ways[i] = db.createNode(wayLabel);
+            main.createRelationshipTo(ways[i], memberRel);
+
+            for (int j = 0; j < wayNodes[i].length; j++) {
+                wayNodes[i][j] = db.createNode(wayNodeLabel);
+            }
+
+            ways[i].createRelationshipTo(wayNodes[i][0], firstNodeRel);
+            for (int j = 0; j < wayNodes[i].length - 1; j++) {
+                wayNodes[i][j].createRelationshipTo(wayNodes[i][j+1], nextRel);
+            }
+
+            for (int j = 0; j < nodes[i].length; j++) {
+                nodes[i][j] = db.createNode(nodeLabel);
+                nodes[i][j].setProperty("location", placeholderPoint);
+
+                wayNodes[i][j+1].createRelationshipTo(nodes[i][j], nodeRel);
+            }
+        }
+
+        Node[] connectors = new Node[connectorsLength];
+        for (int i = 0; i < connectors.length; i++) {
+            connectors[i] = db.createNode(nodeLabel);
+            connectors[i].setProperty("location", placeholderPoint);
+        }
+
+        return connectors;
     }
 
     @Test
