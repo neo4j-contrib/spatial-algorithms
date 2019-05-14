@@ -37,6 +37,11 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     }
 
     @Override
+    public boolean isSimple() {
+        return true;
+    }
+
+    @Override
     public String toString() {
         return format("Neo4jSimpleArrayPolygon%s", Arrays.toString(points));
     }

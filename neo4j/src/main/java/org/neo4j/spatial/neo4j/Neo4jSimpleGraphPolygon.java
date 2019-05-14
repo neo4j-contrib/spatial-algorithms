@@ -1,27 +1,43 @@
 package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.spatial.CRS;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.logging.Log;
+import org.neo4j.procedure.Context;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.PolygonUtil;
 
+import javax.management.relation.Relation;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
 public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     private final Neo4jPoint[] points;
 
-    public Neo4jSimpleGraphPolygon(Node main, String property, String relationStart, String relationNext) {
+    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipType relationStart, RelationshipType[] relationNext) {
         Neo4jPoint[] unclosed = traverseGraph(main, property, relationStart, relationNext);
+        this.points = new PolygonUtil<Neo4jPoint>().closeRing(unclosed);
+        if (points.length < 4) {
+            throw new IllegalArgumentException("Polygon cannot have less than 4 points");
+        }
+        assertAllSameDimension(this.points);
+    }
+
+    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipType[] relationNext) {
+        Neo4jPoint[] unclosed = traverseGraph(main, property, null, relationNext);
         this.points = new PolygonUtil<Neo4jPoint>().closeRing(unclosed);
         if (points.length < 4) {
             throw new IllegalArgumentException("Polygon cannot have less than 4 points");
@@ -37,6 +53,11 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     @Override
     public Point[] getPoints() {
         return points;
+    }
+
+    @Override
+    public boolean isSimple() {
+        return true;
     }
 
     @Override
@@ -67,22 +88,25 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
      * @param relationNext The name of the relation between nodes of the polygon
      * @return An array containing the points of the polygon in order
      */
-    private static Neo4jPoint[] traverseGraph(Node main, String property, String relationStart, String relationNext) {
-        List<Neo4jPoint> resultList = new LinkedList<>();
-        RelationshipType startRel = RelationshipType.withName(relationStart);
-        RelationshipType nextRel = RelationshipType.withName(relationNext);
-        Node start = main.getSingleRelationship(startRel, Direction.OUTGOING).getEndNode();
+    private Neo4jPoint[] traverseGraph(Node main, String property, RelationshipType relationStart, RelationshipType[] relationNext) {
+        RelationshipType nodeRel = RelationshipType.withName("NODE");
 
-        Traverser t = new MonoDirectionalTraversalDescription().depthFirst().relationships(nextRel, Direction.OUTGOING).traverse(start);
-        for (Node n : t.nodes()) {
-            resultList.add(new Neo4jPoint(n, property));
+        Node start = main;
+        if (relationStart != null) {
+            start = main.getSingleRelationship(relationStart, Direction.OUTGOING).getEndNode();
         }
 
+        TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription().depthFirst()
+                .relationships(nodeRel, Direction.OUTGOING)
+                .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(nodeRel));
+        for (RelationshipType next : relationNext) {
+            traversalDescription = traversalDescription.relationships(next);
+        }
 
-        return resultList.toArray(new Neo4jPoint[0]);
+        return traversalDescription.traverse(start).nodes().stream().map(n -> new Neo4jPoint(n, property)).toArray(Neo4jPoint[]::new);
     }
 
-    private static void assertAllSameDimension(Neo4jPoint... points) {
+    private void assertAllSameDimension(Neo4jPoint... points) {
         for (int i = 1; i < points.length; i++) {
             if (points[0].dimension() != points[i].dimension()) {
                 throw new IllegalArgumentException(format("Point[%d] has different dimension to Point[%d]: %d != %d", i, 0, points[i].dimension(), points[0].dimension()));

@@ -15,24 +15,6 @@ public class Within {
         return within(outer, inner.getPoints()[0]);
     }
 
-    public static boolean within(Polygon polygon, Point point) {
-        return within(polygon, point, false);
-    }
-
-    public static boolean within(Polygon polygon, Point point, boolean touching) {
-        for (Polygon.SimplePolygon shell : polygon.getShells()) {
-            if (!within(shell, point, touching)) {
-                return false;
-            }
-        }
-        for (Polygon.SimplePolygon hole : polygon.getHoles()) {
-            if (within(hole, point, touching)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     public static boolean within(Polygon.SimplePolygon shell, Point point) {
         return within(shell, point, false);
     }
