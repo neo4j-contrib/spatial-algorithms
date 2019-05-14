@@ -99,6 +99,14 @@ public class UserDefinedFunctions {
 
     @Procedure(name = "neo4j.createOSMGraphPolygon", mode = Mode.WRITE)
     public void createOSMPolygon(@Name("main") Node main) {
+        GraphDatabaseService db = main.getGraphDatabase();
+        long id = (long) main.getProperty("relation_osm_id");
+
+        HashMap<String, Object> parameters = new HashMap<>();
+        parameters.put("id", id);
+        db.execute("MATCH (m:OSMRelation)-[:POLYGON_STRUCTURE*]->(p:POLYGON) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
+        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON"+id+"]->(:OSMWayNode) DELETE n");
+
         List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
 
         GraphPolygonBuilder graphPolygonBuilder = new GraphPolygonBuilder(main, polystrings);
