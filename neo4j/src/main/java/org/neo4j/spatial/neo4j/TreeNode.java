@@ -26,6 +26,7 @@ public class TreeNode {
         if (Within.within(otherTreeNode.getPolygon(), this.getPolygon().getPoints()[0])) {
             if (this.parent != null) {
                 this.parent.removeChild(this);
+                this.parent.addChild(otherTreeNode);
             }
             otherTreeNode.setParent(this.parent);
             otherTreeNode.addChild(this);

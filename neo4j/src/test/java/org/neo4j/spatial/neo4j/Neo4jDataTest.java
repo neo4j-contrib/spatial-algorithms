@@ -102,7 +102,7 @@ public class Neo4jDataTest {
             second.createRelationshipTo(third, RelationshipType.withName("Next"));
             third.createRelationshipTo(fourth, RelationshipType.withName("Next"));
 
-            neo4jSimpleGraphPolygon = new Neo4jSimpleGraphPolygon(main, "location", RelationshipType.withName("Start"), new RelationshipType[]{RelationshipType.withName("Next")});
+            neo4jSimpleGraphPolygon = new Neo4jSimpleGraphPolygon(main, "location", RelationshipType.withName("Start"), new RelationshipCombination[]{new RelationshipCombination(RelationshipType.withName("Next"), Direction.OUTGOING)});
 
             System.out.println(neo4jSimpleGraphPolygon.toWKT());
 

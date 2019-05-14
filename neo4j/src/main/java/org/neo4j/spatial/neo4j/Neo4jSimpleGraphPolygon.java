@@ -1,9 +1,6 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -16,10 +13,7 @@ import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.PolygonUtil;
 
 import javax.management.relation.Relation;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -27,7 +21,7 @@ import static java.lang.String.format;
 public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     private final Neo4jPoint[] points;
 
-    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipType relationStart, RelationshipType[] relationNext) {
+    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipType relationStart, RelationshipCombination[] relationNext) {
         Neo4jPoint[] unclosed = traverseGraph(main, property, relationStart, relationNext);
         this.points = new PolygonUtil<Neo4jPoint>().closeRing(unclosed);
         if (points.length < 4) {
@@ -36,7 +30,7 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         assertAllSameDimension(this.points);
     }
 
-    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipType[] relationNext) {
+    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipCombination[] relationNext) {
         Neo4jPoint[] unclosed = traverseGraph(main, property, null, relationNext);
         this.points = new PolygonUtil<Neo4jPoint>().closeRing(unclosed);
         if (points.length < 4) {
@@ -85,10 +79,10 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
      * @param main Starting node, which is not part of the polygon
      * @param property Name of the property containing the Point object
      * @param relationStart The name of the relation from the starting node to the first node of the polygon
-     * @param relationNext The name of the relation between nodes of the polygon
+     * @param relationNext The names of the relations between nodes of the polygon
      * @return An array containing the points of the polygon in order
      */
-    private Neo4jPoint[] traverseGraph(Node main, String property, RelationshipType relationStart, RelationshipType[] relationNext) {
+    private Neo4jPoint[] traverseGraph(Node main, String property, RelationshipType relationStart, RelationshipCombination[] relationNext) {
         RelationshipType nodeRel = RelationshipType.withName("NODE");
 
         Node start = main;
@@ -96,11 +90,12 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
             start = main.getSingleRelationship(relationStart, Direction.OUTGOING).getEndNode();
         }
 
-        TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription().depthFirst()
+        TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription().breadthFirst()
                 .relationships(nodeRel, Direction.OUTGOING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(nodeRel));
-        for (RelationshipType next : relationNext) {
-            traversalDescription = traversalDescription.relationships(next);
+
+        for (RelationshipCombination combination : relationNext) {
+            traversalDescription = traversalDescription.relationships(combination.getType(), combination.getDirection());
         }
 
         return traversalDescription.traverse(start).nodes().stream().map(n -> new Neo4jPoint(n, property)).toArray(Neo4jPoint[]::new);

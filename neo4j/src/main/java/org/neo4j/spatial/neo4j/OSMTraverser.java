@@ -11,7 +11,7 @@ import org.neo4j.spatial.algo.Distance;
 import java.util.*;
 
 public class OSMTraverser {
-    public static List<List<Node>> traverse(Node main) {
+    public static List<List<Node>> traverseOSMGraph(Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
         List<List<Node>> wayNodes = new ArrayList<>();
 
@@ -119,10 +119,10 @@ public class OSMTraverser {
             double[] last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
             double distance = Distance.distance(first, last);
 
-            if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
+            /*if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
                 polygons.add(wayToAdd);
                 continue;
-            }
+            }*/
 
             double minDistance = Double.MAX_VALUE;
             int bestIndex = -1;
@@ -158,7 +158,7 @@ public class OSMTraverser {
             if (forward) {
                 wayToAddTo.addAll(wayToAdd);
             } else {
-                List<Node> reversed = wayToAdd.subList(0, wayToAdd.size() - 1);
+                List<Node> reversed = new ArrayList<>(wayToAdd);
                 Collections.reverse(reversed);
                 wayToAddTo.addAll(reversed);
             }

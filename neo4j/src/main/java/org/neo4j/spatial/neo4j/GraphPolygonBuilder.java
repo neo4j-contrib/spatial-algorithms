@@ -46,9 +46,9 @@ public class GraphPolygonBuilder {
         for (List<Node> polystring : polystrings) {
 
             pairwise:
-            for (int i = 0; i < polystring.size() - 1; i++) {
+            for (int i = 0; i < polystring.size(); i++) {
                 Node a = polystring.get(i);
-                Node b = polystring.get(i+1);
+                Node b = polystring.get((i+1) % polystring.size());
 
                 for (Relationship relationship : a.getRelationships(nextInPolygonRel, Direction.OUTGOING)) {
                     if (relationship.isType(nextInPolygonRel)) {
@@ -79,8 +79,13 @@ public class GraphPolygonBuilder {
 
         Polygon.SimplePolygon[] polygons = new Polygon.SimplePolygon[polystrings.size()];
 
+        RelationshipCombination[] relationshipCombinations = new RelationshipCombination[]{
+                new RelationshipCombination(nextRel, Direction.BOTH),
+                new RelationshipCombination(nextInPolygonRel, Direction.OUTGOING)
+        };
+
         for (int i = 0; i < polystrings.size(); i++) {
-            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphPolygon(polystrings.get(i).get(0), "location", new RelationshipType[]{nextRel, nextInPolygonRel});
+            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphPolygon(polystrings.get(i).get(0), "location", relationshipCombinations);
             polygons[i] = polygon;
         }
 

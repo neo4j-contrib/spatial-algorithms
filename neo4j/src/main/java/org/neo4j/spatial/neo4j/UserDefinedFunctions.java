@@ -11,6 +11,8 @@ import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
 import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
 import org.neo4j.spatial.algo.Within;
 import org.neo4j.spatial.core.Polygon;
+import org.neo4j.values.storable.CoordinateReferenceSystem;
+import org.neo4j.values.storable.Values;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -36,7 +38,7 @@ public class UserDefinedFunctions {
 
     @Procedure(name = "neo4j.createOSMArrayPolygon", mode = Mode.WRITE)
     public void createOSMArrayPolygon(@Name("main") Node main) {
-        List<List<Node>> polystrings = OSMTraverser.traverse(main);
+        List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
 
         RelationshipType nodeRel = RelationshipType.withName("NODE");
 
@@ -48,13 +50,58 @@ public class UserDefinedFunctions {
             points.add(point);
         }
 
+        for (List<Node> polystring : polystrings) {
+            StringJoiner joiner = new StringJoiner(",", "LINESTRING(", ")");
+            for (Node wayNode : polystring) {
+
+                Node node = wayNode.getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode();
+
+                Point point = (Point) node.getProperty("location");
+                joiner.add(point.getCoordinate().getCoordinate().get(0) + " " + point.getCoordinate().getCoordinate().get(1));
+            }
+        }
+
         main.setProperty("polygon", points.toArray(new Point[0]));
     }
+
+    @Procedure(name = "neo4j.createArrayCache", mode = Mode.WRITE)
+    public void createArrayCache(@Name("polygonNode") Node polygonNode) {
+        GraphDatabaseService db = polygonNode.getGraphDatabase();
+
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("polygonNode", polygonNode.getId());
+        Result mainResult = db.execute("MATCH (p:POLYGON)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(p)=$polygonNode RETURN m AS main", parameters);
+
+        if (!mainResult.hasNext()) {
+            return;
+        }
+
+        long relation_osm_id = (long) ((Node) mainResult.next().get("main")).getProperty("relation_osm_id");
+
+        parameters = new HashMap<>();
+        parameters.put("polygonNode", polygonNode.getId());
+        Result startNodeResult = db.execute("MATCH (p:POLYGON)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
+
+        if (!startNodeResult.hasNext()) {
+            return;
+        }
+
+        Node startNode = (Node) startNodeResult.next().get("startNode");
+
+        RelationshipCombination[] relationshipCombinations = new RelationshipCombination[]{
+                new RelationshipCombination(RelationshipType.withName("NEXT"), Direction.BOTH),
+                new RelationshipCombination(RelationshipType.withName("NEXT_IN_POLYGON_" + relation_osm_id), Direction.OUTGOING)
+        };
+        Neo4jSimpleGraphPolygon polygon = new Neo4jSimpleGraphPolygon(startNode, "location", relationshipCombinations);
+
+        polygonNode.setProperty("polygon", Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new));
+    }
+
     @Procedure(name = "neo4j.createOSMGraphPolygon", mode = Mode.WRITE)
     public void createOSMPolygon(@Name("main") Node main) {
-        List<List<Node>> polystrings = OSMTraverser.traverse(main);
+        List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
 
-        GraphPolygonBuilder graphPolygonBuilder = new GraphPolygonBuilder(main, polystrings, log);
+        GraphPolygonBuilder graphPolygonBuilder = new GraphPolygonBuilder(main, polystrings);
         graphPolygonBuilder.build();
     }
 
@@ -122,7 +169,7 @@ public class UserDefinedFunctions {
 
     @UserFunction("neo4j.convexHullGraph")
     public List<Point> convexHull(@Name("polygonNode") Node polygonNode, @Name("locationProperty") String locationProperty, @Name("relationStart") String relationStart, @Name("relationNext") String relationNext) {
-        Neo4jSimpleGraphPolygon polygon = new Neo4jSimpleGraphPolygon(polygonNode, locationProperty, RelationshipType.withName(relationStart), new RelationshipType[]{RelationshipType.withName(relationNext)});
+        Neo4jSimpleGraphPolygon polygon = new Neo4jSimpleGraphPolygon(polygonNode, locationProperty, RelationshipType.withName(relationStart), new RelationshipCombination[]{new RelationshipCombination(RelationshipType.withName(relationNext), Direction.OUTGOING)});
 
         Polygon.SimplePolygon convexHull = ConvexHull.convexHull(polygon);
         return asPoints(polygon.getCRS(), convexHull.getPoints());

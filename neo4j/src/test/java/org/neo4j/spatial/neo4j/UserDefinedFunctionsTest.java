@@ -1,21 +1,26 @@
 package org.neo4j.spatial.neo4j;
 
+import com.sun.org.apache.bcel.internal.generic.RETURN;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.Point;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.exceptions.KernelException;
 import org.neo4j.kernel.impl.proc.Procedures;
+import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
+import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.Values;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -195,6 +200,102 @@ public class UserDefinedFunctionsTest {
         }
 
         return connectors;
+    }
+
+    @Test
+    public void shouldCreateOSMGraphPolygon() {
+        try (Transaction tx = db.beginTx()) {
+            Node main = db.createNode(Label.label("OSMRelation"));
+            main.setProperty("relation_osm_id", 1L);
+            Node[] ways = new Node[4];
+            Node[][] wayNodes = new Node[ways.length][4];
+            Node[][] nodes = new Node[ways.length][4];
+
+            createNestedSquareOSM(main, ways, wayNodes, nodes);
+
+            testCall(db, "CALL neo4j.createOSMGraphPolygon($main)",
+                    map("main", main), result -> {
+                    });
+
+            List<Node> list = new MonoDirectionalTraversalDescription().breadthFirst()
+                    .relationships(RelationshipType.withName("FIRST_NODE"), Direction.OUTGOING)
+                    .relationships(RelationshipType.withName("NEXT"))
+                    .relationships(RelationshipType.withName("NEXT_IN_POLYGON_1"), Direction.OUTGOING)
+                    .relationships(RelationshipType.withName("NODE"), Direction.OUTGOING)
+                    .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(RelationshipType.withName("NODE")))
+                    .traverse(ways[0]).nodes().stream().collect(Collectors.toList());
+
+            for (Node node : list) {
+                System.out.println(node);
+                System.out.println(node.getProperty("location"));
+            }
+
+            Result result = db.execute("MATCH p=(a:POLYGON) WITH a CALL neo4j.createArrayCache(a) RETURN a.polygon");
+//            Result result = db.execute("MATCH p=(:OSMWay)-[:FIRST_NODE]->(:OSMWayNode)-[:NEXT]->(:OSMWayNode)-[*]-(:OSMWayNode)<-[:FIRST_NODE]-(:OSMWay) RETURN p");
+
+            while (result.hasNext()) {
+                Map<String, Object> next = result.next();
+                System.out.println(next);
+            }
+
+            tx.success();
+        }
+    }
+
+    private void createNestedSquareOSM(Node main, Node[] ways, Node[][] wayNodes, Node[][] nodes) {
+        Label wayLabel = Label.label("OSMWay");
+        Label wayNodeLabel = Label.label("OSMWayNode");
+        Label nodeLabel = Label.label("OSMNode");
+        RelationshipType memberRel = RelationshipType.withName("MEMBER");
+        RelationshipType firstNodeRel = RelationshipType.withName("FIRST_NODE");
+        RelationshipType nextRel = RelationshipType.withName("NEXT");
+        RelationshipType nodeRel = RelationshipType.withName("NODE");
+
+        Point[] points = new Point[]{
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, -10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 10, -10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 10, 10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, 10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, -10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -10, -10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -10, 10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, 10),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, -100),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 100, -100),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 100, 100),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, 100),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, -100),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -100, -100),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -100, 100),
+                Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, 100)
+        };
+
+
+        for (int i = 0; i < ways.length; i++) {
+            ways[i] = db.createNode(wayLabel);
+            main.createRelationshipTo(ways[i], memberRel);
+
+            for (int j = 0; j < wayNodes[i].length; j++) {
+                wayNodes[i][j] = db.createNode(wayNodeLabel);
+            }
+
+            ways[i].createRelationshipTo(wayNodes[i][0], firstNodeRel);
+            for (int j = 0; j < wayNodes[i].length - 1; j++) {
+                wayNodes[i][j].createRelationshipTo(wayNodes[i][j+1], nextRel);
+            }
+
+            for (int j = 0; j < nodes[i].length; j++) {
+                nodes[i][j] = db.createNode(nodeLabel);
+
+                wayNodes[i][j].createRelationshipTo(nodes[i][j], nodeRel);
+            }
+        }
+
+        for (int i = 0; i < nodes.length; i++) {
+            for (int j = 0; j < nodes[i].length; j++) {
+                nodes[i][j].setProperty("location", points[i*4+j]);
+            }
+        }
     }
 
     @Test
