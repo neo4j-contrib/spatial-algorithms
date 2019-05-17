@@ -339,48 +339,6 @@ public class UserDefinedFunctionsTest {
     }
 
     @Test
-    public void shouldFindConvexHullForGraphPolygon() {
-        try (Transaction tx = db.beginTx()) {
-            Node main = db.createNode(Label.label("Main"));
-
-            double[][] input = new double[][]{
-                    {-10,-10},
-                    {10,-10},
-                    {1, 0},
-                    {10,10},
-                    {0,20},
-                    {-10,10},
-                    {-1, 0}};
-
-            Node[] nodes = new Node[input.length];
-
-            for (int i = 0; i < input.length; i++) {
-                nodes[i] = db.createNode(Label.label("LocationMarker"));
-                nodes[i].setProperty("location", Values.pointValue(CoordinateReferenceSystem.Cartesian, input[i]));
-            }
-
-            main.createRelationshipTo(nodes[0], RelationshipType.withName("First"));
-            for (int i = 0; i < nodes.length - 1; i++) {
-                nodes[i].createRelationshipTo(nodes[i+1], RelationshipType.withName("Next"));
-            }
-
-            testCall(db, "RETURN neo4j.convexHullGraph($polygonStart, $locationProperty, $relationStart, $relationNext)",
-                    map("polygonStart", main,
-                            "locationProperty", "location",
-                            "relationStart", "First",
-                            "relationNext", "Next"), result -> {
-                        assertThat("Should have one result", result.size(), equalTo(1));
-                        Object record = result.values().iterator().next();
-                        assertThat("Should get convexHull as list", record, instanceOf(List.class));
-                        List<Point> convexHull = (List<Point>) record;
-                        assertThat("expected polygon of size 6", convexHull.size(), equalTo(6));
-                    });
-
-            tx.success();
-        }
-    }
-
-    @Test
     public void shouldFindBBoxForPolygon() {
         ArrayList<Point> points = new ArrayList<>();
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0));

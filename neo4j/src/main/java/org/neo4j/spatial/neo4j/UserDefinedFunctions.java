@@ -4,6 +4,8 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.neo4j.spatial.algo.ConvexHull;
@@ -15,6 +17,7 @@ import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Values;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class UserDefinedFunctions {
@@ -90,9 +93,9 @@ public class UserDefinedFunctions {
 
         RelationshipCombination[] relationshipCombinations = new RelationshipCombination[]{
                 new RelationshipCombination(RelationshipType.withName("NEXT"), Direction.BOTH),
-                new RelationshipCombination(RelationshipType.withName("NEXT_IN_POLYGON_" + relation_osm_id), Direction.OUTGOING)
+                new RelationshipCombination(RelationshipType.withName("NEXT_IN_POLYGON"), Direction.OUTGOING)
         };
-        Neo4jSimpleGraphPolygon polygon = new Neo4jSimpleGraphPolygon(startNode, "location", relationshipCombinations);
+        Neo4jSimpleGraphPolygon polygon = new Neo4jSimpleGraphPolygon(startNode, "location", relation_osm_id, relationshipCombinations);
 
         polygonNode.setProperty("polygon", Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new));
     }
@@ -105,7 +108,8 @@ public class UserDefinedFunctions {
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("id", id);
         db.execute("MATCH (m:OSMRelation)-[:POLYGON_STRUCTURE*]->(p:POLYGON) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
-        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON"+id+"]->(:OSMWayNode) DELETE n");
+        //TODO fix this by deleting id from array
+//        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON]->(:OSMWayNode)  DELETE n");
 
         List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
 
@@ -173,14 +177,6 @@ public class UserDefinedFunctions {
         Polygon.SimplePolygon convexHull = ConvexHull.convexHull(Polygon.simple(convertedPoints));
 
         return asPoints(crs, convexHull.getPoints());
-    }
-
-    @UserFunction("neo4j.convexHullGraph")
-    public List<Point> convexHull(@Name("polygonNode") Node polygonNode, @Name("locationProperty") String locationProperty, @Name("relationStart") String relationStart, @Name("relationNext") String relationNext) {
-        Neo4jSimpleGraphPolygon polygon = new Neo4jSimpleGraphPolygon(polygonNode, locationProperty, RelationshipType.withName(relationStart), new RelationshipCombination[]{new RelationshipCombination(RelationshipType.withName(relationNext), Direction.OUTGOING)});
-
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(polygon);
-        return asPoints(polygon.getCRS(), convexHull.getPoints());
     }
 
     @UserFunction("neo4j.naiveIntersectArray")

@@ -27,6 +27,7 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
         return this.points[0].getCoordinate().getCoordinate().size();
     }
 
+    //TODO use Neo4jPoint
     @Override
     public Point[] getPoints() {
         Point[] result = new Point[points.length];
@@ -47,12 +48,12 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     }
 
     @Override
-    public String toWKT() {
-        StringJoiner viewer = new StringJoiner(",", "POLYGON((", "))");
-        for (Point point : getPoints()) {
-            viewer.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
+    public String toWKTPointString() {
+        StringJoiner joiner = new StringJoiner(",", "(", ")");
+        for (org.neo4j.graphdb.spatial.Point point : points) {
+            joiner.add(point.getCoordinate().getCoordinate().get(0) + " " +point.getCoordinate().getCoordinate().get(1));
         }
-        return viewer.toString();
+        return joiner.toString();
     }
 
     private static void assertAllSameDimension(org.neo4j.graphdb.spatial.Point... points) {

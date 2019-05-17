@@ -1,26 +1,16 @@
 package org.neo4j.spatial.core;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.StringJoiner;
 
 import static java.lang.String.format;
 
 public interface Polygon {
-    int dimension();
-
-    Point[] getPoints();
-
-    boolean isSimple();
-
     SimplePolygon[] getShells();
 
-    SimplePolygon[] getHoles();
+    int dimension();
 
-    MultiPolygon withShell(Polygon shell);
-
-    MultiPolygon withHole(Polygon hole);
+    boolean isSimple();
 
     static SimplePolygon simple(Point... points) {
         return new InMemorySimplePolygon(points);
@@ -34,77 +24,19 @@ public interface Polygon {
         }
     }
 
-    static void assertAllSameDimension(SimplePolygon... polygons) {
-        for (int i = 1; i < polygons.length; i++) {
-            if (polygons[0].dimension() != polygons[i].dimension()) {
-                throw new IllegalArgumentException(format("Polygon[%d] has different dimension to Polygon[%d]: %d != %d", i, 0, polygons[i].dimension(), polygons[0].dimension()));
-            }
-        }
-    }
-
-    static SimplePolygon[] allShells(Polygon... polygons) {
-        ArrayList<SimplePolygon> shells = new ArrayList<>();
-        for (Polygon polygon : polygons) {
-            if (polygon.isSimple()) {
-                shells.add(((SimplePolygon) polygon));
-            } else {
-                Collections.addAll(shells, polygon.getShells());
-            }
-        }
-        return shells.toArray(new SimplePolygon[0]);
-    }
-
-    static SimplePolygon[] allHoles(Polygon... polygons) {
-        ArrayList<SimplePolygon> holes = new ArrayList<>();
-        for (Polygon polygon : polygons) {
-            if (!polygon.isSimple()) {
-                Collections.addAll(holes, polygon.getHoles());
-            }
-        }
-        return holes.toArray(new SimplePolygon[0]);
-    }
-
-    static Point[] allPoints(Polygon... polygons) {
-        ArrayList<Point> points = new ArrayList<>();
-        for (Polygon polygon : polygons) {
-            if (polygon.isSimple()) {
-                Collections.addAll(points, polygon.getPoints());
-            } else {
-                for (SimplePolygon shell : polygon.getShells()) {
-                    Collections.addAll(points, shell.getPoints());
-                }
-                for (SimplePolygon hole : polygon.getHoles()) {
-                    Collections.addAll(points, hole.getPoints());
-                }
-            }
-        }
-        return points.toArray(new Point[0]);
-    }
+    /**
+     * Outputs the WKT string of the polygon
+     * @return The WKT string describing the polygon
+     */
+    String toWKT();
 
     interface SimplePolygon extends Polygon {
-        @Override
-        default boolean isSimple() {
-            return true;
-        }
 
-        @Override
-        default SimplePolygon[] getHoles() {
-            return new SimplePolygon[0];
-        }
+        Point[] getPoints();
 
         @Override
         default SimplePolygon[] getShells() {
             return new SimplePolygon[]{this};
-        }
-
-        @Override
-        default MultiPolygon withShell(Polygon shell) {
-            return new MultiPolygon(Polygon.allShells(this, shell), new SimplePolygon[0]);
-        }
-
-        @Override
-        default MultiPolygon withHole(Polygon hole) {
-            return new MultiPolygon(new SimplePolygon[]{this}, Polygon.allShells(hole));
         }
 
         /**
@@ -138,6 +70,22 @@ public interface Polygon {
                 return false;
             }
 
+            if (areEqualWithOffset(a, b)) {
+                return true;
+            }
+
+            //Reverse b
+            for(int i = 0; i < b.length / 2; i++) {
+                Point temp = b[i];
+                b[i] = b[b.length - i - 1];
+                b[b.length - i - 1] = temp;
+            }
+
+            return areEqualWithOffset(a, b);
+
+        }
+
+        static boolean areEqualWithOffset(Point[] a, Point[] b) {
             Point start = a[0];
             int offset = -1;
             for (int i = 0; i < b.length; i++) {
@@ -157,15 +105,18 @@ public interface Polygon {
                     return false;
                 }
             }
-
             return true;
         }
 
+        @Override
+        default String toWKT() {
+            return "POLYGON(" + toWKTPointString() + ")";
+        }
+
         /**
-         * Outputs the WKT string of the polygon
-         * @return The WKT string describing the polygon
+         * @return Produces a WKT-representation of the polygon without the suffix
          */
-        String toWKT();
+        String toWKTPointString();
     }
 
     class InMemorySimplePolygon implements SimplePolygon {
@@ -190,17 +141,22 @@ public interface Polygon {
         }
 
         @Override
+        public boolean isSimple() {
+            return true;
+        }
+
+        @Override
         public String toString() {
             return format("InMemorySimplePolygon%s", Arrays.toString(points));
         }
 
         @Override
-        public String toWKT() {
-            StringJoiner viewer = new StringJoiner(",", "POLYGON((", "))");
+        public String toWKTPointString() {
+            StringJoiner joiner = new StringJoiner(",", "(", ")");
             for (Point point : points) {
-                viewer.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
+                joiner.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
             }
-            return viewer.toString();
+            return joiner.toString();
         }
 
         @Override
@@ -215,171 +171,6 @@ public interface Polygon {
         @Override
         public int hashCode() {
             return Arrays.hashCode(points);
-        }
-    }
-
-    class MultiPolygon implements Polygon {
-        SimplePolygon[] shells;
-        SimplePolygon[] holes;
-
-        /* TODO
-            Tree structure with root an array of polygons
-            Each polygon can contain array of holes
-            Each hole can contain array of polygons etc...
-        */
-        private MultiPolygon(SimplePolygon[] shells, SimplePolygon[] holes) {
-            checkValidness(shells, holes);
-
-            this.shells = shells;
-            this.holes = holes;
-            Polygon.assertAllSameDimension(this.shells);
-            Polygon.assertAllSameDimension(this.holes);
-            if (holes.length > 0) {
-                Polygon.assertAllSameDimension(this.shells[0], this.holes[0]);
-            }
-        }
-
-        /**
-         * Checks if the shells and holes are valid
-         *
-         * @param shells
-         * @param holes
-         */
-        private void checkValidness(SimplePolygon[] shells, SimplePolygon[] holes) {
-            /*if (areIntersecting(shells)) {
-                throw new IllegalArgumentException("Shells may not intersect each other");
-            }
-
-            if (areNotContained(shells, shells)) {
-                throw new IllegalArgumentException("Shells may not contain each other");
-            }
-
-            if (areIntersecting(holes)) {
-                throw new IllegalArgumentException("Holes may not intersect each other");
-            }
-
-            if (areNotContained(holes, holes)) {
-                throw new IllegalArgumentException("Holes may not contain each other");
-            }
-
-            if (areContained(shells, holes)) {
-                throw new IllegalArgumentException("Holes must be contained in shells");
-            }*/
-        }
-
-//        /**
-//         * Pair-wise checks if polygons intersect.
-//         *
-//         * @param polygons
-//         * @return true if and only if no 2 polygons intersect
-//         */
-//        private static boolean areIntersecting(SimplePolygon[] polygons) {
-//            for (int i = 0; i < polygons.length; i++) {
-//                for (int j = 1; j < polygons.length; j++) {
-//                    if (Intersect.intersect(polygons[i], polygons[j]).length == 0) {
-//                        return true;
-//                    }
-//                }
-//            }
-//
-//            return false;
-//        }
-//
-//        /**
-//         * Pair-wise checks if the inner polygons are completely contained in an outer polygon.
-//         *
-//         * @param outers
-//         * @param inners
-//         * @return true if and only if every inner polygon is contained in an outer polygon
-//         */
-//        private static boolean areContained(SimplePolygon[] outers, SimplePolygon[] inners) {
-//            for (SimplePolygon outer : outers) {
-//                for (SimplePolygon inner : inners) {
-//                    if (!Within.within(outer, inner)) {
-//                        return false;
-//                    }
-//                }
-//            }
-//
-//            return true;
-//        }
-//
-//        /**
-//         * Pair-wise checks if none of the inner polygons are completely contained in an outer polygon.
-//         *
-//         * @param outers
-//         * @param inners
-//         * @return true if and only if no inner polygon is contained in an outer polygon
-//         */
-//        private static boolean areNotContained(SimplePolygon[] outers, SimplePolygon[] inners) {
-//            for (SimplePolygon outer : outers) {
-//                for (SimplePolygon inner : inners) {
-//                    if (Within.within(outer, inner)) {
-//                        return false;
-//                    }
-//                }
-//            }
-//
-//            return true;
-//        }
-
-        public int dimension() {
-            return this.shells[0].dimension();
-        }
-
-        @Override
-        public Point[] getPoints() {
-            return Polygon.allPoints(this);
-        }
-
-        @Override
-        public boolean isSimple() {
-            return false;
-        }
-
-        @Override
-        public SimplePolygon[] getShells() {
-            return this.shells;
-        }
-
-        @Override
-        public SimplePolygon[] getHoles() {
-            return this.holes;
-        }
-
-        @Override
-        public MultiPolygon withShell(Polygon shell) {
-            return new MultiPolygon(Polygon.allShells(this, shell), holes);
-        }
-
-        @Override
-        public MultiPolygon withHole(Polygon hole) {
-            SimplePolygon[] otherHoles = Polygon.allShells(hole);
-            SimplePolygon[] newHoles = new SimplePolygon[this.holes.length + otherHoles.length];
-            System.arraycopy(this.holes, 0, newHoles, 0, this.holes.length);
-            System.arraycopy(otherHoles, 0, newHoles, this.holes.length, otherHoles.length);
-            return new MultiPolygon(shells, newHoles);
-        }
-
-        /**
-         * Outputs the WKT string of the multipolygon
-         * @return The WKT string describing the multipolygon
-         */
-        public String toWKT() {
-            StringJoiner viewer = new StringJoiner(",", "MULTIPOLYGON(", ")");
-            for (SimplePolygon shell : shells) {
-                StringJoiner shellViewer = new StringJoiner(",", "((", "))");
-                for (Point point : shell.getPoints()) {
-                    shellViewer.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
-                }
-                viewer.add(shellViewer.toString());
-            }
-            return viewer.toString();
-        }
-
-        @Override
-        public String toString() {
-            return format("MultiPolygon( shells:%s, holes:%s )", Arrays.toString(shells), Arrays.toString(holes));
         }
     }
 }

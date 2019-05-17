@@ -32,23 +32,36 @@ public class MCSweepLineIntersect implements Intersect {
      * @return An array of points at which the two input polygons intersect
      */
     @Override
-    public Point[] intersect(Polygon.SimplePolygon a, Polygon.SimplePolygon b) {
-        Polygon.SimplePolygon aFiltered = filterCollinear(a);
-        Polygon.SimplePolygon bFiltered = filterCollinear(b);
+    public Point[] intersect(Polygon a, Polygon b) {
+        Polygon.SimplePolygon[] aShells = a.getShells();
+        Polygon.SimplePolygon[] bShells = b.getShells();
 
-        computeSweepDirection(a, b);
+        for (int i = 0; i < aShells.length; i++) {
+            aShells[i] = filterCollinear(aShells[i]);
+        }
 
-        Polygon.SimplePolygon aRotated = Polygon.simple(rotatePoints(aFiltered.getPoints(), this.sweepAngle));
-        Polygon.SimplePolygon bRotated = Polygon.simple(rotatePoints(bFiltered.getPoints(), this.sweepAngle));
+        for (int i = 0; i < bShells.length; i++) {
+            bShells[i] = filterCollinear(bShells[i]);
+        }
+
+        computeSweepDirection(aShells, bShells);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        List<MonotoneChain> aList = MonotoneChainPartitioner.partition(aRotated);
-        List<MonotoneChain> bList = MonotoneChainPartitioner.partition(bRotated);
+        for (int i = 0; i < aShells.length; i++) {
+            Polygon.SimplePolygon rotated = Polygon.simple(rotatePoints(aShells[i].getPoints(), this.sweepAngle));
+            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotated);
+            inputList.addAll(partitioned);
+        }
 
-        splitId = bList.get(0).getId();
+        for (int i = 0; i < bShells.length; i++) {
+            Polygon.SimplePolygon rotated = Polygon.simple(rotatePoints(bShells[i].getPoints(), this.sweepAngle));
+            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotated);
+            inputList.addAll(partitioned);
 
-        inputList.addAll(aList);
-        inputList.addAll(bList);
+            if (i == 0) {
+                splitId = partitioned.get(0).getId();
+            }
+        }
 
         for (MonotoneChain monotoneChain : inputList) {
             insertMonotoneChainInACL(monotoneChain);
@@ -120,11 +133,11 @@ public class MCSweepLineIntersect implements Intersect {
         return rotated;
     }
 
-    private void computeSweepDirection(Polygon.SimplePolygon a, Polygon.SimplePolygon b) {
+    private void computeSweepDirection(Polygon.SimplePolygon[] aShells, Polygon.SimplePolygon[] bShells) {
         Set<Double> angleSet = new HashSet<>();
 
-        angleSet.addAll(computeAngles(a));
-        angleSet.addAll(computeAngles(b));
+        angleSet.addAll(computeAngles(aShells));
+        angleSet.addAll(computeAngles(bShells));
 
         List<Double> angles = new ArrayList<>(angleSet);
         Collections.sort(angles);
@@ -159,23 +172,25 @@ public class MCSweepLineIntersect implements Intersect {
         this.sweepAngle = angle;
     }
 
-    private Set<Double> computeAngles(Polygon.SimplePolygon polygon) {
+    private Set<Double> computeAngles(Polygon.SimplePolygon[] polygons) {
         Set<Double> angles = new HashSet<>();
 
-        for (LineSegment segment : Polygon.SimplePolygon.toLineSegments(polygon)) {
-            Point p = segment.getPoints()[0];
-            Point q = segment.getPoints()[1];
+        for (Polygon.SimplePolygon polygon : polygons) {
+            for (LineSegment segment : Polygon.SimplePolygon.toLineSegments(polygon)) {
+                Point p = segment.getPoints()[0];
+                Point q = segment.getPoints()[1];
 
-            double dx = q.getCoordinate()[0] - p.getCoordinate()[0];
-            double dy = q.getCoordinate()[1] - p.getCoordinate()[1];
+                double dx = q.getCoordinate()[0] - p.getCoordinate()[0];
+                double dy = q.getCoordinate()[1] - p.getCoordinate()[1];
 
-            double angle = Math.atan2(dy, dx);
+                double angle = Math.atan2(dy, dx);
 
-            if (angle < -0) {
-                angle += Math.PI;
+                if (angle < -0) {
+                    angle += Math.PI;
+                }
+
+                angles.add(angle);
             }
-
-            angles.add(angle);
         }
 
         return angles;

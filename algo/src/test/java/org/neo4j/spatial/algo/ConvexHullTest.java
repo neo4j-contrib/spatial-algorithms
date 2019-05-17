@@ -2,7 +2,7 @@ package org.neo4j.spatial.algo;
 
 import org.junit.Ignore;
 import org.junit.Test;
-
+import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
@@ -120,6 +120,85 @@ public class ConvexHullTest {
                 Point.point(1,1),
                 Point.point(0,1)
         )));
+    }
+
+    @Test
+    public void shouldMakeConvexHullFromMultiPolygon() {
+        MultiPolygon multiPolygon = makeMultiPolygon();
+        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(multiPolygon);
+
+        System.out.println(multiPolygon.toWKT());
+        System.out.println(convexHull.toWKT());
+
+        Polygon.SimplePolygon expected = Polygon.simple(
+                Point.point(2,0),
+                Point.point(0,2),
+                Point.point(0,9),
+                Point.point(1,12),
+                Point.point(4,13),
+                Point.point(6,7),
+                Point.point(6,4),
+                Point.point(5,0)
+        );
+
+        assertThat("expected polygon of size 9", convexHull.getPoints().length, equalTo(9));
+        assertThat("expected convex hull", Polygon.SimplePolygon.areEqual(convexHull, expected), equalTo(true));
+    }
+
+    private MultiPolygon makeMultiPolygon() {
+        Point[][] input = new Point[][]{
+                {
+                    Point.point(0,2),
+                    Point.point(1,4),
+                    Point.point(0,7),
+                    Point.point(0,9),
+                    Point.point(1,12),
+                    Point.point(4,13),
+                    Point.point(6,7),
+                    Point.point(6,4),
+                    Point.point(5,3),
+                    Point.point(5,0),
+                    Point.point(2,0)
+                },
+                {
+                    Point.point(0.5,7),
+                    Point.point(0.5,9),
+                    Point.point(3,12),
+                    Point.point(5,7),
+                    Point.point(5,4),
+                    Point.point(2,4)
+                },
+                {
+                    Point.point(4.5, 4.5),
+                    Point.point(2, 5),
+                    Point.point(2, 6),
+                    Point.point(4.5, 6)
+                },
+                {
+                    Point.point(1.5,7.5),
+                    Point.point(2,10),
+                    Point.point(4,7)
+                },
+                {
+                    Point.point(2,0.6),
+                    Point.point(1,2),
+                    Point.point(4,3),
+                    Point.point(4.5,0.5)
+                }
+        };
+
+        Polygon.SimplePolygon[] polygons = new Polygon.SimplePolygon[input.length];
+
+        for (int i = 0; i < polygons.length; i++) {
+            polygons[i] = Polygon.simple(input[i]);
+        }
+
+        MultiPolygon multiPolygon = new MultiPolygon();
+        for (Polygon.SimplePolygon polygon : polygons) {
+            multiPolygon.insertPolygon(polygon);
+        }
+
+        return multiPolygon;
     }
 
     private static Polygon.SimplePolygon makeSimpleTestPolygon() {

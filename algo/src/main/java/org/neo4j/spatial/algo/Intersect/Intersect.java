@@ -1,20 +1,17 @@
 package org.neo4j.spatial.algo.Intersect;
 
 import org.neo4j.spatial.algo.AlgoUtil;
-import org.neo4j.spatial.core.Line;
-import org.neo4j.spatial.core.LineSegment;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.*;
 
 public interface Intersect {
     /**
-     * Given two simple polygons, returns all points for which the two polygons intersect.
+     * Given two polygons, returns all points for which the two polygons intersect.
      *
      * @param a
      * @param b
      * @return Array of intersections
      */
-    Point[] intersect(Polygon.SimplePolygon a, Polygon.SimplePolygon b);
+    Point[] intersect(Polygon a, Polygon b);
 
     /**
      * Given two line segment returns the point of intersection if and only if it exists, else it will return null.

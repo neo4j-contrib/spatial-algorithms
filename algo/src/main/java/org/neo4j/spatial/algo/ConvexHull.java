@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
+import java.util.stream.Stream;
 
 public class ConvexHull {
     /**
@@ -16,7 +17,7 @@ public class ConvexHull {
      * @return A polygon which is the convex hull of the input polygon
      */
     public static Polygon.SimplePolygon convexHull(Polygon polygon) {
-        Point[] polygonPoints = polygon.getPoints();
+        Point[] polygonPoints = Arrays.stream(polygon.getShells()).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).toArray(Point[]::new);
         Point reference = getLowestPoint(polygonPoints);
 
         List<Point> sortedPoints = sortPoints(polygonPoints, reference);

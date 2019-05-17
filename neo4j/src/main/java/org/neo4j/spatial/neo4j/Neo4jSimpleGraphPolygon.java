@@ -2,18 +2,17 @@ package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
-import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
-import org.neo4j.logging.Log;
-import org.neo4j.procedure.Context;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.PolygonUtil;
 
-import javax.management.relation.Relation;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -21,17 +20,8 @@ import static java.lang.String.format;
 public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     private final Neo4jPoint[] points;
 
-    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipType relationStart, RelationshipCombination[] relationNext) {
-        Neo4jPoint[] unclosed = traverseGraph(main, property, relationStart, relationNext);
-        this.points = new PolygonUtil<Neo4jPoint>().closeRing(unclosed);
-        if (points.length < 4) {
-            throw new IllegalArgumentException("Polygon cannot have less than 4 points");
-        }
-        assertAllSameDimension(this.points);
-    }
-
-    public Neo4jSimpleGraphPolygon(Node main, String property, RelationshipCombination[] relationNext) {
-        Neo4jPoint[] unclosed = traverseGraph(main, property, null, relationNext);
+    public Neo4jSimpleGraphPolygon(Node main, String property, long osmRelationId, RelationshipCombination[] relationNext) {
+        Neo4jPoint[] unclosed = traverseGraph(main, property, osmRelationId, relationNext);
         this.points = new PolygonUtil<Neo4jPoint>().closeRing(unclosed);
         if (points.length < 4) {
             throw new IllegalArgumentException("Polygon cannot have less than 4 points");
@@ -59,46 +49,105 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         return format("Neo4jSimpleGraphPolygon%s", Arrays.toString(points));
     }
 
+
     @Override
-    public String toWKT() {
-        StringJoiner viewer = new StringJoiner(",", "POLYGON((", "))");
+    public String toWKTPointString() {
+        StringJoiner joiner = new StringJoiner(",", "(", ")");
         for (Point point : getPoints()) {
-            viewer.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
+            joiner.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
         }
-        return viewer.toString();
+        return joiner.toString();
     }
 
     public CRS getCRS() {
         return this.points[0].getCRS();
     }
 
-
-    /**
-     * Traverses through the graph starting at the main node
-     *
-     * @param main Starting node, which is not part of the polygon
-     * @param property Name of the property containing the Point object
-     * @param relationStart The name of the relation from the starting node to the first node of the polygon
-     * @param relationNext The names of the relations between nodes of the polygon
-     * @return An array containing the points of the polygon in order
-     */
-    private Neo4jPoint[] traverseGraph(Node main, String property, RelationshipType relationStart, RelationshipCombination[] relationNext) {
+    private Neo4jPoint[] traverseGraph(Node main, String property, long osmRelationId, RelationshipCombination[] relationNext) {
         RelationshipType nodeRel = RelationshipType.withName("NODE");
 
-        Node start = main;
-        if (relationStart != null) {
-            start = main.getSingleRelationship(relationStart, Direction.OUTGOING).getEndNode();
-        }
+        TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()
+                .depthFirst()
+                .evaluator(new WayEvaluator(osmRelationId));
 
-        TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription().breadthFirst()
-                .relationships(nodeRel, Direction.OUTGOING)
-                .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(nodeRel));
 
         for (RelationshipCombination combination : relationNext) {
             traversalDescription = traversalDescription.relationships(combination.getType(), combination.getDirection());
         }
 
-        return traversalDescription.traverse(start).nodes().stream().map(n -> new Neo4jPoint(n, property)).toArray(Neo4jPoint[]::new);
+        List<Node> wayNodes = traversalDescription.traverse(main).nodes().stream().collect(Collectors.toList());
+        Neo4jPoint[] points = new Neo4jPoint[wayNodes.size()];
+        for (int i = 0; i < points.length; i++) {
+            Node node = wayNodes.get(i).getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode();
+            points[i] = new Neo4jPoint(node, property);
+        }
+
+        return points;
+    }
+
+    private static class WayEvaluator implements Evaluator {
+        private static final RelationshipType NEXT_IN_POLYGON = RelationshipType.withName("NEXT_IN_POLYGON");
+        private static final RelationshipType NEXT = RelationshipType.withName("NEXT");
+
+        private long relationId;
+
+        public WayEvaluator(long relationId) {
+            this.relationId = relationId;
+        }
+
+        @Override
+        public Evaluation evaluate(Path path) {
+            Relationship rel = path.lastRelationship();
+            Node node = path.endNode();
+
+            if (rel == null) {
+                return Evaluation.INCLUDE_AND_CONTINUE;
+            }
+
+            if (rel.isType(NEXT_IN_POLYGON)) {
+                return nextInPolygon(rel) ? Evaluation.INCLUDE_AND_CONTINUE : Evaluation.EXCLUDE_AND_PRUNE;
+            }
+
+            if (rel.isType(NEXT)) {
+                boolean moreRelations = false;
+                for (Relationship relationship : node.getRelationships(NEXT)) {
+                    if (!relationship.equals(rel)) {
+                        moreRelations = true;
+                    }
+                }
+
+                for (Relationship relationship : node.getRelationships(NEXT_IN_POLYGON, Direction.OUTGOING)) {
+                    moreRelations = true;
+                }
+
+                if (!moreRelations) {
+                    return Evaluation.EXCLUDE_AND_PRUNE;
+                }
+
+
+                Node oneButLast = path.lastRelationship().getOtherNode(node);
+
+                for (Relationship relationship : oneButLast.getRelationships(NEXT_IN_POLYGON, Direction.INCOMING)) {
+                    if (nextInPolygon(relationship) && !moreRelations) {
+                        return Evaluation.EXCLUDE_AND_PRUNE;
+                    }
+                }
+                return Evaluation.INCLUDE_AND_CONTINUE;
+            }
+
+            return Evaluation.EXCLUDE_AND_PRUNE;
+        }
+
+        private boolean nextInPolygon(Relationship rel) {
+            long[] ids = (long[]) rel.getProperty("relation_osm_ids");
+
+            for (int i = 0; i < ids.length; i++) {
+                if (ids[i] == relationId) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private void assertAllSameDimension(Neo4jPoint... points) {

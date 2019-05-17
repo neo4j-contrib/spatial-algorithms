@@ -8,6 +8,7 @@ import org.neo4j.spatial.algo.Intersect.Intersect;
 import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
 import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
 import org.neo4j.spatial.core.LineSegment;
+import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
@@ -181,6 +182,93 @@ public class IntersectTest {
                 Point.point(-2.773565440956476, -1.0953594227754488),
                 Point.point(-3.0684490440254777, -0.32542126366585933),
                 Point.point(2.082783957901631, 0.15247859101009514)
+        };
+
+        matchPoints(actual, expected);
+    }
+
+    @Test
+    public void shouldFindIntersectionsBetweenMultiPolygons() {
+        MultiPolygon a = new MultiPolygon();
+        Point[][] polygonsA = new Point[][]{
+                {
+                    Point.point(-10, -10),
+                    Point.point(10, -10),
+                    Point.point(10, 10),
+                    Point.point(-10, 10)
+                },
+                {
+                    Point.point(-9, -9),
+                    Point.point(9, -9),
+                    Point.point(9, 9),
+                    Point.point(-9, 9)
+                },
+                {
+                    Point.point(-8, -8),
+                    Point.point(8, -8),
+                    Point.point(8, 8),
+                    Point.point(-8, 8)
+                },
+                {
+                    Point.point(-7, -7),
+                    Point.point(7, -7),
+                    Point.point(7, 7),
+                    Point.point(-7, 7)
+                }
+        };
+
+        for (Point[] points : polygonsA) {
+            a.insertPolygon(Polygon.simple(points));
+        }
+
+        MultiPolygon b = new MultiPolygon();
+        Point[][] polygonsB = new Point[][]{
+                {
+                        Point.point(10 + -10, -10 + 10),
+                        Point.point(10 + 10, -10 + 10),
+                        Point.point(10 + 10, 10 + 10),
+                        Point.point(10 + -10, 10 + 10)
+                },
+                {
+                        Point.point(10 + -9, -9 + 10),
+                        Point.point(10 + 9, -9 + 10),
+                        Point.point(10 + 9, 9 + 10),
+                        Point.point(10 + -9, 9 + 10)
+                },
+                {
+                        Point.point(10 + -8, -8 + 10),
+                        Point.point(10 + 8, -8 + 10),
+                        Point.point(10 + 8, 8 + 10),
+                        Point.point(10 + -8, 8 + 10)
+                },
+                {
+                        Point.point(10 + -7, -7 + 10),
+                        Point.point(10 + 7, -7 + 10),
+                        Point.point(10 + 7, 7 + 10),
+                        Point.point(10 + -7, 7 + 10)
+                }
+        };
+
+        for (Point[] points : polygonsB) {
+            b.insertPolygon(Polygon.simple(points));
+        }
+
+        System.out.println(a.toWKT());
+        System.out.println(b.toWKT());
+
+        Point[] actual = polygonImpl.intersect(a, b);
+
+        System.out.println(Arrays.toString(actual));
+
+        Point[] expected = new Point[]{
+                Point.point(0, 8),
+                Point.point(0, 10),
+                Point.point(2, 8),
+                Point.point(2, 10),
+                Point.point(8, 0),
+                Point.point(10, 0),
+                Point.point(8, 2),
+                Point.point(10, 2)
         };
 
         matchPoints(actual, expected);

@@ -1,26 +1,17 @@
 package org.neo4j.spatial.algo;
 
-import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
 import java.util.ArrayList;
 
 public class Within {
-    public static boolean within(Polygon.SimplePolygon outer, Polygon.SimplePolygon inner) {
-        if (new NaiveIntersect().intersect(outer, inner).length != 0) {
-            return false;
-        }
-
-        return within(outer, inner.getPoints()[0]);
-    }
-
     public static boolean within(Polygon.SimplePolygon shell, Point point) {
         return within(shell, point, false);
     }
 
     public static boolean within(Polygon.SimplePolygon shell, Point point, boolean touching) {
-        int fixedDim = 0;
+        /*int fixedDim = 0;
         int compareDim = 1;
         Point[] points = shell.getPoints();
         ArrayList<Point[]> sides = new ArrayList<>();
@@ -54,7 +45,17 @@ public class Within {
                 intersections += 1;
             }
         }
-        return intersections % 2 == 1;
+        return intersections % 2 == 1;*/
+
+        Point[] points = shell.getPoints();
+        boolean result = false;
+        for (int i = 0, j = points.length - 1; i < points.length; j = i++) {
+            if ((points[i].getCoordinate()[1] > point.getCoordinate()[1]) != (points[j].getCoordinate()[1] > point.getCoordinate()[1]) &&
+                    (point.getCoordinate()[0] < (points[j].getCoordinate()[0] - points[i].getCoordinate()[0]) * (point.getCoordinate()[1] - points[i].getCoordinate()[1]) / (points[j].getCoordinate()[1]-points[i].getCoordinate()[1]) + points[i].getCoordinate()[0])) {
+                result = !result;
+            }
+        }
+        return result;
     }
 
     static double crossingAt(Point[] side, Point point, int fixedDim, int compareDim) {

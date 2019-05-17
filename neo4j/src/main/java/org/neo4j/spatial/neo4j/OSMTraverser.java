@@ -12,6 +12,17 @@ import java.util.*;
 
 public class OSMTraverser {
     public static List<List<Node>> traverseOSMGraph(Node main) {
+        List<List<Node>> wayNodes = collectWays(main);
+        return connectWays(wayNodes);
+    }
+
+    /**
+     * Find all ways related to the OSMRelation and try to combine connected ways (share same node at extreme points)
+     *
+     * @param main The node representing the OSMRelation
+     * @return List of ways where each way is connected by a common node
+     */
+    private static List<List<Node>> collectWays(Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
         List<List<Node>> wayNodes = new ArrayList<>();
 
@@ -92,7 +103,16 @@ public class OSMTraverser {
 
             wayNodes.add(currentWayNodes);
         }
+        return wayNodes;
+    }
 
+    /**
+     * Connect neighboring ways to create polygons.
+     *
+     * @param wayNodes List of ways
+     * @return Nest list of nodes where each inner list describes a polygon
+     */
+    private static List<List<Node>> connectWays(List<List<Node>> wayNodes) {
         int totalSteps = 0;
         double totalDistance = 0;
         for (List<Node> wayNodeList : wayNodes) {
@@ -119,10 +139,10 @@ public class OSMTraverser {
             double[] last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
             double distance = Distance.distance(first, last);
 
-            /*if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
+            if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
                 polygons.add(wayToAdd);
                 continue;
-            }*/
+            }
 
             double minDistance = Double.MAX_VALUE;
             int bestIndex = -1;
@@ -177,7 +197,6 @@ public class OSMTraverser {
             polygons.add(polygonsToComplete.get(0));
             polygonsToComplete.remove(0);
         }
-
         return polygons;
     }
 
