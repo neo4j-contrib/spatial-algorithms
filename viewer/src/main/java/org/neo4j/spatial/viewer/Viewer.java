@@ -19,84 +19,103 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.core.MonotoneChain;
-import org.neo4j.spatial.algo.Intersect.MonotoneChainPartitioner;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
+import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.types.Point;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 public class Viewer {
     public static void main(String[] args) throws Exception {
         Viewer viewer = new Viewer();
 
-        Polygon.SimplePolygon a = Polygon.simple(
-                Point.point(-3.073942953027313, -0.3631908536811643),
-                Point.point(3.957307046972687, 0.33992971981693054),
-                Point.point(4.001252359472687, -3.5250298989084747),
-                Point.point(-0.8327320155273128, -2.7132528509732756),
-                Point.point(1.2107250157226872, -1.044287806764632),
-                Point.point(-3.930876546777313, -1.110194121461247),
-                Point.point(-5.051482015527313, 1.262681056229549),
-                Point.point(-2.898161703027313, 0.8452721446430446),
-                Point.point(-3.073942953027313, -0.3631908536811643)
-        );
-        Polygon.SimplePolygon b = Polygon.simple(
-                Point.point(0.4197093907226872,3.0411394778853147),
-                Point.point(-3.403532796777313,-0.6488239497102567),
-                Point.point(2.045685953222687,-4.511356587129941),
-                Point.point(7.165314859472687,-2.8888240176242217),
-                Point.point(6.901642984472687,0.7134484325376148),
-                Point.point(4.220978921972687,-1.7471997776342576),
-                Point.point(0.5295726719726872,-2.4059429401676002),
-                Point.point(3.891389078222687,0.09823244716972954),
-                Point.point(6.132600015722687,1.6580596189713295),
-                Point.point(3.627717203222687,1.877681460711756),
-                Point.point(1.9358226719726872,-0.011630785875617151),
-                Point.point(-0.5251148280273128,-1.3738038176337573),
-                Point.point(-1.1842945155273128,0.12020506336406792),
-                Point.point(1.2986156407226872,0.7134484325376148),
-                Point.point(1.4304515782226872,2.075317616513406),
-                Point.point(2.660920328222687,3.43601485945374),
-                Point.point(4.330842203222687,3.3263428389465592),
-                Point.point(3.122346109472687,4.115684615656987),
-                Point.point(0.4197093907226872,3.0411394778853147)
-        );
+        Driver driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "Neo4j"));
 
-//        viewer.addPolyLine(a.toWKT());
-//        viewer.addPolyLine(b.toWKT());
+        int color = 0;
 
-        List<MonotoneChain> chains = MonotoneChainPartitioner.partition(a);
-        chains.addAll(MonotoneChainPartitioner.partition(b));
+        try (Session session = driver.session()) {
+            int[] ids = new int[]{
+                    54413,
+                    52834,
+                    941530,
+                    52832,
+                    54403,
+                    52826,
+                    54374,
+                    54417,
+                    54412,
+                    52824,
+                    54409,
+                    54391,
+                    54386,
+                    54220,
+                    54223,
+                    52825,
+                    52827,
+                    54221,
+                    54367,
+                    54222,
+                    940675
+            };
+            ids = new int[]{54367,54374};
 
-        for (MonotoneChain chain : chains) {
-            System.out.printf("MC%s: %s %s\n", chain.getId(), viewer.getCurrentColorName((int) chain.getId()), chain.getVertices());
-            viewer.addPolyLine(chain.toWKT(), (int) chain.getId());
-        }
-
-        Point[] intersections = new MCSweepLineIntersect().intersect(a, b);
-
-        for (Point intersection : intersections) {
-            viewer.addPoint(intersection.toWKT());
+            Map<String, Object> parameters;
+            for (int id : ids) {
+                parameters = new HashMap<>();
+                parameters.put("id", id);
+                addPolygonFromDB("MATCH (r:OSMRelation)-[:POLYGON_STRUCTURE]->(s:SHELL) WHERE r.relation_osm_id=$id RETURN s.polygon AS locations", parameters, viewer, session, color++);
+            }
+            parameters = new HashMap<>();
+            addPolygonFromDB("MATCH (h:HOLE) RETURN h.polygon AS locations", parameters, viewer, session, -1);
         }
 
         viewer.view();
     }
 
-    private MapContent map;
+    private static void addPolygonFromDB(String query, Map<String, Object> parameters, Viewer viewer, Session session, int colorId) {
+        StatementResult result = session.run(query, parameters);
+        if (!result.hasNext()) {
+            System.out.println("No result found for parameters: " + parameters);
+            return;
+        }
 
+        while (result.hasNext()) {
+            Record next = result.next();
+            List<Point> locations = (List<Point>) next.asMap().get("locations");
+
+            if (locations.size() < 3) {
+                return;
+            }
+
+            StringJoiner joiner;
+            joiner = new StringJoiner(",", "POLYGON((", "))");
+
+            for (Point point : locations) {
+                joiner.add(point.x() + " " + point.y());
+            }
+            joiner.add(locations.get(0).x() + " " + locations.get(0).y());
+
+
+            viewer.addPolygon(joiner.toString(), colorId);
+        }
+    }
+
+    private MapContent map;
 
     public Viewer() {
         this.map = new MapContent();
         this.map.setTitle("Viewer");
+
+//        createGrid();
     }
 
-    public void addPolyLine(String WKTString, int colorId) {
+    public void addLineString(String WKTString, int colorId) {
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory( null );
 
         WKTReader reader = new WKTReader( geometryFactory );
@@ -123,6 +142,35 @@ public class Viewer {
         DefaultFeatureCollection featureCollection = new DefaultFeatureCollection();
         featureCollection.add(feature);
         this.map.addLayer(new FeatureLayer(featureCollection, SLD.createLineStyle(getColorByIndex(colorId), 3)));
+    }
+
+    public void addPolygon(String WKTString, int colorId) {
+        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory( null );
+
+        WKTReader reader = new WKTReader( geometryFactory );
+        Geometry point;
+        try {
+            point = reader.read(WKTString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        SimpleFeatureType TYPE;
+        try {
+            TYPE = DataUtilities.createType("test", "Element "+colorId, "the_geom:MultiPolygon");
+        } catch (SchemaException e) {
+            e.printStackTrace();
+            return;
+        }
+        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+        featureBuilder.add(point);
+        SimpleFeature feature = featureBuilder.buildFeature("Element "+colorId);
+
+
+        DefaultFeatureCollection featureCollection = new DefaultFeatureCollection();
+        featureCollection.add(feature);
+        this.map.addLayer(new FeatureLayer(featureCollection, SLD.createPolygonStyle(getColorByIndex(colorId), getColorByIndex(colorId), 1f)));
     }
 
     public void addPoint(String WKTString) {
@@ -196,8 +244,6 @@ public class Viewer {
     }
 
     public void view() {
-        createGrid();
-
         JMapFrame mapFrame = new JMapFrame(this.map);
         mapFrame.enableToolBar(true);
         mapFrame.enableStatusBar(true);
@@ -209,6 +255,9 @@ public class Viewer {
     }
 
     private Color getColorByIndex(int index) {
+        if (index == -1) {
+            return Color.white;
+        }
         Color[] colors = new Color[]{
                 Color.blue,
                 Color.red,
@@ -224,6 +273,9 @@ public class Viewer {
     }
 
     public String getCurrentColorName(int id) {
+        if (id == -1) {
+            return "white";
+        }
         String[] colors = new String[]{
                 "blue",
                 "red",
