@@ -1,14 +1,12 @@
 package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Polygon;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
 public class GraphPolygonBuilder {
     private static RelationshipType NEXT_REL = RelationshipType.withName("NEXT");
@@ -54,26 +52,26 @@ public class GraphPolygonBuilder {
                 Node b = polystring.get((i+1) % polystring.size());
 
                 for (Relationship relationship : a.getRelationships(NEXT_IN_POLYGON, Direction.OUTGOING)) {
-                    if (relationship.isType(NEXT_IN_POLYGON)) {
-                        long[] ids = (long[]) relationship.getProperty("relation_osm_ids");
-
-                        for (long id : ids) {
-                            if (id == relationOsmId) {
-                                continue pairwise;
-                            }
-                        }
-                        long[] idsModified = new long[ids.length + 1];
-                        for (int j = 0; j < ids.length; j++) {
-                            idsModified[j] = ids[j];
-                        }
-                        idsModified[idsModified.length - 1] = relationOsmId;
-
-                        relationship.setProperty("relation_osm_ids", idsModified);
-                        continue pairwise;
+                    if (b.getId() != relationship.getOtherNodeId(a.getId())) {
+                        continue;
                     }
-                }
 
-                //Mutually exclusive execution branches
+                    long[] ids = (long[]) relationship.getProperty("relation_osm_ids");
+
+                    for (long id : ids) {
+                        if (id == relationOsmId) {
+                            continue pairwise;
+                        }
+                    }
+                    long[] idsModified = new long[ids.length + 1];
+                    for (int j = 0; j < ids.length; j++) {
+                        idsModified[j] = ids[j];
+                    }
+                    idsModified[idsModified.length - 1] = relationOsmId;
+
+                    relationship.setProperty("relation_osm_ids", idsModified);
+                    continue pairwise;
+                }
 
                 for (Relationship relationship : a.getRelationships(NEXT_REL)) {
                     long otherId = relationship.getOtherNodeId(a.getId());

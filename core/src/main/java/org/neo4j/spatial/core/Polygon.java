@@ -123,7 +123,7 @@ public interface Polygon {
         Point[] points;
 
         private InMemorySimplePolygon(Point... points) {
-            this.points = new PolygonUtil<Point>().closeRing(points);
+            this.points = new PolygonUtil<>().closeRing(points);
             if (this.points.length < 4) {
                 throw new IllegalArgumentException("Polygon cannot have less than 4 points");
             }

@@ -23,7 +23,6 @@ public class MultiPolygon implements Polygon {
             }
         }
 
-        other.setType(PolygonType.SHELL);
         this.addChild(other);
         return true;
     }
@@ -32,9 +31,10 @@ public class MultiPolygon implements Polygon {
         return this.children;
     }
 
-    void addChild(MultiPolygonNode other) {
+    public void addChild(MultiPolygonNode other) {
         this.children.add(other);
         other.setParent(this);
+        other.setType(PolygonType.SHELL);
     }
 
     void removeChild(MultiPolygonNode other) {
@@ -138,13 +138,16 @@ public class MultiPolygon implements Polygon {
         }
 
         @Override
-        void addChild(MultiPolygonNode other) {
+        public void addChild(MultiPolygonNode other) {
             super.addChild(other);
             other.setType(PolygonType.getOther(this.type));
         }
 
         private void setType(PolygonType type) {
             this.type = type;
+            for (MultiPolygonNode child : getChildren()) {
+                child.setType(PolygonType.getOther(type));
+            }
         }
 
         public MultiPolygon getParent() {

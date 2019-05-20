@@ -1,7 +1,5 @@
 package org.neo4j.spatial.core;
 
-import org.neo4j.spatial.algo.AlgoUtil;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -134,26 +132,9 @@ public class MonotoneChain {
         return id;
     }
 
-
-    //TODO remove this debug method
-    public String getCurrentColorName() {
-        String[] colors = new String[]{
-                "blue",
-                "red",
-                "cyan",
-                "black",
-                "green",
-                "orange",
-                "magenta",
-                "pink"
-        };
-
-        return colors[(int) this.getId() % colors.length];
-    }
-
     @Override
     public String toString() {
-        return "MC" + id + "(" + this.frontVertex + ")[" + getCurrentColorName() + "]";
+        return "MC" + id + "(" + this.frontVertex + ")";
     }
 
     public boolean equals(MonotoneChain other) {

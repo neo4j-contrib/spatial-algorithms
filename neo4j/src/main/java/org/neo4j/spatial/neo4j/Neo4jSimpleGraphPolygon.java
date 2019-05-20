@@ -117,7 +117,9 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                 }
 
                 for (Relationship relationship : node.getRelationships(NEXT_IN_POLYGON, Direction.OUTGOING)) {
-                    moreRelations = true;
+                    if (nextInPolygon(relationship)) {
+                        moreRelations = true;
+                    }
                 }
 
                 if (!moreRelations) {

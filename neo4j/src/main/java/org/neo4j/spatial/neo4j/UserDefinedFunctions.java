@@ -4,20 +4,18 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.neo4j.spatial.algo.ConvexHull;
 import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
 import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
 import org.neo4j.spatial.algo.Within;
+import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Values;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class UserDefinedFunctions {
@@ -56,7 +54,6 @@ public class UserDefinedFunctions {
         for (List<Node> polystring : polystrings) {
             StringJoiner joiner = new StringJoiner(",", "LINESTRING(", ")");
             for (Node wayNode : polystring) {
-
                 Node node = wayNode.getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode();
 
                 Point point = (Point) node.getProperty("location");
@@ -115,6 +112,44 @@ public class UserDefinedFunctions {
 
         GraphPolygonBuilder graphPolygonBuilder = new GraphPolygonBuilder(main, polystrings);
         graphPolygonBuilder.build();
+    }
+
+    @UserFunction(name = "neo4j.getGraphPolygon")
+    public String getGraphPolygon(@Name("main") Node main) {
+        long relationId = (long) main.getProperty("relation_osm_id");
+        MultiPolygon multiPolygon = new MultiPolygon();
+        insertChildren(main, multiPolygon, relationId);
+
+        return multiPolygon.toWKT();
+//        List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
+//
+//        StringJoiner joiner = new StringJoiner(",", "POLYGON((", "))");
+//        for (Node wayNode : polystrings.get(0)) {
+//            Node node = wayNode.getSingleRelationship(RelationshipType.withName("NODE"), Direction.OUTGOING).getEndNode();
+//            Point point = (Point) node.getProperty("location");
+//            joiner.add(point.getCoordinate().getCoordinate().get(0) + " " + point.getCoordinate().getCoordinate().get(1));
+//        }
+//        Node node = polystrings.get(0).get(0).getSingleRelationship(RelationshipType.withName("NODE"), Direction.OUTGOING).getEndNode();
+//        Point point = (Point) node.getProperty("location");
+//        joiner.add(point.getCoordinate().getCoordinate().get(0) + " " + point.getCoordinate().getCoordinate().get(1));
+//        return joiner.toString();
+    }
+
+    private void insertChildren(Node node, MultiPolygon multiPolygon, long relationId) {
+        RelationshipCombination[] relationshipCombinations = new RelationshipCombination[]{
+                new RelationshipCombination(RelationshipType.withName("NEXT"), Direction.BOTH),
+                new RelationshipCombination(RelationshipType.withName("NEXT_IN_POLYGON"), Direction.OUTGOING)
+        };
+        for (Relationship polygonStructure : node.getRelationships(RelationshipType.withName("POLYGON_STRUCTURE"), Direction.OUTGOING)) {
+            Node child = polygonStructure.getEndNode();
+            Node start = child.getSingleRelationship(RelationshipType.withName("POLYGON_START"), Direction.OUTGOING).getEndNode().getSingleRelationship(RelationshipType.withName("FIRST_NODE"), Direction.OUTGOING).getEndNode();
+
+            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphPolygon(start, "location", relationId, relationshipCombinations);
+            MultiPolygon.MultiPolygonNode childNode = new MultiPolygon.MultiPolygonNode(polygon);
+            multiPolygon.addChild(childNode);
+
+            insertChildren(child, childNode, relationId);
+        }
     }
 
     @UserFunction("neo4j.boundingBoxFor")
