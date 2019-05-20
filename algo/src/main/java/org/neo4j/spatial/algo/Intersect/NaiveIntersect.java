@@ -8,14 +8,6 @@ import java.util.*;
 import java.util.stream.Stream;
 
 public class NaiveIntersect implements Intersect {
-    //TODO remove this function
-    public Point[] intersect(Polygon.SimplePolygon a, Polygon.SimplePolygon b) {
-        LineSegment[] aLS = Polygon.SimplePolygon.toLineSegments(a);
-        LineSegment[] bLS = Polygon.SimplePolygon.toLineSegments(b);
-
-        return compareLineSegments(aLS, bLS);
-    }
-
     @Override
     public Point[] intersect(Polygon a, Polygon b) {
         LineSegment[] aLS = Arrays.stream(a.getShells()).map(Polygon.SimplePolygon::toLineSegments).flatMap(Stream::of).toArray(LineSegment[]::new);

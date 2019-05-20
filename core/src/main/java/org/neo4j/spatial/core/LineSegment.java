@@ -1,5 +1,7 @@
 package org.neo4j.spatial.core;
 
+import org.neo4j.spatial.algo.AlgoUtil;
+
 import java.util.Arrays;
 import java.util.StringJoiner;
 
@@ -22,7 +24,7 @@ public interface LineSegment {
     static Point sharedPoint(LineSegment a, LineSegment b) {
         for (Point aPoint : a.getPoints()) {
             for (Point bPoint : b.getPoints()) {
-                if (aPoint.equals(bPoint)) {
+                if (AlgoUtil.equal(aPoint, bPoint)) {
                     return Point.point(aPoint.getCoordinate());
                 }
             }
@@ -68,7 +70,7 @@ class InMemoryLineSegment implements LineSegment {
             }
         }
 
-        return a >= 0 && b >= 0 && a != b;
+        return AlgoUtil.lessOrEqual(0, a) && AlgoUtil.lessOrEqual(0, b) && !AlgoUtil.equal(a, b);
     }
 
     public boolean equals(Object other) {

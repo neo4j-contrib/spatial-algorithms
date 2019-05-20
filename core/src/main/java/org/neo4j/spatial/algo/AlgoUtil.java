@@ -29,4 +29,18 @@ public class AlgoUtil {
     public static boolean lessOrEqual(double a, double b) {
         return a-b <= EPSILON;
     }
+
+    public static boolean equal(Point a, Point b) {
+        return equal(a.getCoordinate()[0], b.getCoordinate()[0]) && equal(a.getCoordinate()[1], b.getCoordinate()[1]);
+    }
+
+    public static double[] rotate(Point p, double angle) {
+        double x = p.getCoordinate()[0];
+        double y = p.getCoordinate()[1];
+
+        double rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
+        double rotatedY = y * Math.cos(angle) + x * Math.sin(angle);
+
+        return new double[]{rotatedX, rotatedY};
+    }
 }

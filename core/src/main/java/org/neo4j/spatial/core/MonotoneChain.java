@@ -1,5 +1,7 @@
 package org.neo4j.spatial.core;
 
+import org.neo4j.spatial.algo.AlgoUtil;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -113,7 +115,7 @@ public class MonotoneChain {
         while (vertices.get(i).getPoint().getCoordinate()[0] <= x) {
             i++;
         }
-;        return new Point[]{vertices.get(i-1).getPoint(), vertices.get(i).getPoint()};
+        return new Point[]{vertices.get(i-1).getPoint(), vertices.get(i).getPoint()};
     }
 
     public double getY(double x) {

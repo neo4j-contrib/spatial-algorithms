@@ -7,10 +7,7 @@ import org.junit.runners.Parameterized;
 import org.neo4j.spatial.algo.Intersect.Intersect;
 import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
 import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
-import org.neo4j.spatial.core.LineSegment;
-import org.neo4j.spatial.core.MultiPolygon;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.*;
 
 import java.util.Arrays;
 import java.util.Collection;

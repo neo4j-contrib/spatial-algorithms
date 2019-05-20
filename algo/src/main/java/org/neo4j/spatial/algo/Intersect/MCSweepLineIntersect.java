@@ -48,14 +48,14 @@ public class MCSweepLineIntersect implements Intersect {
 
         List<MonotoneChain> inputList = new ArrayList<>();
         for (int i = 0; i < aShells.length; i++) {
-            Polygon.SimplePolygon rotated = Polygon.simple(rotatePoints(aShells[i].getPoints(), this.sweepAngle));
-            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotated);
+            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(aShells[i]);
+            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotatedPolygon);
             inputList.addAll(partitioned);
         }
 
         for (int i = 0; i < bShells.length; i++) {
-            Polygon.SimplePolygon rotated = Polygon.simple(rotatePoints(bShells[i].getPoints(), this.sweepAngle));
-            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotated);
+            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(bShells[i]);
+            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotatedPolygon);
             inputList.addAll(partitioned);
 
             if (i == 0) {
@@ -106,31 +106,28 @@ public class MCSweepLineIntersect implements Intersect {
                         findIntersection(MCb, getPrevious(sweepingChainList, MCb));
                         findIntersection(MCa, getNext(sweepingChainList, MCa));
                     }
-                    outputList.add(v.getPoint());
+                    addToOutput(v.getPoint());
                     break;
             }
 
         }
 
-        Point[] outputPoints = outputList.toArray(new Point[0]);
-
-        return rotatePoints(outputPoints, -this.sweepAngle);
+        return outputList.toArray(new Point[0]);
     }
 
-    private Point[] rotatePoints(Point[] points, double angle) {
-        Point[] rotated = new Point[points.length];
-
-        for (int i = 0; i < points.length; i++) {
-            double x = points[i].getCoordinate()[0];
-            double y = points[i].getCoordinate()[1];
-
-            double rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
-            double rotatedY = y * Math.cos(angle) + x * Math.sin(angle);
-
-            rotated[i] = Point.point(rotatedX, rotatedY);
+    private void addToOutput(Point rotatedPoint) {
+        Point point = Point.point(AlgoUtil.rotate(rotatedPoint, -this.sweepAngle));
+        for (Point inList : outputList) {
+            if (AlgoUtil.equal(point, inList)) {
+                return;
+            }
         }
+        this.outputList.add(point);
+    }
 
-        return rotated;
+    private Polygon.SimplePolygon createRotatedPolygon(Polygon.SimplePolygon polygon) {
+        Point[] rotatedPoints = Arrays.stream(polygon.getPoints()).map(p -> new RotatedPoint(p, this.sweepAngle)).toArray(RotatedPoint[]::new);
+        return Polygon.simple(rotatedPoints);
     }
 
     private void computeSweepDirection(Polygon.SimplePolygon[] aShells, Polygon.SimplePolygon[] bShells) {
@@ -270,7 +267,7 @@ public class MCSweepLineIntersect implements Intersect {
             //Check if point isn't already in the output and the two chains are from different polygons by comparing signs
             if (!outputList.contains(LineSegment.sharedPoint(aSegment, bSegment)) &&
                     ((a.getId() - splitId ^ b.getId() - splitId) < 0)) {
-                outputList.add(sharedPoint);
+                addToOutput(sharedPoint);
             }
             return;
         }

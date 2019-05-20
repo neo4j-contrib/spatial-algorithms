@@ -48,6 +48,10 @@ public interface Point {
     default String toWKT() {
         return "POINT(" + getCoordinate()[0] + " " + getCoordinate()[1] + ")";
     }
+
+    default boolean equals(Point other) {
+        return Arrays.equals(this.getCoordinate(), other.getCoordinate());
+    }
 }
 
 class InMemoryPoint implements Point {
@@ -58,10 +62,6 @@ class InMemoryPoint implements Point {
             throw new IllegalArgumentException("Cannot create point with zero dimensions");
         }
         this.coordinate = coordinate;
-    }
-
-    public boolean equals(Point other) {
-        return Arrays.equals(this.coordinate, other.getCoordinate());
     }
 
     @Override
