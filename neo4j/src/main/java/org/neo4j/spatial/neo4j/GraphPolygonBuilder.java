@@ -9,10 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 public class GraphPolygonBuilder {
-    private static RelationshipType NEXT_REL = RelationshipType.withName("NEXT");
-    private static RelationshipType NEXT_IN_POLYGON = RelationshipType.withName("NEXT_IN_POLYGON");
-    private static RelationshipType POLYGON_STRUCTURE_REL = RelationshipType.withName("POLYGON_STRUCTURE");
-    private static RelationshipType POLYGON_START_REL = RelationshipType.withName("POLYGON_START");
     private static Label POLYGON_LABEL = Label.label("POLYGON");
     private static Label SHELL_LABEL = Label.label("SHELL");
     private static Label HOLE_LABEL = Label.label("HOLE");
@@ -51,7 +47,7 @@ public class GraphPolygonBuilder {
                 Node a = polystring.get(i);
                 Node b = polystring.get((i+1) % polystring.size());
 
-                for (Relationship relationship : a.getRelationships(NEXT_IN_POLYGON, Direction.OUTGOING)) {
+                for (Relationship relationship : a.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
                     if (b.getId() != relationship.getOtherNodeId(a.getId())) {
                         continue;
                     }
@@ -73,33 +69,28 @@ public class GraphPolygonBuilder {
                     continue pairwise;
                 }
 
-                for (Relationship relationship : a.getRelationships(NEXT_REL)) {
+                for (Relationship relationship : a.getRelationships(Relation.NEXT)) {
                     long otherId = relationship.getOtherNodeId(a.getId());
                     if (otherId == b.getId()) {
                         continue pairwise;
                     }
                 }
 
-                Relationship relation = a.createRelationshipTo(b, NEXT_IN_POLYGON);
+                Relationship relation = a.createRelationshipTo(b, Relation.NEXT_IN_POLYGON);
                 relation.setProperty("relation_osm_ids", new long[]{relationOsmId});
             }
         }
     }
 
     private MultiPolygon buildPolygonTree() {
-        long relationOsmId = (long) main.getProperty("relation_osm_id");
 
+        long relationOsmId = (long) main.getProperty("relation_osm_id");
         MultiPolygon root = new MultiPolygon();
 
         Polygon.SimplePolygon[] polygons = new Polygon.SimplePolygon[polystrings.size()];
 
-        RelationshipCombination[] relationshipCombinations = new RelationshipCombination[]{
-                new RelationshipCombination(NEXT_REL, Direction.BOTH),
-                new RelationshipCombination(NEXT_IN_POLYGON, Direction.OUTGOING)
-        };
-
         for (int i = 0; i < polystrings.size(); i++) {
-            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphPolygon(polystrings.get(i).get(0), "location", relationOsmId, relationshipCombinations);
+            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphNodePolygon(polystrings.get(i).get(0), relationOsmId);
             polygons[i] = polygon;
         }
 
@@ -114,8 +105,8 @@ public class GraphPolygonBuilder {
         Label label = depth % 2 == 0 ? SHELL_LABEL : HOLE_LABEL;
         Node polygonNode = db.createNode(POLYGON_LABEL, label);
 
-        previous.createRelationshipTo(polygonNode, POLYGON_STRUCTURE_REL);
-        polygonNode.createRelationshipTo(root.getStartWay(), POLYGON_START_REL);
+        previous.createRelationshipTo(polygonNode, Relation.POLYGON_STRUCTURE);
+        polygonNode.createRelationshipTo(root.getStartWay(), Relation.POLYGON_START);
 
         for (MultiPolygon.MultiPolygonNode child : root.getChildren()) {
             buildGraphPolygon(polygonNode, (Neo4jMultiPolygonNode) child, depth+1);

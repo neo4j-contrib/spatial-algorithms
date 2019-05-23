@@ -33,7 +33,7 @@ public class Neo4jDataTest {
         try (Transaction tx = db.beginTx()) {
             Node node = db.createNode(Label.label("PoI"));
             node.setProperty("location", Values.pointValue(CoordinateReferenceSystem.Cartesian, 5.3, 9.1));
-            neo4jPoint = new Neo4jPoint(node, "location");
+            neo4jPoint = new Neo4jPoint(node);
             assertThat("expected Neo4jPoint to contain correct coordinates", neo4jPoint.getCoordinate(), equalTo(new double[]{5.3, 9.1}));
             tx.success();
         }

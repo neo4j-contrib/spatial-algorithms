@@ -4,6 +4,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
+import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.neo4j.spatial.algo.ConvexHull;
@@ -23,6 +24,9 @@ public class UserDefinedFunctions {
     @Context
     public Log log;
 
+    @Context
+    public KernelTransaction ktx;
+
     @Procedure("neo4j.polygon")
     public Stream<PolygonResult> makePolygon(@Name("points") List<Point> points) {
         if (points == null || points.size() < 3) {
@@ -41,11 +45,9 @@ public class UserDefinedFunctions {
     public void createOSMArrayPolygon(@Name("main") Node main) {
         List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
 
-        RelationshipType nodeRel = RelationshipType.withName("NODE");
-
         List<Point> points = new ArrayList<>();
         for (Node wayNode : polystrings.get(0)) {
-            Node node = wayNode.getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode();
+            Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
 
             Point point = (Point) node.getProperty("location");
             points.add(point);
@@ -54,7 +56,7 @@ public class UserDefinedFunctions {
         for (List<Node> polystring : polystrings) {
             StringJoiner joiner = new StringJoiner(",", "LINESTRING(", ")");
             for (Node wayNode : polystring) {
-                Node node = wayNode.getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode();
+                Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
 
                 Point point = (Point) node.getProperty("location");
                 joiner.add(point.getCoordinate().getCoordinate().get(0) + " " + point.getCoordinate().getCoordinate().get(1));
@@ -65,36 +67,32 @@ public class UserDefinedFunctions {
     }
 
     @Procedure(name = "neo4j.createArrayCache", mode = Mode.WRITE)
-    public void createArrayCache(@Name("polygonNode") Node polygonNode) {
-        GraphDatabaseService db = polygonNode.getGraphDatabase();
+    public void createArrayCache(@Name("main") Node main) {
+        GraphDatabaseService db = main.getGraphDatabase();
 
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put("polygonNode", polygonNode.getId());
-        Result mainResult = db.execute("MATCH (p:POLYGON)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(p)=$polygonNode RETURN m AS main", parameters);
+        parameters.put("main", main.getId());
+        Result mainResult = db.execute("MATCH (p:POLYGON)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
 
-        if (!mainResult.hasNext()) {
-            return;
+        long relation_osm_id = (long) main.getProperty("relation_osm_id");
+
+        while (mainResult.hasNext()) {
+            Node polygonNode = (Node) mainResult.next().get("polygonNode");
+
+            parameters = new HashMap<>();
+            parameters.put("polygonNode", polygonNode.getId());
+            Result startNodeResult = db.execute("MATCH (p:POLYGON)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
+
+            if (!startNodeResult.hasNext()) {
+                return;
+            }
+
+            Node startNode = (Node) startNodeResult.next().get("startNode");
+
+            Neo4jSimpleGraphNodePolygon polygon = new Neo4jSimpleGraphNodePolygon(startNode, relation_osm_id);
+
+            polygonNode.setProperty("polygon", Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new));
         }
-
-        long relation_osm_id = (long) ((Node) mainResult.next().get("main")).getProperty("relation_osm_id");
-
-        parameters = new HashMap<>();
-        parameters.put("polygonNode", polygonNode.getId());
-        Result startNodeResult = db.execute("MATCH (p:POLYGON)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
-
-        if (!startNodeResult.hasNext()) {
-            return;
-        }
-
-        Node startNode = (Node) startNodeResult.next().get("startNode");
-
-        RelationshipCombination[] relationshipCombinations = new RelationshipCombination[]{
-                new RelationshipCombination(RelationshipType.withName("NEXT"), Direction.BOTH),
-                new RelationshipCombination(RelationshipType.withName("NEXT_IN_POLYGON"), Direction.OUTGOING)
-        };
-        Neo4jSimpleGraphPolygon polygon = new Neo4jSimpleGraphPolygon(startNode, "location", relation_osm_id, relationshipCombinations);
-
-        polygonNode.setProperty("polygon", Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new));
     }
 
     @Procedure(name = "neo4j.createOSMGraphPolygon", mode = Mode.WRITE)
@@ -114,41 +112,79 @@ public class UserDefinedFunctions {
         graphPolygonBuilder.build();
     }
 
-    @UserFunction(name = "neo4j.getGraphPolygon")
-    public String getGraphPolygon(@Name("main") Node main) {
+    private MultiPolygon getGraphPolygon(Node main) {
         long relationId = (long) main.getProperty("relation_osm_id");
         MultiPolygon multiPolygon = new MultiPolygon();
-        insertChildren(main, multiPolygon, relationId);
+        insertChildrenGraph(main, multiPolygon, relationId);
 
-        return multiPolygon.toWKT();
-//        List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
-//
-//        StringJoiner joiner = new StringJoiner(",", "POLYGON((", "))");
-//        for (Node wayNode : polystrings.get(0)) {
-//            Node node = wayNode.getSingleRelationship(RelationshipType.withName("NODE"), Direction.OUTGOING).getEndNode();
-//            Point point = (Point) node.getProperty("location");
-//            joiner.add(point.getCoordinate().getCoordinate().get(0) + " " + point.getCoordinate().getCoordinate().get(1));
-//        }
-//        Node node = polystrings.get(0).get(0).getSingleRelationship(RelationshipType.withName("NODE"), Direction.OUTGOING).getEndNode();
-//        Point point = (Point) node.getProperty("location");
-//        joiner.add(point.getCoordinate().getCoordinate().get(0) + " " + point.getCoordinate().getCoordinate().get(1));
-//        return joiner.toString();
+        return multiPolygon;
     }
 
-    private void insertChildren(Node node, MultiPolygon multiPolygon, long relationId) {
-        RelationshipCombination[] relationshipCombinations = new RelationshipCombination[]{
-                new RelationshipCombination(RelationshipType.withName("NEXT"), Direction.BOTH),
-                new RelationshipCombination(RelationshipType.withName("NEXT_IN_POLYGON"), Direction.OUTGOING)
-        };
-        for (Relationship polygonStructure : node.getRelationships(RelationshipType.withName("POLYGON_STRUCTURE"), Direction.OUTGOING)) {
-            Node child = polygonStructure.getEndNode();
-            Node start = child.getSingleRelationship(RelationshipType.withName("POLYGON_START"), Direction.OUTGOING).getEndNode().getSingleRelationship(RelationshipType.withName("FIRST_NODE"), Direction.OUTGOING).getEndNode();
+    @UserFunction(name = "neo4j.getGraphPolygonWKT")
+    public String getGraphPolygonWKT(@Name("main") Node main) {
+        return getGraphPolygon(main).toWKT();
+    }
 
-            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphPolygon(start, "location", relationId, relationshipCombinations);
+    private MultiPolygon getArrayPolygon(Node main) {
+        MultiPolygon multiPolygon = new MultiPolygon();
+        insertChildrenArray(main, multiPolygon);
+
+        return multiPolygon;
+    }
+
+    @UserFunction(name = "neo4j.getArrayPolygonWKT")
+    public String getArrayPolygonWKT(@Name("main") Node main) {
+        return getArrayPolygon(main).toWKT();
+    }
+
+    private MultiPolygon getIDPolygon(Node main) {
+        long relationId = (long) main.getProperty("relation_osm_id");
+        MultiPolygon multiPolygon = new MultiPolygon();
+        insertChildrenID(main, multiPolygon, relationId);
+
+        return multiPolygon;
+    }
+
+    @UserFunction(name = "neo4j.getIDPolygonWKT")
+    public String getIDPolygonWKT(@Name("main") Node main) {
+        return getIDPolygon(main).toWKT();
+    }
+
+    private void insertChildrenGraph(Node node, MultiPolygon multiPolygon, long relationId) {
+        for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
+            Node child = polygonStructure.getEndNode();
+            Node start = child.getSingleRelationship(Relation.POLYGON_START, Direction.OUTGOING).getEndNode().getSingleRelationship(Relation.FIRST_NODE, Direction.OUTGOING).getEndNode();
+
+            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphNodePolygon(start, relationId);
             MultiPolygon.MultiPolygonNode childNode = new MultiPolygon.MultiPolygonNode(polygon);
             multiPolygon.addChild(childNode);
 
-            insertChildren(child, childNode, relationId);
+            insertChildrenGraph(child, childNode, relationId);
+        }
+    }
+
+    private void insertChildrenArray(Node node, MultiPolygon multiPolygon) {
+        for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
+            Node child = polygonStructure.getEndNode();
+
+            Polygon.SimplePolygon polygon = new Neo4jSimpleArrayPolygon(child, "polygon");
+            MultiPolygon.MultiPolygonNode childNode = new MultiPolygon.MultiPolygonNode(polygon);
+            multiPolygon.addChild(childNode);
+
+            insertChildrenArray(child, childNode);
+        }
+    }
+
+    private void insertChildrenID(Node node, MultiPolygon multiPolygon, long relationId) {
+        for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
+            Node child = polygonStructure.getEndNode();
+            Node start = child.getSingleRelationship(Relation.POLYGON_START, Direction.OUTGOING).getEndNode().getSingleRelationship(Relation.FIRST_NODE, Direction.OUTGOING).getEndNode();
+
+            Polygon.SimplePolygon polygon = new Neo4jSimpleIDPolygon(start, relationId, ktx);
+            MultiPolygon.MultiPolygonNode childNode = new MultiPolygon.MultiPolygonNode(polygon);
+            multiPolygon.addChild(childNode);
+
+            insertChildrenID(child, childNode, relationId);
         }
     }
 

@@ -1,14 +1,15 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.spatial.CRS;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
-import org.neo4j.spatial.core.PolygonUtil;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,17 +18,8 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
-public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
-    private final Neo4jPoint[] points;
-
-    public Neo4jSimpleGraphPolygon(Node main, String property, long osmRelationId, RelationshipCombination[] relationNext) {
-        Neo4jPoint[] unclosed = traverseGraph(main, property, osmRelationId, relationNext);
-        this.points = new PolygonUtil<Neo4jPoint>().closeRing(unclosed);
-        if (points.length < 4) {
-            throw new IllegalArgumentException("Polygon cannot have less than 4 points");
-        }
-        assertAllSameDimension(this.points);
-    }
+public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
+    protected Point[] points;
 
     @Override
     public int dimension() {
@@ -46,9 +38,8 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
 
     @Override
     public String toString() {
-        return format("Neo4jSimpleGraphPolygon%s", Arrays.toString(points));
+        return format("Neo4jSimpleGraphNodePolygon%s", Arrays.toString(points));
     }
-
 
     @Override
     public String toWKTPointString() {
@@ -59,36 +50,17 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         return joiner.toString();
     }
 
-    public CRS getCRS() {
-        return this.points[0].getCRS();
-    }
-
-    private Neo4jPoint[] traverseGraph(Node main, String property, long osmRelationId, RelationshipCombination[] relationNext) {
-        RelationshipType nodeRel = RelationshipType.withName("NODE");
-
+    protected Node[] traverseGraph(Node main, long osmRelationId) {
         TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()
                 .depthFirst()
+                .relationships(Relation.NEXT, Direction.BOTH)
+                .relationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)
                 .evaluator(new WayEvaluator(osmRelationId));
 
-
-        for (RelationshipCombination combination : relationNext) {
-            traversalDescription = traversalDescription.relationships(combination.getType(), combination.getDirection());
-        }
-
-        List<Node> wayNodes = traversalDescription.traverse(main).nodes().stream().collect(Collectors.toList());
-        Neo4jPoint[] points = new Neo4jPoint[wayNodes.size()];
-        for (int i = 0; i < points.length; i++) {
-            Node node = wayNodes.get(i).getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode();
-            points[i] = new Neo4jPoint(node, property);
-        }
-
-        return points;
+        return traversalDescription.traverse(main).nodes().stream().toArray(Node[]::new);
     }
 
     private static class WayEvaluator implements Evaluator {
-        private static final RelationshipType NEXT_IN_POLYGON = RelationshipType.withName("NEXT_IN_POLYGON");
-        private static final RelationshipType NEXT = RelationshipType.withName("NEXT");
-
         private long relationId;
 
         public WayEvaluator(long relationId) {
@@ -104,33 +76,27 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                 return Evaluation.INCLUDE_AND_CONTINUE;
             }
 
-            if (rel.isType(NEXT_IN_POLYGON)) {
+            if (rel.isType(Relation.NEXT_IN_POLYGON)) {
                 return nextInPolygon(rel) ? Evaluation.INCLUDE_AND_CONTINUE : Evaluation.EXCLUDE_AND_PRUNE;
             }
 
-            if (rel.isType(NEXT)) {
-                boolean moreRelations = false;
-                for (Relationship relationship : node.getRelationships(NEXT)) {
+            if (rel.isType(Relation.NEXT)) {
+                for (Relationship relationship : node.getRelationships(Relation.NEXT)) {
                     if (!relationship.equals(rel)) {
-                        moreRelations = true;
+                        return Evaluation.INCLUDE_AND_CONTINUE;
                     }
                 }
 
-                for (Relationship relationship : node.getRelationships(NEXT_IN_POLYGON, Direction.OUTGOING)) {
+                for (Relationship relationship : node.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
                     if (nextInPolygon(relationship)) {
-                        moreRelations = true;
+                        return Evaluation.INCLUDE_AND_CONTINUE;
                     }
                 }
-
-                if (!moreRelations) {
-                    return Evaluation.EXCLUDE_AND_PRUNE;
-                }
-
 
                 Node oneButLast = path.lastRelationship().getOtherNode(node);
 
-                for (Relationship relationship : oneButLast.getRelationships(NEXT_IN_POLYGON, Direction.INCOMING)) {
-                    if (nextInPolygon(relationship) && !moreRelations) {
+                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYGON, Direction.INCOMING)) {
+                    if (nextInPolygon(relationship)) {
                         return Evaluation.EXCLUDE_AND_PRUNE;
                     }
                 }
@@ -152,7 +118,7 @@ public class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         }
     }
 
-    private void assertAllSameDimension(Neo4jPoint... points) {
+    protected void assertAllSameDimension(Point... points) {
         for (int i = 1; i < points.length; i++) {
             if (points[0].dimension() != points[i].dimension()) {
                 throw new IllegalArgumentException(format("Point[%d] has different dimension to Point[%d]: %d != %d", i, 0, points[i].dimension(), points[0].dimension()));

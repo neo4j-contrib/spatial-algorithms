@@ -62,9 +62,8 @@ public interface Polygon {
         }
 
         static boolean areEqual(SimplePolygon one, SimplePolygon other) {
-            PolygonUtil<Point> utils = new PolygonUtil<>();
-            Point[] a = utils.openRing(one.getPoints());
-            Point[] b = utils.openRing(other.getPoints());
+            Point[] a = PolygonUtil.openRing(one.getPoints());
+            Point[] b = PolygonUtil.openRing(other.getPoints());
 
             if (a.length != b.length) {
                 return false;
@@ -123,7 +122,7 @@ public interface Polygon {
         Point[] points;
 
         private InMemorySimplePolygon(Point... points) {
-            this.points = new PolygonUtil<>().closeRing(points);
+            this.points = PolygonUtil.closeRing(points);
             if (this.points.length < 4) {
                 throw new IllegalArgumentException("Polygon cannot have less than 4 points");
             }

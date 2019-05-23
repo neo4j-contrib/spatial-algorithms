@@ -63,19 +63,33 @@ public class Viewer {
                     54222,
                     940675
             };
-            ids = new int[]{54367,54374};
 
             Map<String, Object> parameters;
             for (int id : ids) {
                 parameters = new HashMap<>();
                 parameters.put("id", id);
-                addPolygonFromDB("MATCH (r:OSMRelation)-[:POLYGON_STRUCTURE]->(s:SHELL) WHERE r.relation_osm_id=$id RETURN s.polygon AS locations", parameters, viewer, session, color++);
+//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getIDPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
+//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getArrayPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
+                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getGraphPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
             }
-            parameters = new HashMap<>();
-            addPolygonFromDB("MATCH (h:HOLE) RETURN h.polygon AS locations", parameters, viewer, session, -1);
         }
 
         viewer.view();
+    }
+
+    private static void addWKTFromDB(String query, Map<String, Object> parameters, Viewer viewer, Session session, int colorId) {
+        StatementResult result = session.run(query, parameters);
+        if (!result.hasNext()) {
+            System.out.println("No result found for parameters: " + parameters);
+            return;
+        }
+
+        while (result.hasNext()) {
+            Record next = result.next();
+            String WKT = (String) next.asMap().get("WKT");
+            System.out.println(WKT);
+            viewer.addPolygon(WKT, colorId);
+        }
     }
 
     private static void addPolygonFromDB(String query, Map<String, Object> parameters, Viewer viewer, Session session, int colorId) {

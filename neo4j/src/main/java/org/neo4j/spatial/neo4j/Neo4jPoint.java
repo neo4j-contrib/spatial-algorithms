@@ -11,11 +11,10 @@ import static java.lang.String.format;
 
 class Neo4jPoint implements Point {
     private final Node node;
-    private final String property;
+    private final static String property = "location";
 
-    public Neo4jPoint(Node node, String property) {
+    public Neo4jPoint(Node node) {
         this.node = node;
-        this.property = property;
     }
 
     public boolean equals(Point other) {

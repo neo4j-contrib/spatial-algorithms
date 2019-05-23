@@ -28,7 +28,7 @@ public class OSMTraverser {
 
         Set<Node> ways = new HashSet<>();
         ResourceIterable<Node> wayIterator = new MonoDirectionalTraversalDescription().depthFirst()
-                .relationships(RelationshipType.withName("MEMBER"), Direction.OUTGOING).traverse(main).nodes();
+                .relationships(Relation.MEMBER, Direction.OUTGOING).traverse(main).nodes();
 
         for (Node way : wayIterator) {
             if (ways.contains(way)) {
@@ -50,12 +50,12 @@ public class OSMTraverser {
             }
 
             Node startWayNode = new MonoDirectionalTraversalDescription().depthFirst()
-                    .relationships(RelationshipType.withName("FIRST_NODE"), Direction.OUTGOING)
-                    .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(RelationshipType.withName("FIRST_NODE")))
+                    .relationships(Relation.FIRST_NODE, Direction.OUTGOING)
+                    .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(Relation.FIRST_NODE))
                     .traverse(way).iterator().next().endNode();
 
             TraversalDescription followWay = new MonoDirectionalTraversalDescription()
-                    .depthFirst().relationships(RelationshipType.withName("NEXT"));
+                    .depthFirst().relationships(Relation.NEXT);
 
             List<Node> currentWayNodes = new ArrayList<>();
 
@@ -201,8 +201,7 @@ public class OSMTraverser {
     }
 
     private static double[] getCoordinates(Node wayNode) {
-        RelationshipType nodeRel = RelationshipType.withName("NODE");
-        Node node = wayNode.getSingleRelationship(nodeRel, Direction.OUTGOING).getEndNode();
+        Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
 
         Point point = (Point) node.getProperty("location");
 

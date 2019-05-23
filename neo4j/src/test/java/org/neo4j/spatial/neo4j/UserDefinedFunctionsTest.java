@@ -6,6 +6,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.Iterators;
@@ -30,7 +31,7 @@ public class UserDefinedFunctionsTest {
 
     @Before
     public void setUp() throws KernelException {
-        db = new TestGraphDatabaseFactory().newImpermanentDatabase();
+        db = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder().setConfig(GraphDatabaseSettings.procedure_unrestricted, "neo4j.*").newGraphDatabase();
         registerUDFClass(db, UserDefinedFunctions.class);
     }
 
@@ -67,19 +68,17 @@ public class UserDefinedFunctionsTest {
             int last = wayNodes[0].length - 1;
             int first = 0;
 
-            RelationshipType nodeRel = RelationshipType.withName("NODE");
+            wayNodes[0][last].createRelationshipTo(connectors[0], Relation.NODE);
+            wayNodes[1][first].createRelationshipTo(connectors[0], Relation.NODE);
 
-            wayNodes[0][last].createRelationshipTo(connectors[0], nodeRel);
-            wayNodes[1][first].createRelationshipTo(connectors[0], nodeRel);
+            wayNodes[1][last].createRelationshipTo(connectors[1], Relation.NODE);
+            wayNodes[2][first].createRelationshipTo(connectors[1], Relation.NODE);
 
-            wayNodes[1][last].createRelationshipTo(connectors[1], nodeRel);
-            wayNodes[2][first].createRelationshipTo(connectors[1], nodeRel);
+            wayNodes[2][last].createRelationshipTo(connectors[2], Relation.NODE);
+            wayNodes[3][first].createRelationshipTo(connectors[2], Relation.NODE);
 
-            wayNodes[2][last].createRelationshipTo(connectors[2], nodeRel);
-            wayNodes[3][first].createRelationshipTo(connectors[2], nodeRel);
-
-            wayNodes[3][last].createRelationshipTo(connectors[3], nodeRel);
-            wayNodes[0][first].createRelationshipTo(connectors[3], nodeRel);
+            wayNodes[3][last].createRelationshipTo(connectors[3], Relation.NODE);
+            wayNodes[0][first].createRelationshipTo(connectors[3], Relation.NODE);
 
             testCall(db, "CALL neo4j.createOSMArrayPolygon($main)",
                     map("main", main), result -> {
@@ -101,19 +100,17 @@ public class UserDefinedFunctionsTest {
             int last = wayNodes[0].length - 1;
             int first = 0;
 
-            RelationshipType nodeRel = RelationshipType.withName("NODE");
+            wayNodes[0][last].createRelationshipTo(connectors[0], Relation.NODE);
+            wayNodes[1][first].createRelationshipTo(connectors[0], Relation.NODE);
 
-            wayNodes[0][last].createRelationshipTo(connectors[0], nodeRel);
-            wayNodes[1][first].createRelationshipTo(connectors[0], nodeRel);
+            wayNodes[1][last].createRelationshipTo(connectors[1], Relation.NODE);
+            wayNodes[2][last].createRelationshipTo(connectors[1], Relation.NODE);
 
-            wayNodes[1][last].createRelationshipTo(connectors[1], nodeRel);
-            wayNodes[2][last].createRelationshipTo(connectors[1], nodeRel);
+            wayNodes[2][first].createRelationshipTo(connectors[2], Relation.NODE);
+            wayNodes[3][first].createRelationshipTo(connectors[2], Relation.NODE);
 
-            wayNodes[2][first].createRelationshipTo(connectors[2], nodeRel);
-            wayNodes[3][first].createRelationshipTo(connectors[2], nodeRel);
-
-            wayNodes[3][last].createRelationshipTo(connectors[3], nodeRel);
-            wayNodes[0][first].createRelationshipTo(connectors[3], nodeRel);
+            wayNodes[3][last].createRelationshipTo(connectors[3], Relation.NODE);
+            wayNodes[0][first].createRelationshipTo(connectors[3], Relation.NODE);
 
             testCall(db, "CALL neo4j.createOSMArrayPolygon($main)",
                     map("main", main), result -> {
@@ -135,8 +132,6 @@ public class UserDefinedFunctionsTest {
             int last = wayNodes[0].length - 1;
             int first = 0;
 
-            RelationshipType nodeRel = RelationshipType.withName("NODE");
-
             for (int i = 0; i < connectors.length; i++) {
                 double p = (i/2);
 
@@ -148,8 +143,8 @@ public class UserDefinedFunctionsTest {
             }
 
             for (int i = 0; i < ways.length; i++) {
-                wayNodes[i][last].createRelationshipTo(connectors[i*2], nodeRel);
-                wayNodes[(i + 1) % ways.length][first].createRelationshipTo(connectors[(i*2)+1], nodeRel);
+                wayNodes[i][last].createRelationshipTo(connectors[i*2], Relation.NODE);
+                wayNodes[(i + 1) % ways.length][first].createRelationshipTo(connectors[(i*2)+1], Relation.NODE);
             }
 
             testCall(db, "CALL neo4j.createOSMArrayPolygon($main)",
@@ -166,30 +161,25 @@ public class UserDefinedFunctionsTest {
         Label wayLabel = Label.label("OSMWay");
         Label wayNodeLabel = Label.label("OSMWayNode");
         Label nodeLabel = Label.label("OSMNode");
-        RelationshipType memberRel = RelationshipType.withName("MEMBER");
-        RelationshipType firstNodeRel = RelationshipType.withName("FIRST_NODE");
-        RelationshipType nextRel = RelationshipType.withName("NEXT");
-        RelationshipType nodeRel = RelationshipType.withName("NODE");
-
 
         for (int i = 0; i < ways.length; i++) {
             ways[i] = db.createNode(wayLabel);
-            main.createRelationshipTo(ways[i], memberRel);
+            main.createRelationshipTo(ways[i], Relation.MEMBER);
 
             for (int j = 0; j < wayNodes[i].length; j++) {
                 wayNodes[i][j] = db.createNode(wayNodeLabel);
             }
 
-            ways[i].createRelationshipTo(wayNodes[i][0], firstNodeRel);
+            ways[i].createRelationshipTo(wayNodes[i][0], Relation.FIRST_NODE);
             for (int j = 0; j < wayNodes[i].length - 1; j++) {
-                wayNodes[i][j].createRelationshipTo(wayNodes[i][j+1], nextRel);
+                wayNodes[i][j].createRelationshipTo(wayNodes[i][j+1], Relation.NEXT);
             }
 
             for (int j = 0; j < nodes[i].length; j++) {
                 nodes[i][j] = db.createNode(nodeLabel);
                 nodes[i][j].setProperty("location", placeholderPoint);
 
-                wayNodes[i][j+1].createRelationshipTo(nodes[i][j], nodeRel);
+                wayNodes[i][j+1].createRelationshipTo(nodes[i][j], Relation.NODE);
             }
         }
 
@@ -218,24 +208,16 @@ public class UserDefinedFunctionsTest {
                     });
 
             List<Node> list = new MonoDirectionalTraversalDescription().breadthFirst()
-                    .relationships(RelationshipType.withName("FIRST_NODE"), Direction.OUTGOING)
-                    .relationships(RelationshipType.withName("NEXT"))
+                    .relationships(Relation.FIRST_NODE, Direction.OUTGOING)
+                    .relationships(Relation.NEXT)
                     .relationships(RelationshipType.withName("NEXT_IN_POLYGON_1"), Direction.OUTGOING)
-                    .relationships(RelationshipType.withName("NODE"), Direction.OUTGOING)
-                    .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(RelationshipType.withName("NODE")))
+                    .relationships(Relation.NODE, Direction.OUTGOING)
+                    .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(Relation.NODE))
                     .traverse(ways[0]).nodes().stream().collect(Collectors.toList());
 
             for (Node node : list) {
                 System.out.println(node);
                 System.out.println(node.getProperty("location"));
-            }
-
-            Result result = db.execute("MATCH p=(a:POLYGON) WITH a CALL neo4j.createArrayCache(a) RETURN a.polygon");
-//            Result result = db.execute("MATCH p=(:OSMWay)-[:FIRST_NODE]->(:OSMWayNode)-[:NEXT]->(:OSMWayNode)-[*]-(:OSMWayNode)<-[:FIRST_NODE]-(:OSMWay) RETURN p");
-
-            while (result.hasNext()) {
-                Map<String, Object> next = result.next();
-                System.out.println(next);
             }
 
             tx.success();
@@ -246,10 +228,6 @@ public class UserDefinedFunctionsTest {
         Label wayLabel = Label.label("OSMWay");
         Label wayNodeLabel = Label.label("OSMWayNode");
         Label nodeLabel = Label.label("OSMNode");
-        RelationshipType memberRel = RelationshipType.withName("MEMBER");
-        RelationshipType firstNodeRel = RelationshipType.withName("FIRST_NODE");
-        RelationshipType nextRel = RelationshipType.withName("NEXT");
-        RelationshipType nodeRel = RelationshipType.withName("NODE");
 
         Point[] points = new Point[]{
                 Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, -10),
@@ -273,21 +251,21 @@ public class UserDefinedFunctionsTest {
 
         for (int i = 0; i < ways.length; i++) {
             ways[i] = db.createNode(wayLabel);
-            main.createRelationshipTo(ways[i], memberRel);
+            main.createRelationshipTo(ways[i], Relation.MEMBER);
 
             for (int j = 0; j < wayNodes[i].length; j++) {
                 wayNodes[i][j] = db.createNode(wayNodeLabel);
             }
 
-            ways[i].createRelationshipTo(wayNodes[i][0], firstNodeRel);
+            ways[i].createRelationshipTo(wayNodes[i][0], Relation.FIRST_NODE);
             for (int j = 0; j < wayNodes[i].length - 1; j++) {
-                wayNodes[i][j].createRelationshipTo(wayNodes[i][j+1], nextRel);
+                wayNodes[i][j].createRelationshipTo(wayNodes[i][j+1], Relation.NEXT);
             }
 
             for (int j = 0; j < nodes[i].length; j++) {
                 nodes[i][j] = db.createNode(nodeLabel);
 
-                wayNodes[i][j].createRelationshipTo(nodes[i][j], nodeRel);
+                wayNodes[i][j].createRelationshipTo(nodes[i][j], Relation.NODE);
             }
         }
 
