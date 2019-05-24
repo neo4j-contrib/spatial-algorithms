@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 public class GraphPolygonBuilder {
-    private static Label POLYGON_LABEL = Label.label("POLYGON");
-    private static Label SHELL_LABEL = Label.label("SHELL");
-    private static Label HOLE_LABEL = Label.label("HOLE");
+    private static Label POLYGON_LABEL = Label.label("Polygon");
+    private static Label SHELL_LABEL = Label.label("Shell");
+    private static Label HOLE_LABEL = Label.label("Hole");
 
     private GraphDatabaseService db;
 

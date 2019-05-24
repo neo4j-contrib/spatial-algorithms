@@ -72,7 +72,7 @@ public class UserDefinedFunctions {
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
-        Result mainResult = db.execute("MATCH (p:POLYGON)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
+        Result mainResult = db.execute("MATCH (p:Polygon)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
 
         long relation_osm_id = (long) main.getProperty("relation_osm_id");
 
@@ -81,7 +81,7 @@ public class UserDefinedFunctions {
 
             parameters = new HashMap<>();
             parameters.put("polygonNode", polygonNode.getId());
-            Result startNodeResult = db.execute("MATCH (p:POLYGON)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
+            Result startNodeResult = db.execute("MATCH (p:Polygon)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
 
             if (!startNodeResult.hasNext()) {
                 return;
@@ -102,7 +102,7 @@ public class UserDefinedFunctions {
 
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("id", id);
-        db.execute("MATCH (m:OSMRelation)-[:POLYGON_STRUCTURE*]->(p:POLYGON) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
+        db.execute("MATCH (m:OSMRelation)-[:POLYGON_STRUCTURE*]->(p:Polygon) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
         //TODO fix this by deleting id from array
 //        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON]->(:OSMWayNode)  DELETE n");
 

@@ -210,7 +210,7 @@ public class UserDefinedFunctionsTest {
             List<Node> list = new MonoDirectionalTraversalDescription().breadthFirst()
                     .relationships(Relation.FIRST_NODE, Direction.OUTGOING)
                     .relationships(Relation.NEXT)
-                    .relationships(RelationshipType.withName("NEXT_IN_POLYGON_1"), Direction.OUTGOING)
+                    .relationships(RelationshipType.withName("NEXT_IN_POLYGON"), Direction.OUTGOING)
                     .relationships(Relation.NODE, Direction.OUTGOING)
                     .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(Relation.NODE))
                     .traverse(ways[0]).nodes().stream().collect(Collectors.toList());
