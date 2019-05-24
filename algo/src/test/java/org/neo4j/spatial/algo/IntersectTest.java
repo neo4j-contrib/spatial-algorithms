@@ -167,7 +167,7 @@ public class IntersectTest {
         );
 
         Point[] actual = polygonImpl.intersect(a, b);
-        
+
         Point[] expected = new Point[]{
                 Point.point(-0.3849795856968765, -2.788444477072308),
                 Point.point(-0.6739799509139212, -2.583594315225338),
@@ -192,13 +192,15 @@ public class IntersectTest {
                     Point.point(-10, -10),
                     Point.point(10, -10),
                     Point.point(10, 10),
-                    Point.point(-10, 10)
+                    Point.point(-10, 10),
+                    Point.point(-10, -10)
                 },
                 {
                     Point.point(-9, -9),
                     Point.point(9, -9),
                     Point.point(9, 9),
-                    Point.point(-9, 9)
+                    Point.point(-9, 9),
+                    Point.point(-9, -9)
                 },
                 {
                     Point.point(-8, -8),
@@ -224,13 +226,15 @@ public class IntersectTest {
                         Point.point(10 + -10, -10 + 10),
                         Point.point(10 + 10, -10 + 10),
                         Point.point(10 + 10, 10 + 10),
-                        Point.point(10 + -10, 10 + 10)
+                        Point.point(10 + -10, 10 + 10),
+                        Point.point(10 + -10, -10 + 10)
                 },
                 {
                         Point.point(10 + -9, -9 + 10),
                         Point.point(10 + 9, -9 + 10),
                         Point.point(10 + 9, 9 + 10),
-                        Point.point(10 + -9, 9 + 10)
+                        Point.point(10 + -9, 9 + 10),
+                        Point.point(10 + -9, -9 + 10)
                 },
                 {
                         Point.point(10 + -8, -8 + 10),
@@ -258,15 +262,41 @@ public class IntersectTest {
         System.out.println(Arrays.toString(actual));
 
         Point[] expected = new Point[]{
-                Point.point(0, 8),
-                Point.point(0, 10),
-                Point.point(2, 8),
-                Point.point(2, 10),
-                Point.point(8, 0),
-                Point.point(10, 0),
-                Point.point(8, 2),
-                Point.point(10, 2)
+                Point.point(10.0, 1.0),
+                Point.point(9.0, 1.0),
+                Point.point(8.0, 1.0),
+                Point.point(7.0, 1.0),
+                Point.point(3.0, 7.0),
+                Point.point(3.0, 8.0),
+                Point.point(3.0, 9.0),
+                Point.point(10.0, 0.0),
+                Point.point(10.0, 2.0),
+                Point.point(3.0, 10.0),
+                Point.point(0.0, 7.0),
+                Point.point(2.0, 7.0),
+                Point.point(9.0, 0.0),
+                Point.point(9.0, 2.0),
+                Point.point(8.0, 0.0),
+                Point.point(8.0, 2.0),
+                Point.point(0.0, 8.0),
+                Point.point(2.0, 8.0),
+                Point.point(0.0, 9.0),
+                Point.point(2.0, 9.0),
+                Point.point(10.0, 3.0),
+                Point.point(0.0, 10.0),
+                Point.point(2.0, 10.0),
+                Point.point(7.0, 0.0),
+                Point.point(7.0, 2.0),
+                Point.point(9.0, 3.0),
+                Point.point(8.0, 3.0),
+                Point.point(7.0, 3.0),
+                Point.point(1.0, 7.0),
+                Point.point(1.0, 8.0),
+                Point.point(1.0, 9.0),
+                Point.point(1.0, 10.0)
         };
+
+        System.out.println(Arrays.toString(expected));
 
         matchPoints(actual, expected);
     }

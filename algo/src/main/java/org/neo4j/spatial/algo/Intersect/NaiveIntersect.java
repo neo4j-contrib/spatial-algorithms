@@ -10,8 +10,13 @@ import java.util.stream.Stream;
 public class NaiveIntersect implements Intersect {
     @Override
     public Point[] intersect(Polygon a, Polygon b) {
-        LineSegment[] aLS = Arrays.stream(a.getShells()).map(Polygon.SimplePolygon::toLineSegments).flatMap(Stream::of).toArray(LineSegment[]::new);
-        LineSegment[] bLS = Arrays.stream(b.getShells()).map(Polygon.SimplePolygon::toLineSegments).flatMap(Stream::of).toArray(LineSegment[]::new);
+        Polygon.SimplePolygon[] aPolygons = Stream.concat(Arrays.stream(a.getShells()), Arrays.stream(a.getHoles()))
+                .toArray(Polygon.SimplePolygon[]::new);
+        Polygon.SimplePolygon[] bPolygons = Stream.concat(Arrays.stream(b.getShells()), Arrays.stream(b.getHoles()))
+                .toArray(Polygon.SimplePolygon[]::new);
+
+        LineSegment[] aLS = Arrays.stream(aPolygons).map(Polygon.SimplePolygon::toLineSegments).flatMap(Stream::of).toArray(LineSegment[]::new);
+        LineSegment[] bLS = Arrays.stream(bPolygons).map(Polygon.SimplePolygon::toLineSegments).flatMap(Stream::of).toArray(LineSegment[]::new);
 
         return compareLineSegments(aLS, bLS);
     }

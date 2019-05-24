@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
-public class Neo4jSimpleIDPolygon extends Neo4jSimpleGraphPolygon {
+public class Neo4jSimpleGraphIDPolygon extends Neo4jSimpleGraphPolygon {
 
-    public Neo4jSimpleIDPolygon(Node main, long osmRelationId, KernelTransaction ktx) {
+    public Neo4jSimpleGraphIDPolygon(Node main, long osmRelationId, KernelTransaction ktx) {
         Node[] wayNodes = traverseGraph(main, osmRelationId);
         Point[] unclosed = extractPoints(wayNodes, ktx);
         this.points = PolygonUtil.closeRing(unclosed);

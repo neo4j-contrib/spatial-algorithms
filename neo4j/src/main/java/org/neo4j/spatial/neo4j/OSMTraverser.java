@@ -139,6 +139,7 @@ public class OSMTraverser {
             double[] last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
             double distance = Distance.distance(first, last);
 
+            //The polystring closes itself
             if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
                 polygons.add(wayToAdd);
                 continue;
@@ -168,6 +169,7 @@ public class OSMTraverser {
                 }
             }
 
+            //No polystring is close, just close the polystring
             if (minDistance > meanStepSize) {
                 polygonsToComplete.add(wayToAdd);
                 continue;
@@ -187,6 +189,7 @@ public class OSMTraverser {
             last = getCoordinates(wayToAddTo.get(wayToAddTo.size() - 1));
             distance = Distance.distance(first, last);
 
+            //The polystring closes itself
             if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
                 polygons.add(wayToAddTo);
                 polygonsToComplete.remove(wayToAddTo);
@@ -200,6 +203,10 @@ public class OSMTraverser {
         return polygons;
     }
 
+    /**
+     * @param wayNode
+     * @return The coordinate belonging to the OSMWayNode
+     */
     private static double[] getCoordinates(Node wayNode) {
         Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
 

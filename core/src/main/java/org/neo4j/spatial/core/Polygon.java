@@ -6,12 +6,6 @@ import java.util.StringJoiner;
 import static java.lang.String.format;
 
 public interface Polygon {
-    SimplePolygon[] getShells();
-
-    int dimension();
-
-    boolean isSimple();
-
     static SimplePolygon simple(Point... points) {
         return new InMemorySimplePolygon(points);
     }
@@ -24,20 +18,22 @@ public interface Polygon {
         }
     }
 
+    SimplePolygon[] getShells();
+
+    SimplePolygon[] getHoles();
+
+    int dimension();
+
+    boolean isSimple();
+
     /**
      * Outputs the WKT string of the polygon
+     *
      * @return The WKT string describing the polygon
      */
     String toWKT();
 
     interface SimplePolygon extends Polygon {
-
-        Point[] getPoints();
-
-        @Override
-        default SimplePolygon[] getShells() {
-            return new SimplePolygon[]{this};
-        }
 
         /**
          * Converts the given polygon into an array of LineSegments describing this polygon
@@ -50,7 +46,7 @@ public interface Polygon {
 
             for (int i = 0; i < output.length - 1; i++) {
                 Point a = polygon.getPoints()[i];
-                Point b = polygon.getPoints()[i+1];
+                Point b = polygon.getPoints()[i + 1];
                 output[i] = LineSegment.lineSegment(a, b);
             }
 
@@ -74,7 +70,7 @@ public interface Polygon {
             }
 
             //Reverse b
-            for(int i = 0; i < b.length / 2; i++) {
+            for (int i = 0; i < b.length / 2; i++) {
                 Point temp = b[i];
                 b[i] = b[b.length - i - 1];
                 b[b.length - i - 1] = temp;
@@ -107,15 +103,77 @@ public interface Polygon {
             return true;
         }
 
+        Point[] getPoints();
+
         @Override
-        default String toWKT() {
-            return "POLYGON(" + toWKTPointString() + ")";
+        default SimplePolygon[] getShells() {
+            return new SimplePolygon[]{this};
+        }
+
+        @Override
+        default SimplePolygon[] getHoles() {
+            return new SimplePolygon[0];
         }
 
         /**
-         * @return Produces a WKT-representation of the polygon without the suffix
+         * @return The area of the polygon using the shoelace algorithm
          */
-        String toWKTPointString();
+        default double area() {
+            Point[] points = getPoints();
+            double sum = 0;
+
+            for (int i = 0; i < points.length; i++) {
+                double[] a = points[i].getCoordinate();
+                double[] b = points[(i + 1) % points.length].getCoordinate();
+
+                sum += (b[0] - a[0]) * (b[1] + a[0]);
+            }
+            return sum;
+        }
+
+        /**
+         * @return True iff the points are in clockwise order
+         */
+        default boolean inClockwiseOrder() {
+            return area() > 0;
+        }
+
+        @Override
+        default String toWKT() {
+            return "POLYGON(" + toWKTPointString(false) + ")";
+        }
+
+        /**
+         * @param hole True if the polygon represents a hole
+         * @return Produces a WKT-representation of the polygon without the suffix and in the correct order
+         */
+        default String toWKTPointString(boolean hole) {
+            Point[] points = getPoints();
+            StringJoiner joiner = new StringJoiner(",", "(", ")");
+            if (hole) {
+                if (inClockwiseOrder()) {
+                    for (int i = 0; i < points.length; i++) {
+                        joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
+                    }
+                } else {
+                    for (int i = points.length - 1; i >= 0; i--) {
+                        joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
+                    }
+                }
+            } else {
+                if (inClockwiseOrder()) {
+                    for (int i = points.length - 1; i >= 0; i--) {
+                        joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
+                    }
+                } else {
+                    for (int i = 0; i < points.length; i++) {
+                        joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
+                    }
+                }
+            }
+
+            return joiner.toString();
+        }
     }
 
     class InMemorySimplePolygon implements SimplePolygon {
@@ -147,15 +205,6 @@ public interface Polygon {
         @Override
         public String toString() {
             return format("InMemorySimplePolygon%s", Arrays.toString(points));
-        }
-
-        @Override
-        public String toWKTPointString() {
-            StringJoiner joiner = new StringJoiner(",", "(", ")");
-            for (Point point : points) {
-                joiner.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
-            }
-            return joiner.toString();
         }
 
         @Override

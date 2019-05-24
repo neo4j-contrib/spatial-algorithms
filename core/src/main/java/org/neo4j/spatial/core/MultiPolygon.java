@@ -15,6 +15,12 @@ public class MultiPolygon implements Polygon {
         return insertMultiPolygonNode(new MultiPolygonNode(polygon));
     }
 
+    /**
+     * Insert the multipolygon node as one of its children
+     *
+     * @param other
+     * @return
+     */
     public boolean insertMultiPolygonNode(MultiPolygonNode other) {
         for (MultiPolygonNode child : children) {
             boolean inserted = child.insertMultiPolygonNode(other);
@@ -63,6 +69,7 @@ public class MultiPolygon implements Polygon {
         return polygons.toArray(new Polygon.SimplePolygon[0]);
     }
 
+    @Override
     public Polygon.SimplePolygon[] getHoles() {
         List<Polygon.SimplePolygon> polygons = new ArrayList<>();
         for (MultiPolygonNode child : children) {
@@ -81,6 +88,14 @@ public class MultiPolygon implements Polygon {
         return false;
     }
 
+    public enum PolygonType {
+        SHELL, HOLE;
+
+        static PolygonType getOther(PolygonType o) {
+            return o == PolygonType.SHELL ? PolygonType.HOLE : PolygonType.SHELL;
+        }
+    }
+
     public static class MultiPolygonNode extends MultiPolygon {
         private Polygon.SimplePolygon polygon;
         private MultiPolygon parent;
@@ -92,6 +107,12 @@ public class MultiPolygon implements Polygon {
             this.parent = null;
         }
 
+        /**
+         * Insert the multipolygon node as one of its children
+         *
+         * @param other
+         * @return False iff the two polygons are disjoint, otherwise true
+         */
         @Override
         public boolean insertMultiPolygonNode(MultiPolygonNode other) {
             //If other polygon encompasses this polygon, switch places
@@ -129,10 +150,6 @@ public class MultiPolygon implements Polygon {
             return true;
         }
 
-        void setParent(MultiPolygon parent) {
-            this.parent = parent;
-        }
-
         public Polygon.SimplePolygon getPolygon() {
             return this.polygon;
         }
@@ -143,19 +160,23 @@ public class MultiPolygon implements Polygon {
             other.setType(PolygonType.getOther(this.type));
         }
 
+        public MultiPolygon getParent() {
+            return parent;
+        }
+
+        void setParent(MultiPolygon parent) {
+            this.parent = parent;
+        }
+
+        public PolygonType getType() {
+            return type;
+        }
+
         private void setType(PolygonType type) {
             this.type = type;
             for (MultiPolygonNode child : getChildren()) {
                 child.setType(PolygonType.getOther(type));
             }
-        }
-
-        public MultiPolygon getParent() {
-            return parent;
-        }
-
-        public PolygonType getType() {
-            return type;
         }
 
         @Override
@@ -200,11 +221,11 @@ public class MultiPolygon implements Polygon {
 
             if (this.type == PolygonType.SHELL) {
                 StringJoiner holes = new StringJoiner(",", "", ")");
-                String shell = "(" + this.polygon.toWKTPointString();
+                String shell = "(" + this.polygon.toWKTPointString(false);
 
                 if (this.getChildren().size() > 0) {
                     for (MultiPolygonNode child : this.getChildren()) {
-                        holes.add(child.getPolygon().toWKTPointString());
+                        holes.add(child.getPolygon().toWKTPointString(true));
                     }
 
                     result.add(shell + ", " + holes.toString());
@@ -214,14 +235,6 @@ public class MultiPolygon implements Polygon {
             }
 
             return result;
-        }
-    }
-
-    enum PolygonType {
-        SHELL, HOLE;
-
-        static PolygonType getOther(PolygonType o) {
-            return o == PolygonType.SHELL ? PolygonType.HOLE : PolygonType.SHELL;
         }
     }
 }

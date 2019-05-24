@@ -27,10 +27,10 @@ public class GraphPolygonBuilder {
 
     public void build() {
         connectPolystrings();
-        MultiPolygon root = buildPolygonTree();
+        MultiPolygon root = buildMultiPolygon();
 
         for (MultiPolygon.MultiPolygonNode child : root.getChildren()) {
-            buildGraphPolygon(main, (Neo4jMultiPolygonNode) child, 0);
+            buildGraphPolygon(main, (Neo4jMultiPolygonNode) child);
         }
     }
 
@@ -45,7 +45,7 @@ public class GraphPolygonBuilder {
             pairwise:
             for (int i = 0; i < polystring.size(); i++) {
                 Node a = polystring.get(i);
-                Node b = polystring.get((i+1) % polystring.size());
+                Node b = polystring.get((i + 1) % polystring.size());
 
                 for (Relationship relationship : a.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
                     if (b.getId() != relationship.getOtherNodeId(a.getId())) {
@@ -82,7 +82,12 @@ public class GraphPolygonBuilder {
         }
     }
 
-    private MultiPolygon buildPolygonTree() {
+    /**
+     * Build a multipolygon from the closed polystrings
+     *
+     * @return The root of the multipolygon
+     */
+    private MultiPolygon buildMultiPolygon() {
 
         long relationOsmId = (long) main.getProperty("relation_osm_id");
         MultiPolygon root = new MultiPolygon();
@@ -101,18 +106,28 @@ public class GraphPolygonBuilder {
         return root;
     }
 
-    private void buildGraphPolygon(Node previous, Neo4jMultiPolygonNode root, int depth) {
-        Label label = depth % 2 == 0 ? SHELL_LABEL : HOLE_LABEL;
+    /**
+     * Build the multipolygon tree in Neo4j.
+     *
+     * @param parent The parent node
+     * @param node   The current polygon node
+     */
+    private void buildGraphPolygon(Node parent, Neo4jMultiPolygonNode node) {
+        Label label = node.getType() == MultiPolygon.PolygonType.SHELL ? SHELL_LABEL : HOLE_LABEL;
         Node polygonNode = db.createNode(POLYGON_LABEL, label);
 
-        previous.createRelationshipTo(polygonNode, Relation.POLYGON_STRUCTURE);
-        polygonNode.createRelationshipTo(root.getStartWay(), Relation.POLYGON_START);
+        parent.createRelationshipTo(polygonNode, Relation.POLYGON_STRUCTURE);
+        polygonNode.createRelationshipTo(node.getStartWay(), Relation.POLYGON_START);
 
-        for (MultiPolygon.MultiPolygonNode child : root.getChildren()) {
-            buildGraphPolygon(polygonNode, (Neo4jMultiPolygonNode) child, depth+1);
+        for (MultiPolygon.MultiPolygonNode child : node.getChildren()) {
+            buildGraphPolygon(polygonNode, (Neo4jMultiPolygonNode) child);
         }
     }
 
+    /**
+     * @param polystring
+     * @return The OSMWay node belonging to the polystring
+     */
     private Node getWay(List<Node> polystring) {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("n", polystring.get(0).getId());

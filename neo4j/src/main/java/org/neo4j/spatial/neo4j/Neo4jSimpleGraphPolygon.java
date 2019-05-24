@@ -12,9 +12,6 @@ import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.StringJoiner;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -39,15 +36,6 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     @Override
     public String toString() {
         return format("Neo4jSimpleGraphNodePolygon%s", Arrays.toString(points));
-    }
-
-    @Override
-    public String toWKTPointString() {
-        StringJoiner joiner = new StringJoiner(",", "(", ")");
-        for (Point point : getPoints()) {
-            joiner.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
-        }
-        return joiner.toString();
     }
 
     protected Node[] traverseGraph(Node main, long osmRelationId) {

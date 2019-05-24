@@ -5,7 +5,6 @@ import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
 import java.util.Arrays;
-import java.util.StringJoiner;
 
 import static java.lang.String.format;
 
@@ -44,15 +43,6 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     @Override
     public String toString() {
         return format("Neo4jSimpleArrayPolygon%s", Arrays.toString(points));
-    }
-
-    @Override
-    public String toWKTPointString() {
-        StringJoiner joiner = new StringJoiner(",", "(", ")");
-        for (org.neo4j.graphdb.spatial.Point point : points) {
-            joiner.add(point.getCoordinate().getCoordinate().get(0) + " " +point.getCoordinate().getCoordinate().get(1));
-        }
-        return joiner.toString();
     }
 
     private static void assertAllSameDimension(org.neo4j.graphdb.spatial.Point... points) {

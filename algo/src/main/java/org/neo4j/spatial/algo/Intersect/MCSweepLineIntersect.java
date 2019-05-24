@@ -4,6 +4,7 @@ import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.*;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public class MCSweepLineIntersect implements Intersect {
     private List<MonotoneChain> activeChainList;
@@ -33,28 +34,30 @@ public class MCSweepLineIntersect implements Intersect {
      */
     @Override
     public Point[] intersect(Polygon a, Polygon b) {
-        Polygon.SimplePolygon[] aShells = a.getShells();
-        Polygon.SimplePolygon[] bShells = b.getShells();
+        Polygon.SimplePolygon[] aPolygons = Stream.concat(Arrays.stream(a.getShells()), Arrays.stream(a.getHoles()))
+                .toArray(Polygon.SimplePolygon[]::new);
+        Polygon.SimplePolygon[] bPolygons = Stream.concat(Arrays.stream(b.getShells()), Arrays.stream(b.getHoles()))
+                .toArray(Polygon.SimplePolygon[]::new);
 
-        for (int i = 0; i < aShells.length; i++) {
-            aShells[i] = filterCollinear(aShells[i]);
+        for (int i = 0; i < aPolygons.length; i++) {
+            aPolygons[i] = filterCollinear(aPolygons[i]);
         }
 
-        for (int i = 0; i < bShells.length; i++) {
-            bShells[i] = filterCollinear(bShells[i]);
+        for (int i = 0; i < bPolygons.length; i++) {
+            bPolygons[i] = filterCollinear(bPolygons[i]);
         }
 
-        computeSweepDirection(aShells, bShells);
+        computeSweepDirection(aPolygons, bPolygons);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        for (int i = 0; i < aShells.length; i++) {
-            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(aShells[i]);
+        for (int i = 0; i < aPolygons.length; i++) {
+            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(aPolygons[i]);
             List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotatedPolygon);
             inputList.addAll(partitioned);
         }
 
-        for (int i = 0; i < bShells.length; i++) {
-            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(bShells[i]);
+        for (int i = 0; i < bPolygons.length; i++) {
+            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(bPolygons[i]);
             List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotatedPolygon);
             inputList.addAll(partitioned);
 
@@ -125,11 +128,20 @@ public class MCSweepLineIntersect implements Intersect {
         this.outputList.add(point);
     }
 
+    /**
+     * @param polygon The input polygon
+     * @return A new polygon which is the input polygon, but rotated to the sweep angle
+     */
     private Polygon.SimplePolygon createRotatedPolygon(Polygon.SimplePolygon polygon) {
         Point[] rotatedPoints = Arrays.stream(polygon.getPoints()).map(p -> new RotatedPoint(p, this.sweepAngle)).toArray(RotatedPoint[]::new);
         return Polygon.simple(rotatedPoints);
     }
 
+    /**
+     * Compute an angle for which no vertical line segments exist
+     * @param aShells
+     * @param bShells
+     */
     private void computeSweepDirection(Polygon.SimplePolygon[] aShells, Polygon.SimplePolygon[] bShells) {
         Set<Double> angleSet = new HashSet<>();
 
@@ -169,6 +181,10 @@ public class MCSweepLineIntersect implements Intersect {
         this.sweepAngle = angle;
     }
 
+    /**
+     * @param polygons All shells and holes of a polygon
+     * @return Compute the angles of the line segments
+     */
     private Set<Double> computeAngles(Polygon.SimplePolygon[] polygons) {
         Set<Double> angles = new HashSet<>();
 
