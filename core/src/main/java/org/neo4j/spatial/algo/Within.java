@@ -3,55 +3,28 @@ package org.neo4j.spatial.algo;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Within {
-    public static boolean within(Polygon.SimplePolygon shell, Point point) {
-        return within(shell, point, false);
+
+    public static boolean within(Polygon polygon, Point point) {
+        return Arrays.stream(polygon.getShells()).filter(s -> within(s, point)).count() > Arrays.stream(polygon.getHoles()).filter(h -> within(h, point)).count();
     }
 
-    public static boolean within(Polygon.SimplePolygon shell, Point point, boolean touching) {
-        /*int fixedDim = 0;
-        int compareDim = 1;
-        Point[] points = shell.getPoints();
-        ArrayList<Point[]> sides = new ArrayList<>();
-        for (int i = 0; i < points.length - 1; i++) {
-            Point p1 = points[i];
-            Point p2 = points[i + 1];
-            Integer compare1 = ternaryComparePointsIgnoringOneDimension(p1.getCoordinate(), point.getCoordinate(), fixedDim);
-            Integer compare2 = ternaryComparePointsIgnoringOneDimension(p2.getCoordinate(), point.getCoordinate(), fixedDim);
-            if (compare1 == null || compare2 == null) {
-                // Ignore?
-            } else if (compare1 * compare2 > 0) {
-                // both on same side - ignore
-            } else if (compare1 * compare2 == 0 && !touching) {
-                // point touches one or both end points, but we are ignoring touching points
-            } else {
-                Integer compare = ternaryComparePointsIgnoringOneDimension(p1.getCoordinate(), p2.getCoordinate(), fixedDim);
-                if (compare < 0) {
-                    sides.add(new Point[]{p1, p2});
-                } else {
-                    sides.add(new Point[]{p2, p1});
-                }
-            }
-        }
-        int intersections = 0;
-        for (Point[] side : sides) {
-            double crossingValue = crossingAt(side, point, fixedDim, compareDim);
-            if (touching && crossingValue == 0) {
-                return true;
-            }
-            if (crossingValue >= 0) {
-                intersections += 1;
-            }
-        }
-        return intersections % 2 == 1;*/
-
-        Point[] points = shell.getPoints();
+    /**
+     * Checks if a point is inside the given polygon.
+     * The logic is based on: https://web.archive.org/web/20161108113341/https://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+     *
+     * @param polygon
+     * @param point
+     * @return True iff the points is inside the polygon (not on the edge)
+     */
+    public static boolean within(Polygon.SimplePolygon polygon, Point point) {
+        Point[] points = polygon.getPoints();
         boolean result = false;
         for (int i = 0, j = points.length - 1; i < points.length; j = i++) {
             if ((points[i].getCoordinate()[1] > point.getCoordinate()[1]) != (points[j].getCoordinate()[1] > point.getCoordinate()[1]) &&
-                    (point.getCoordinate()[0] < (points[j].getCoordinate()[0] - points[i].getCoordinate()[0]) * (point.getCoordinate()[1] - points[i].getCoordinate()[1]) / (points[j].getCoordinate()[1]-points[i].getCoordinate()[1]) + points[i].getCoordinate()[0])) {
+                    (point.getCoordinate()[0] < (points[j].getCoordinate()[0] - points[i].getCoordinate()[0]) * (point.getCoordinate()[1] - points[i].getCoordinate()[1]) / (points[j].getCoordinate()[1] - points[i].getCoordinate()[1]) + points[i].getCoordinate()[0])) {
                 result = !result;
             }
         }

@@ -4,9 +4,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.neo4j.spatial.algo.Intersect.Intersect;
-import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
+import org.neo4j.spatial.algo.cartesian.Intersect.Intersect;
+import org.neo4j.spatial.algo.cartesian.Intersect.MCSweepLineIntersect;
+import org.neo4j.spatial.algo.cartesian.Intersect.NaiveIntersect;
 import org.neo4j.spatial.core.*;
 
 import java.util.Arrays;
@@ -94,46 +94,43 @@ public class IntersectTest {
                 Point.point(-14, 15)
         );
 
-        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(15, 0), Point.point(-5, 0)});
-    }
+        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
+        Point[] actual = polygonImpl.intersect(a, b);
+        matchPoints(actual, new Point[]{Point.point(15, 0), Point.point(-5, 0)});
 
-    @Test
-    public void shouldFindIntersectionsBetweenSquares() {
-        Polygon.SimplePolygon a = Polygon.simple(
+        a = Polygon.simple(
                 Point.point(-10, -10),
                 Point.point(10, -10),
                 Point.point(10, 10),
                 Point.point(-10, 10)
         );
-        Polygon.SimplePolygon b = Polygon.simple(
+        b = Polygon.simple(
                 Point.point(-5, -5),
                 Point.point(15, -5),
                 Point.point(15, 15),
                 Point.point(-5, 15)
         );
 
-        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(-5, 10), Point.point(10, -5)});
-    }
+        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
+        actual = polygonImpl.intersect(a, b);
+        matchPoints(actual, new Point[]{Point.point(-5, 10), Point.point(10, -5)});
 
-    @Test
-    public void shouldFindIntersectionsBetweenSimplePolygons2() {
-        Polygon.SimplePolygon a = Polygon.simple(
+        a = Polygon.simple(
                 Point.point(-10, -10),
                 Point.point(10, -10),
                 Point.point(0, 5)
         );
-        Polygon.SimplePolygon b = Polygon.simple(
+        b = Polygon.simple(
                 Point.point(-10, 10),
                 Point.point(10, 10),
                 Point.point(0, -5)
         );
 
-        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(3.3333333333333335, 0), Point.point(-3.3333333333333335, 0)});
-    }
+        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
+        actual = polygonImpl.intersect(a, b);
+        matchPoints(actual, new Point[]{Point.point(3.3333333333333335, 0), Point.point(-3.3333333333333335, 0)});
 
-    @Test
-    public void shouldFindIntersectionsBetweenSimplePolygons3() {
-        Polygon.SimplePolygon a = Polygon.simple(
+        a = Polygon.simple(
                 Point.point(-3.073942953027313, -0.3631908536811643),
                 Point.point(3.957307046972687, 0.33992971981693054),
                 Point.point(4.001252359472687, -3.5250298989084747),
@@ -144,7 +141,7 @@ public class IntersectTest {
                 Point.point(-2.898161703027313, 0.8452721446430446),
                 Point.point(-3.073942953027313, -0.3631908536811643)
         );
-        Polygon.SimplePolygon b = Polygon.simple(
+        b = Polygon.simple(
                 Point.point(0.4197093907226872,3.0411394778853147),
                 Point.point(-3.403532796777313,-0.6488239497102567),
                 Point.point(2.045685953222687,-4.511356587129941),
@@ -166,8 +163,6 @@ public class IntersectTest {
                 Point.point(0.4197093907226872,3.0411394778853147)
         );
 
-        Point[] actual = polygonImpl.intersect(a, b);
-
         Point[] expected = new Point[]{
                 Point.point(-0.3849795856968765, -2.788444477072308),
                 Point.point(-0.6739799509139212, -2.583594315225338),
@@ -181,6 +176,8 @@ public class IntersectTest {
                 Point.point(2.082783957901631, 0.15247859101009514)
         };
 
+        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
+        actual = polygonImpl.intersect(a, b);
         matchPoints(actual, expected);
     }
 

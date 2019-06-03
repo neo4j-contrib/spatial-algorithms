@@ -37,10 +37,34 @@ public interface Point {
         return result;
     }
 
-    default Point withShift(double... shifts) {
+    default Point add(double... shifts) {
         double[] shifted = Arrays.copyOf(this.getCoordinate(), this.getCoordinate().length);
         for (int i = 0; i < shifted.length; i++) {
             shifted[i] += shifts[i];
+        }
+        return Point.point(shifted);
+    }
+
+    default Point subtract(double... shifts) {
+        double[] shifted = Arrays.copyOf(this.getCoordinate(), this.getCoordinate().length);
+        for (int i = 0; i < shifted.length; i++) {
+            shifted[i] -= shifts[i];
+        }
+        return Point.point(shifted);
+    }
+
+    default Point multiply(double multiplyBy) {
+        double[] shifted = Arrays.copyOf(this.getCoordinate(), this.getCoordinate().length);
+        for (int i = 0; i < shifted.length; i++) {
+            shifted[i] *= multiplyBy;
+        }
+        return Point.point(shifted);
+    }
+
+    default Point divide(double divideBy) {
+        double[] shifted = Arrays.copyOf(this.getCoordinate(), this.getCoordinate().length);
+        for (int i = 0; i < shifted.length; i++) {
+            shifted[i] /= divideBy;
         }
         return Point.point(shifted);
     }

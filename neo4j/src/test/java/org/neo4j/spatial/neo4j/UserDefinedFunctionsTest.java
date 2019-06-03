@@ -1,6 +1,5 @@
 package org.neo4j.spatial.neo4j;
 
-import com.sun.org.apache.bcel.internal.generic.RETURN;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -16,10 +15,12 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
-import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.Values;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -307,7 +308,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10,10));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0,20));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -10,10));
-        testCall(db, "CALL neo4j.polygon($points) YIELD polygon WITH neo4j.convexHullArray(polygon) as convexHull RETURN convexHull", map("points", points), result -> {
+        testCall(db, "CALL neo4j.polygon($points) YIELD polygon WITH neo4j.convexHullPoints(polygon) as convexHull RETURN convexHull", map("points", points), result -> {
             assertThat("Should have one result", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get convexHull as list", record, instanceOf(List.class));

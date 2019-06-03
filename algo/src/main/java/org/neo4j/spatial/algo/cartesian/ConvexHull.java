@@ -1,5 +1,7 @@
-package org.neo4j.spatial.algo;
+package org.neo4j.spatial.algo.cartesian;
 
+import org.neo4j.spatial.algo.AlgoUtil;
+import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
@@ -11,16 +13,39 @@ import java.util.stream.Stream;
 
 public class ConvexHull {
     /**
-     * Computes the convex hull of a polygon using Graham's scan
+     * Computes the convex hull of a multipolygon using Graham's scan
      *
      * @param polygon
      * @return A polygon which is the convex hull of the input polygon
      */
-    public static Polygon.SimplePolygon convexHull(Polygon polygon) {
-        Point[] polygonPoints = Arrays.stream(polygon.getShells()).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).toArray(Point[]::new);
-        Point reference = getLowestPoint(polygonPoints);
+    public static Polygon.SimplePolygon convexHull(MultiPolygon polygon) {
+        Polygon.SimplePolygon[] convexHulls = new Polygon.SimplePolygon[polygon.getChildren().size()];
 
-        List<Point> sortedPoints = sortPoints(polygonPoints, reference);
+        for (int i = 0; i < polygon.getChildren().size(); i++) {
+            convexHulls[i] = convexHull(polygon.getChildren().get(i).getPolygon());
+        }
+
+        return convexHull(Stream.of(convexHulls).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).toArray(Point[]::new));
+    }
+    /**
+     * Computes the convex hull of a simple polygon using Graham's scan
+     *
+     * @param polygon
+     * @return A polygon which is the convex hull of the input polygon
+     */
+    public static Polygon.SimplePolygon convexHull(Polygon.SimplePolygon polygon) {
+        return convexHull(polygon.getPoints());
+    }
+
+    /**
+     * Computes the convex hull of a set of points using Graham's scan
+     *
+     * @param points
+     * @return A polygon which is the convex hull of the input points
+     */
+    public static Polygon.SimplePolygon convexHull(Point[] points) {
+        Point reference = getLowestPoint(points);
+        List<Point> sortedPoints = sortPoints(points, reference);
 
         Stack<Point> stack = new Stack<>();
 

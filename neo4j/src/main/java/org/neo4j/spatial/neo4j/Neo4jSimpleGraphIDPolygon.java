@@ -19,23 +19,39 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 
 public class Neo4jSimpleGraphIDPolygon extends Neo4jSimpleGraphPolygon {
+    private KernelTransaction ktx;
 
     public Neo4jSimpleGraphIDPolygon(Node main, long osmRelationId, KernelTransaction ktx) {
-        Node[] wayNodes = traverseGraph(main, osmRelationId);
-        Point[] unclosed = extractPoints(wayNodes, ktx);
+        super(main, osmRelationId);
+        Node[] wayNodes = traverseGraph(main);
+        Point[] unclosed = extractPoints(wayNodes);
         this.points = PolygonUtil.closeRing(unclosed);
         if (points.length < 4) {
             throw new IllegalArgumentException("Polygon cannot have less than 4 points");
         }
         assertAllSameDimension(this.points);
+        this.ktx = ktx;
     }
 
-    Point[] extractPoints(Node[] wayNodes, KernelTransaction ktx) {
-        Neo4jIDPoint[] points = new Neo4jIDPoint[wayNodes.length];
+    private Point[] extractPoints(Node[] wayNodes) {
+        Point[] points = new Point[wayNodes.length];
         for (int i = 0; i < points.length; i++) {
-            Node node = wayNodes[i].getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
-            points[i] = new Neo4jIDPoint(node.getId(), ktx);
+            points[i] = extractPoint(wayNodes[i]);
         }
         return points;
+    }
+
+    @Override
+    Point extractPoint(Node wayNode) {
+        Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
+        return new Neo4jIDPoint(node.getId(), ktx);
+    }
+
+    @Override
+    public Point getNextPoint() {
+        super.traversing = true;
+        Point point = extractPoint(pointer);
+        pointer = getNextNode(pointer);
+        return point;
     }
 }

@@ -10,6 +10,9 @@ import static java.lang.String.format;
 
 public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     private final org.neo4j.graphdb.spatial.Point[] points;
+    private int pointer;
+    private int start;
+    private boolean traversing;
 
     public Neo4jSimpleArrayPolygon(Node node, String property) {
         org.neo4j.graphdb.spatial.Point[] unclosed = (org.neo4j.graphdb.spatial.Point[]) node.getProperty(property);
@@ -19,6 +22,35 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
             throw new IllegalArgumentException("Polygon cannot have less than 4 points");
         }
         assertAllSameDimension(this.points);
+        this.pointer = 0;
+        this.start = 0;
+        this.traversing = false;
+    }
+
+    @Override
+    public boolean fullyTraversed() {
+        return this.pointer == this.start && this.traversing;
+    }
+
+    @Override
+    public void startTraversal(Point start) {
+        this.traversing = false;
+        for (int i = 0; i < this.points.length; i++) {
+            Point point = Point.point(points[i].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
+            if (point.equals(start)) {
+                this.start = i;
+                this.pointer = i;
+                return;
+            }
+        }
+    }
+
+    @Override
+    public Point getNextPoint() {
+        this.traversing = true;
+        Point point = Point.point(points[(pointer) % points.length].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
+        pointer = (pointer + 1) % points.length;
+        return point;
     }
 
     @Override

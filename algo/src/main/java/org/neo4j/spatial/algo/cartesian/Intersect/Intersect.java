@@ -1,4 +1,4 @@
-package org.neo4j.spatial.algo.Intersect;
+package org.neo4j.spatial.algo.cartesian.Intersect;
 
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.*;
@@ -12,6 +12,13 @@ public interface Intersect {
      * @return Array of intersections
      */
     Point[] intersect(Polygon a, Polygon b);
+
+    /**
+     * @param a
+     * @param b
+     * @return True iff the polygons a and b intersect in at least 1 point.
+     */
+    boolean doesIntersect(Polygon a, Polygon b);
 
     /**
      * Given two line segment returns the point of intersection if and only if it exists, else it will return null.

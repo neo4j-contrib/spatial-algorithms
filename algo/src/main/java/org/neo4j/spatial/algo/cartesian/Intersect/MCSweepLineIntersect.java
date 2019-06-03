@@ -1,4 +1,4 @@
-package org.neo4j.spatial.algo.Intersect;
+package org.neo4j.spatial.algo.cartesian.Intersect;
 
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.*;
@@ -17,10 +17,25 @@ public class MCSweepLineIntersect implements Intersect {
     private long splitId;
 
     public MCSweepLineIntersect() {
+        initialize();
+    }
+
+    private void initialize() {
         MonotoneChain.resetId();
         this.activeChainList = new ArrayList<>();
         this.sweepingChainList = new ArrayList<>();
         this.outputList = new ArrayList<>();
+    }
+
+
+    @Override
+    public boolean doesIntersect(Polygon a, Polygon b) {
+        return intersect(a, b, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(Polygon a, Polygon b) {
+        return intersect(a, b, false);
     }
 
     /**
@@ -32,8 +47,9 @@ public class MCSweepLineIntersect implements Intersect {
      * @param b
      * @return An array of points at which the two input polygons intersect
      */
-    @Override
-    public Point[] intersect(Polygon a, Polygon b) {
+    public Point[] intersect(Polygon a, Polygon b, boolean shortcut) {
+        initialize();
+
         Polygon.SimplePolygon[] aPolygons = Stream.concat(Arrays.stream(a.getShells()), Arrays.stream(a.getHoles()))
                 .toArray(Polygon.SimplePolygon[]::new);
         Polygon.SimplePolygon[] bPolygons = Stream.concat(Arrays.stream(b.getShells()), Arrays.stream(b.getHoles()))
@@ -112,7 +128,9 @@ public class MCSweepLineIntersect implements Intersect {
                     addToOutput(v.getPoint());
                     break;
             }
-
+            if (shortcut && outputList.size() > 0) {
+                return outputList.toArray(new Point[0]);
+            }
         }
 
         return outputList.toArray(new Point[0]);
@@ -189,7 +207,7 @@ public class MCSweepLineIntersect implements Intersect {
         Set<Double> angles = new HashSet<>();
 
         for (Polygon.SimplePolygon polygon : polygons) {
-            for (LineSegment segment : Polygon.SimplePolygon.toLineSegments(polygon)) {
+            for (LineSegment segment : polygon.toLineSegments()) {
                 Point p = segment.getPoints()[0];
                 Point q = segment.getPoints()[1];
 

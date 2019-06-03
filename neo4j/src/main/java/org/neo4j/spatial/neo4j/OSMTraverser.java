@@ -1,18 +1,20 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
-import org.neo4j.spatial.algo.Distance;
+import org.neo4j.spatial.algo.cartesian.Distance;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OSMTraverser {
     public static List<List<Node>> traverseOSMGraph(Node main) {
-        List<List<Node>> wayNodes = collectWays(main);
+        Stack<List<Node>> wayNodes = collectWays(main);
         return connectWays(wayNodes);
     }
 
@@ -22,86 +24,20 @@ public class OSMTraverser {
      * @param main The node representing the OSMRelation
      * @return List of ways where each way is connected by a common node
      */
-    private static List<List<Node>> collectWays(Node main) {
+    private static Stack<List<Node>> collectWays(Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
-        List<List<Node>> wayNodes = new ArrayList<>();
+        Stack<List<Node>> wayNodes = new Stack<>();
 
-        Set<Node> ways = new HashSet<>();
-        ResourceIterable<Node> wayIterator = new MonoDirectionalTraversalDescription().depthFirst()
-                .relationships(Relation.MEMBER, Direction.OUTGOING).traverse(main).nodes();
-
-        for (Node way : wayIterator) {
-            if (ways.contains(way)) {
-                continue;
-            }
-
-            ways.add(way);
-
-            Iterator<Label> labelIterator = way.getLabels().iterator();
-            boolean flag = false;
-            while (labelIterator.hasNext()) {
-                Label label = labelIterator.next();
-                if (label.name().equals("OSMWay")) {
-                    flag = true;
-                }
-            }
-            if (!flag) {
-                continue;
-            }
-
-            Node startWayNode = new MonoDirectionalTraversalDescription().depthFirst()
-                    .relationships(Relation.FIRST_NODE, Direction.OUTGOING)
-                    .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(Relation.FIRST_NODE))
-                    .traverse(way).iterator().next().endNode();
-
-            TraversalDescription followWay = new MonoDirectionalTraversalDescription()
-                    .depthFirst().relationships(Relation.NEXT);
-
-            List<Node> currentWayNodes = new ArrayList<>();
-
-            while (currentWayNodes.isEmpty() || !currentWayNodes.get(0).equals(currentWayNodes.get(currentWayNodes.size() - 1))) {
-                ResourceIterator<Node> wayNodeIterator = followWay.traverse(startWayNode).nodes().iterator();
-
-                if (!currentWayNodes.isEmpty()) {
-                    wayNodeIterator.next();
-                }
-
-
-                while (wayNodeIterator.hasNext()) {
-                    Node wayNode = wayNodeIterator.next();
-                    currentWayNodes.add(wayNode);
-                }
-
-                Node lastCurrentWayNode = currentWayNodes.get(currentWayNodes.size() - 1);
-
-                Map<String, Object> parameters = new HashMap<>();
-                parameters.put("main", main.getId());
-                parameters.put("lastCurrentWayNode", lastCurrentWayNode.getId());
-
-                Result result = db.execute("MATCH (l:OSMWayNode)-[:NODE]->(:OSMNode)<-[:NODE]-(n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER]-(m:OSMRelation) " +
-                        "WHERE id(l) = $lastCurrentWayNode AND id(m) = $main AND l <> n RETURN n AS NEXT, w AS WAY;", parameters);
-
-                flag = false;
-                while (result.hasNext()) {
-                    Map<String, Object> next = result.next();
-                    Node nextWay = (Node) next.get("WAY");
-
-                    if (ways.contains(nextWay)) {
-                        break;
-                    }
-
-                    startWayNode = (Node) next.get("NEXT");
-                    ways.add(nextWay);
-                    flag = true;
-                    break;
-                }
-
-                if (!flag) {
-                    break;
-                }
-            }
-
-            wayNodes.add(currentWayNodes);
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("main", main.getId());
+        String findWayNodes = "MATCH (r:OSMRelation)-[:MEMBER*]->(w:OSMWay)-[:FIRST_NODE]->(f:OSMWayNode), " +
+                "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE id(r) = $main " +
+                "RETURN f, collect(wn) AS nodes";
+        Result result = db.execute(findWayNodes, parameters);
+        while(result.hasNext()) {
+            Map<String, Object> next = result.next();
+            List<Node> nextWay = (List<Node>) next.get("nodes");
+            wayNodes.add(nextWay);
         }
         return wayNodes;
     }
@@ -112,7 +48,89 @@ public class OSMTraverser {
      * @param wayNodes List of ways
      * @return Nest list of nodes where each inner list describes a polygon
      */
-    private static List<List<Node>> connectWays(List<List<Node>> wayNodes) {
+    private static List<List<Node>> connectWaysX(Stack<List<Node>> wayNodes) {
+        List<EnrichedWay> polygons = new ArrayList<>();
+        List<EnrichedWay> notPolygons = new ArrayList<>();
+        List<EnrichedWay> candidates = wayNodes.stream().map(EnrichedWay::new).collect(Collectors.toList());
+
+        while (!candidates.isEmpty()) {
+            boolean mergedSome;
+            EnrichedWay way = candidates.get(0);
+            candidates.remove(0);
+
+            do {
+                mergedSome = false;
+                ListIterator<EnrichedWay> wayIter = candidates.listIterator();
+                while (wayIter.hasNext()) {
+                    EnrichedWay candidate = wayIter.next();
+                    if (way.join(candidate)) {
+                        wayIter.remove();
+                        mergedSome = true;
+                    }
+                }
+            } while (mergedSome);
+
+            if (way.isClosed()) {
+                polygons.add(way);
+            } else {
+                notPolygons.add(way);
+            }
+        }
+
+        return polygons.stream().map(p -> p.wayNodes).collect(Collectors.toList());
+    }
+
+    private static class EnrichedWay {
+        Pair<Node, double[]> first;
+        Pair<Node, double[]> last;
+        private List<Node> wayNodes;
+
+        EnrichedWay (List<Node> wayNodes) {
+            this.wayNodes = wayNodes;
+            this.first = getOSMNode(wayNodes.get(0));
+            this.last = getOSMNode(wayNodes.get(wayNodes.size() - 1));
+        }
+
+        boolean join(EnrichedWay other) {
+            if (first.first().equals(other.last.first())) {
+                this.wayNodes.remove(0);
+                other.wayNodes.addAll(wayNodes);
+                wayNodes = other.wayNodes;
+                this.first = other.first;
+                return true;
+            } else if (last.first().equals(other.first.first())) {
+                other.wayNodes.remove(0);
+                wayNodes.addAll(other.wayNodes);
+                this.last = other.last;
+                return true;
+            } else if (first.first().equals(other.first.first())) {
+                this.wayNodes.remove(0);
+                Collections.reverse(other.wayNodes);
+                other.wayNodes.addAll(wayNodes);
+                wayNodes = other.wayNodes;
+                this.first = other.last;
+                return true;
+            } else if (last.first().equals(other.last.first())) {
+                Collections.reverse(other.wayNodes);
+                other.wayNodes.remove(0);
+                this.wayNodes.addAll(other.wayNodes);
+                this.last = other.first;
+                return true;
+            }
+            return false;
+        }
+
+        boolean isClosed() {
+            return first.first().equals(last.first());
+        }
+    }
+    /**
+     * Connect neighboring ways to create polygons.
+     *
+     * @param wayNodes List of ways
+     * @return Nest list of nodes where each inner list describes a polygon
+     */
+    private static List<List<Node>> connectWays(Stack<List<Node>> wayNodes) {
         int totalSteps = 0;
         double totalDistance = 0;
         for (List<Node> wayNodeList : wayNodes) {
@@ -129,16 +147,15 @@ public class OSMTraverser {
         List<List<Node>> polygons= new ArrayList<>();
 
         List<List<Node>> polygonsToComplete = new ArrayList<>();
-        polygonsToComplete.add(new ArrayList<>(wayNodes.get(0)));
-        wayNodes.remove(0);
+        polygonsToComplete.add(new ArrayList<>(wayNodes.pop()));
         while (wayNodes.size() > 0) {
-            List<Node> wayToAdd = wayNodes.get(0);
-            wayNodes.remove(0);
+            List<Node> wayToAdd = wayNodes.pop();
 
             double[] first = getCoordinates(wayToAdd.get(0));
             double[] last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
             double distance = Distance.distance(first, last);
 
+            // TODO: Confirm that we actually need this
             //The polystring closes itself
             if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
                 polygons.add(wayToAdd);
@@ -201,6 +218,18 @@ public class OSMTraverser {
             polygonsToComplete.remove(0);
         }
         return polygons;
+    }
+
+    /**
+     * @param wayNode
+     * @return The coordinate belonging to the OSMWayNode
+     */
+    private static Pair<Node, double[]> getOSMNode(Node wayNode) {
+        Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
+
+        Point point = (Point) node.getProperty("location");
+
+        return Pair.of(node, point.getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray());
     }
 
     /**

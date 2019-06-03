@@ -35,9 +35,9 @@ public class Viewer {
     public static void main(String[] args) throws Exception {
         Viewer viewer = new Viewer();
 
-        Driver driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "Neo4j"));
-
         int color = 0;
+
+        Driver driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "Neo4j"));
 
         try (Session session = driver.session()) {
             int[] ids = new int[]{
@@ -69,10 +69,21 @@ public class Viewer {
                 parameters = new HashMap<>();
                 parameters.put("id", id);
 //                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getIDPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
-//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getArrayPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
                 addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getGraphPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
+//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getArrayPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
             }
         }
+
+        String[] input = new String[]{
+//                "POLYGON((-12.0 -9.0,0.0 -7.0,12.0 -14.0,18.0 -5.0,2.0 0.0,8.0 -6.0,-9.0 -3.0,-6.0 5.0,13.0 7.0,19.0 1.0,6.0 1.0,19.0 -2.0,19.0 -16.0,27.0 -17.0,30.0 -9.0,23.0 19.0,14.0 23.0,-3.0 16.0,-15.0 27.0,-1.0 28.0,-8.0 34.0,-26.0 25.0,-18.0 16.0,1.0 12.0,13.0 14.0,22.0 7.0,6.0 10.0,-23.0 8.0,-42.0 44.0,-23.0 -5.0,-67.0 19.0,-58.0 -16.0,-51.0 -1.0,-37.0 -17.0,-30.0 -7.0,-22.0 -18.0,-22.0 -10.0,-15.0 -16.0,-18.0 -9.0,-12.0 -9.0))",
+//                "POLYGON((-22.0 -18.0,12.0 -14.0,18.0 -5.0,19.0 1.0,6.0 1.0,19.0 -16.0,27.0 -17.0,30.0 -9.0,23.0 19.0,-8.0 34.0,-42.0 44.0,-67.0 19.0,-58.0 -16.0,-37.0 -17.0,-30.0 -7.0,-22.0 -18.0))"
+        };
+
+        for (String s : input) {
+            viewer.addPolygon(s, color++);
+        }
+
+//        viewer.addPoint("POINT(-22.0 -18.0)");
 
         viewer.view();
     }
@@ -213,7 +224,7 @@ public class Viewer {
 
         DefaultFeatureCollection featureCollection = new DefaultFeatureCollection();
         featureCollection.add(feature);
-        this.map.addLayer(new FeatureLayer(featureCollection, SLD.createPointStyle("Circle", Color.BLACK, Color.BLACK, 1, 25)));
+        this.map.addLayer(new FeatureLayer(featureCollection, SLD.createPointStyle("Circle", Color.BLACK, Color.BLACK, 1, 15)));
     }
 
     private void createGrid() {

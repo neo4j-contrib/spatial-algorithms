@@ -2,6 +2,7 @@ package org.neo4j.spatial.algo;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.neo4j.spatial.algo.cartesian.ConvexHull;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;

@@ -22,6 +22,18 @@ public class AlgoUtil {
         return z == 0 ? 0 : (z < 0 ? -1 : 1);
     }
 
+    public static double dotProduct(double[] a, double[] b) {
+        if (a.length != b.length) {
+            throw new IllegalArgumentException("Vectors do not have the same dimension");
+        }
+
+        double sum = 0;
+        for (int i = 0; i < a.length; i++) {
+            sum += a[i] * b[i];
+        }
+        return sum;
+    }
+
     public static boolean equal(double a, double b) {
         return Math.abs(a-b) < EPSILON;
     }

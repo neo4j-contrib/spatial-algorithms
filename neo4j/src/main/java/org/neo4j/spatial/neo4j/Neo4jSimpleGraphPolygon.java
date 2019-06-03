@@ -1,12 +1,7 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.traversal.Evaluation;
-import org.neo4j.graphdb.traversal.Evaluator;
-import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.traversal.*;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -16,7 +11,19 @@ import java.util.Arrays;
 import static java.lang.String.format;
 
 public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
-    protected Point[] points;
+    Point[] points;
+    private long osmRelationId;
+    private ResourceIterator<Node> nodeIterator;
+    boolean traversing;
+    Node pointer;
+    Node start;
+
+    public Neo4jSimpleGraphPolygon(Node main, long osmRelationId) {
+        this.osmRelationId = osmRelationId;
+        this.traversing = false;
+        this.pointer = null;
+        this.start = main;
+    }
 
     @Override
     public int dimension() {
@@ -38,14 +45,52 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         return format("Neo4jSimpleGraphNodePolygon%s", Arrays.toString(points));
     }
 
-    protected Node[] traverseGraph(Node main, long osmRelationId) {
-        TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()
+    private Traverser getNewTraverser(Node start) {
+        return new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
                 .relationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)
-                .evaluator(new WayEvaluator(osmRelationId));
+                .evaluator(new WayEvaluator(osmRelationId)).traverse(start);
+    }
 
-        return traversalDescription.traverse(main).nodes().stream().toArray(Node[]::new);
+    @Override
+    public boolean fullyTraversed() {
+        if (this.nodeIterator != null) {
+            return !this.nodeIterator.hasNext() && this.traversing;
+        }
+        return false;
+    }
+
+    @Override
+    public void startTraversal(Point point) {
+        ResourceIterator<Node> iterator = getNewTraverser(start).nodes().iterator();
+
+        while (iterator.hasNext()) {
+            Node next = iterator.next();
+            Point extracted = extractPoint(next);
+
+            if (extracted.equals(point)) {
+                this.start = next;
+                break;
+            }
+        }
+
+        this.traversing = false;
+        getNewTraverser(this.start);
+    }
+
+    abstract Point extractPoint(Node node);
+
+    Node getNextNode(Node node) {
+        if (this.nodeIterator == null || !this.nodeIterator.hasNext()) {
+            this.nodeIterator = getNewTraverser(node).nodes().iterator();
+        }
+
+        return this.nodeIterator.next();
+    }
+
+    protected Node[] traverseGraph(Node main) {
+        return getNewTraverser(main).nodes().stream().toArray(Node[]::new);
     }
 
     private static class WayEvaluator implements Evaluator {

@@ -1,7 +1,10 @@
 package org.neo4j.spatial.core;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.StringJoiner;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -16,6 +19,37 @@ public interface Polygon {
                 throw new IllegalArgumentException(format("Point[%d] has different dimension to Point[%d]: %d != %d", i, 0, points[i].dimension(), points[0].dimension()));
             }
         }
+    }
+
+    /**
+     * Converts the polygon into an array of LineSegments describing this polygon
+     *
+     * @return Array of line segments describing the polygon
+     */
+    default LineSegment[] toLineSegments() {
+        Point[][] polygonPoints = Stream.concat(Arrays.stream(this.getShells()), Arrays.stream(this.getHoles()))
+                .map(SimplePolygon::getPoints).toArray(Point[][]::new);
+
+        int amount = Arrays.stream(polygonPoints).mapToInt(p -> p.length - 1).sum();
+
+        LineSegment[] output = new LineSegment[amount];
+        int index = 0;
+
+        for (int i = 0; i < polygonPoints.length; i++) {
+            for (int j = 0; j < polygonPoints[i].length - 1; j++) {
+                Point a = polygonPoints[i][j];
+                Point b = polygonPoints[i][j + 1];
+                output[index + j] = LineSegment.lineSegment(a, b);
+            }
+
+            Point a = polygonPoints[i][polygonPoints[i].length - 2];
+            Point b = polygonPoints[i][0];
+            output[index + polygonPoints[i].length - 2] = LineSegment.lineSegment(a, b);
+
+            index += polygonPoints[i].length - 1;
+        }
+
+        return output;
     }
 
     SimplePolygon[] getShells();
@@ -34,28 +68,6 @@ public interface Polygon {
     String toWKT();
 
     interface SimplePolygon extends Polygon {
-
-        /**
-         * Converts the given polygon into an array of LineSegments describing this polygon
-         *
-         * @param polygon
-         * @return Array of line segments describing the given polygon
-         */
-        static LineSegment[] toLineSegments(SimplePolygon polygon) {
-            LineSegment[] output = new LineSegment[polygon.getPoints().length - 1];
-
-            for (int i = 0; i < output.length - 1; i++) {
-                Point a = polygon.getPoints()[i];
-                Point b = polygon.getPoints()[i + 1];
-                output[i] = LineSegment.lineSegment(a, b);
-            }
-
-            Point a = polygon.getPoints()[polygon.getPoints().length - 2];
-            Point b = polygon.getPoints()[0];
-            output[polygon.getPoints().length - 2] = LineSegment.lineSegment(a, b);
-
-            return output;
-        }
 
         static boolean areEqual(SimplePolygon one, SimplePolygon other) {
             Point[] a = PolygonUtil.openRing(one.getPoints());
@@ -131,6 +143,12 @@ public interface Polygon {
             return sum;
         }
 
+        Point getNextPoint();
+
+        void startTraversal(Point point);
+
+        boolean fullyTraversed();
+
         /**
          * @return True iff the points are in clockwise order
          */
@@ -177,7 +195,10 @@ public interface Polygon {
     }
 
     class InMemorySimplePolygon implements SimplePolygon {
-        Point[] points;
+        private Point[] points;
+        private int pointer;
+        private int start;
+        private boolean traversing;
 
         private InMemorySimplePolygon(Point... points) {
             this.points = PolygonUtil.closeRing(points);
@@ -185,6 +206,34 @@ public interface Polygon {
                 throw new IllegalArgumentException("Polygon cannot have less than 4 points");
             }
             Polygon.assertAllSameDimension(this.points);
+            this.pointer = 0;
+            this.start = 0;
+            this.traversing = false;
+        }
+
+        @Override
+        public Point getNextPoint() {
+            this.traversing = true;
+            Point point = points[pointer];
+            pointer = (pointer + 1) % points.length;
+            return point;
+        }
+
+        @Override
+        public void startTraversal(Point start) {
+            this.traversing = false;
+            for (int i = 0; i < this.points.length; i++) {
+                if (this.points[i].equals(start)) {
+                    this.start = i;
+                    this.pointer = i;
+                    return;
+                }
+            }
+        }
+
+        @Override
+        public boolean fullyTraversed() {
+            return pointer == start && this.traversing;
         }
 
         @Override

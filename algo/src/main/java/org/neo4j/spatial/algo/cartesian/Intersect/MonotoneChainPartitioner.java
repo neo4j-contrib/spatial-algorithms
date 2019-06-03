@@ -1,4 +1,4 @@
-package org.neo4j.spatial.algo.Intersect;
+package org.neo4j.spatial.algo.cartesian.Intersect;
 
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.MonotoneChain;
@@ -16,7 +16,7 @@ public class MonotoneChainPartitioner {
      */
     public static List<MonotoneChain> partition(Polygon.SimplePolygon polygon) {
         List<MonotoneChain> result = new ArrayList<>();
-        LineSegment[] lineSegments = Polygon.SimplePolygon.toLineSegments(polygon);
+        LineSegment[] lineSegments = polygon.toLineSegments();
 
         //Add line segments to the current chain until a line segment has a different x-direction compared to the chain
         MonotoneChain chain = new MonotoneChain();

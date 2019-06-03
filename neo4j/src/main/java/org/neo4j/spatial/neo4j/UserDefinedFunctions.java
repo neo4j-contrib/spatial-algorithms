@@ -7,9 +7,9 @@ import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
-import org.neo4j.spatial.algo.ConvexHull;
-import org.neo4j.spatial.algo.Intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.algo.Intersect.NaiveIntersect;
+import org.neo4j.spatial.algo.cartesian.ConvexHull;
+import org.neo4j.spatial.algo.cartesian.Intersect.MCSweepLineIntersect;
+import org.neo4j.spatial.algo.cartesian.Intersect.NaiveIntersect;
 import org.neo4j.spatial.algo.Within;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Polygon;
@@ -217,7 +217,7 @@ public class UserDefinedFunctions {
     }
 
     @UserFunction("neo4j.withinPolygon")
-    public boolean withinPolygon(@Name("point") Point point, @Name("polygon") List<Point> polygon, @Name(value = "touching", defaultValue = "false") boolean touching) {
+    public boolean withinPolygon(@Name("point") Point point, @Name("polygon") List<Point> polygon) {
         if (polygon == null || polygon.size() < 4) {
             throw new IllegalArgumentException("Invalid 'polygon', should be a list of at least 4, but was: " + polygon.size());
         } else if (!polygon.get(0).equals(polygon.get(polygon.size() - 1))) {
@@ -229,9 +229,16 @@ public class UserDefinedFunctions {
                 throw new IllegalArgumentException("Cannot compare geometries of different CRS: " + polyCrs + " !+ " + pointCrs);
             } else {
                 Polygon.SimplePolygon geometry = Polygon.simple(asPoints(polygon));
-                return Within.within(geometry, asPoint(point), touching);
+                return Within.within(geometry, asPoint(point));
             }
         }
+    }
+
+    @UserFunction("neo4j.convexHullPoints")
+    public List<Point> convexHullPoints(@Name("points") List<Point> points) {
+        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(asPoints(points));
+
+        return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
 
     @UserFunction("neo4j.convexHullArray")
