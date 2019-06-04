@@ -5,8 +5,6 @@ import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Vector;
 
-import java.util.Arrays;
-
 public interface Distance {
     /**
      * @param a
@@ -67,16 +65,9 @@ public interface Distance {
      * @return The minimum distance between a line segment and a point
      */
     public static double distance(LineSegment lineSegment, Point point) {
-        double[] a1 = Arrays.stream(lineSegment.getPoints()[0].getCoordinate()).map(p -> p * Math.PI/180).toArray();
-        double[] a2 = Arrays.stream(lineSegment.getPoints()[1].getCoordinate()).map(p -> p * Math.PI/180).toArray();
-        double[] p = Arrays.stream(point.getCoordinate()).map(q -> q * Math.PI/180).toArray();
-
-        //To n-vector
-        Vector u1 = new Vector(Math.cos(a1[1]) * Math.cos(a1[0]), Math.cos(a1[1]) * Math.sin(a1[0]), Math.sin(a1[1]));
-        Vector u2 = new Vector(Math.cos(a2[1]) * Math.cos(a2[0]), Math.cos(a2[1]) * Math.sin(a2[0]), Math.sin(a2[1]));
-        Vector v = new Vector(Math.cos(p[1]) * Math.cos(p[0]), Math.cos(p[1]) * Math.sin(p[0]), Math.sin(p[1]));
-
-        Vector gc = u1.cross(u2);
+        Vector u1 = new Vector(lineSegment.getPoints()[0]);
+        Vector u2 = new Vector(lineSegment.getPoints()[1]);
+        Vector v = new Vector(point);
 
         //Check whether the point is within the extent of the line segment
         Vector u1v = v.subtract(u1);
@@ -142,13 +133,8 @@ public interface Distance {
     public static double distance(Point p1, Point p2) {
         double radius = 6371e3;
 
-        //To radians
-        double[] a = Arrays.stream(p1.getCoordinate()).map(p -> p * Math.PI/180).toArray();
-        double[] b = Arrays.stream(p2.getCoordinate()).map(p -> p * Math.PI/180).toArray();
-
-        //To n-vector
-        Vector u = new Vector(Math.cos(a[1]) * Math.cos(a[0]), Math.cos(a[1]) * Math.sin(a[0]), Math.sin(a[1]));
-        Vector v = new Vector(Math.cos(b[1]) * Math.cos(b[0]), Math.cos(b[1]) * Math.sin(b[0]), Math.sin(b[1]));
+        Vector u = new Vector(p1);
+        Vector v = new Vector(p2);
 
         //Distance (in meters)
         return radius * Math.atan2(u.cross(v).magnitude(), u.dot(v));

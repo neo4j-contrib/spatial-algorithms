@@ -10,6 +10,15 @@ public class Vector {
         this.coordinates = coordinates;
     }
 
+    /**
+     * Converts a LongLat point to an n-vector
+     * @param point
+     */
+    public Vector(Point point) {
+        double[] p = Arrays.stream(point.getCoordinate()).map(q -> q * Math.PI/180).toArray();
+        this.coordinates = new double[]{Math.cos(p[1]) * Math.cos(p[0]), Math.cos(p[1]) * Math.sin(p[0]), Math.sin(p[1])};
+    }
+
     public double getCoordinate(int i) {
         return coordinates[i];
     }
@@ -76,6 +85,10 @@ public class Vector {
 
     public boolean equals(Vector other) {
         return Arrays.equals(this.coordinates, other.getCoordinates());
+    }
+
+    public Point toPoint() {
+        return Point.point(Math.atan2(this.coordinates[1], this.coordinates[0]) * 180 / Math.PI, Math.atan2(this.coordinates[2], Math.sqrt(Math.pow(this.coordinates[0], 2) + Math.pow(this.coordinates[1], 2))) * 180 / Math.PI);
     }
 
     @Override
