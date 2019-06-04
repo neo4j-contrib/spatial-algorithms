@@ -3,11 +3,11 @@
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.neo4j</groupId>
-    <artifactId>spatial-3d-parent</artifactId>
-    <version>0.1.0-neo4j-3.4.5</version>
+    <artifactId>spatial-algorithms-parent</artifactId>
+    <version>0.2.0-neo4j-3.4.14</version>
     <packaging>pom</packaging>
-    <name>Spatial 3D</name>
-    <description>Utilities and Algorithms for 2D and 3D Spatial Analysis</description>
+    <name>Spatial Algorithms</name>
+    <description>Utilities and Algorithms for Spatial Analysis</description>
 
     <modules>
         <module>core</module>
@@ -19,7 +19,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <neo4j.version>3.4.5</neo4j.version>
+        <neo4j.version>3.4.14</neo4j.version>
         <jmh.version>1.19</jmh.version>
         <javac.target>1.8</javac.target>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
@@ -37,12 +37,17 @@
             <organization>Neo4j</organization>
             <url>https://neo4j.com</url>
         </developer>
+        <developer>
+            <id>StefLinde</id>
+            <organization>Neo4j</organization>
+            <url>https://neo4j.com</url>
+        </developer>
     </developers>
 
-    <url>https://github.com/craigtaverner/spatial-3d</url>
+    <url>https://github.com/neo4j-contrib/spatial-algorithms</url>
 
     <scm>
-        <url>https://github.com/craigtaverner/spatial-3d</url>
+        <url>https://github.com/neo4j-contrib/spatial-algorithms</url>
     </scm>
 
     <licenses>

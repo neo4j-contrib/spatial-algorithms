@@ -5,26 +5,26 @@
 
     <parent>
         <groupId>org.neo4j</groupId>
-        <artifactId>spatial-3d-parent</artifactId>
-        <version>0.1.0-neo4j-3.4.5</version>
+        <artifactId>spatial-algorithms-parent</artifactId>
+        <version>0.2.0-neo4j-3.4.14</version>
     </parent>
 
-    <artifactId>spatial-3d-neo4j</artifactId>
-    <name>Spatial 3D :: Neo4j</name>
-    <description>Neo4j Integration (procedures and functions) for 3D Spatial Analysis</description>
+    <artifactId>spatial-algorithms-neo4j</artifactId>
+    <name>Spatial Algorithms :: Neo4j</name>
+    <description>Neo4j Integration (procedures and functions) for Spatial Analysis</description>
     <packaging>jar</packaging>
 
     <dependencies>
 
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>spatial-3d-core</artifactId>
+            <artifactId>spatial-algorithms-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>spatial-3d-algo</artifactId>
+            <artifactId>spatial-algorithms-algo</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -4,28 +4,28 @@
 
     <parent>
         <groupId>org.neo4j</groupId>
-        <artifactId>spatial-3d-parent</artifactId>
-        <version>0.1.0-neo4j-3.4.5</version>
+        <artifactId>spatial-algorithms-parent</artifactId>
+        <version>0.2.0-neo4j-3.4.14</version>
     </parent>
 
-    <artifactId>spatial-3d-dist</artifactId>
-    <name>Spatial 3D :: Distribution</name>
+    <artifactId>spatial-algorithms-dist</artifactId>
+    <name>Spatial Algorithms :: Distribution</name>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>spatial-3d-core</artifactId>
+            <artifactId>spatial-algorithms-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>spatial-3d-algo</artifactId>
+            <artifactId>spatial-algorithms-algo</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>spatial-3d-neo4j</artifactId>
+            <artifactId>spatial-algorithms-neo4j</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

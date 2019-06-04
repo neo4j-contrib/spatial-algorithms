@@ -4,13 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.neo4j</groupId>
-        <artifactId>spatial-3d-parent</artifactId>
-        <version>0.1.0-neo4j-3.4.5</version>
+        <artifactId>spatial-algorithms-parent</artifactId>
+        <version>0.2.0-neo4j-3.4.14</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>spatial-3d-viewer</artifactId>
-    <name>Spatial 3D :: Viewer</name>
+    <artifactId>spatial-algorithms-viewer</artifactId>
+    <name>Spatial Algorithms :: Viewer</name>
+    <description>An independent viewer for visualizing the results of the spatial algorithms</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -41,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>spatial-3d-algo</artifactId>
+            <artifactId>spatial-algorithms-algo</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

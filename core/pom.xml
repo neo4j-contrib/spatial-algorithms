@@ -4,15 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.neo4j</groupId>
-        <artifactId>spatial-3d-parent</artifactId>
-        <version>0.1.0-neo4j-3.4.5</version>
+        <artifactId>spatial-algorithms-parent</artifactId>
+        <version>0.2.0-neo4j-3.4.14</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>spatial-3d-core</artifactId>
+    <artifactId>spatial-algorithms-core</artifactId>
 
-    <name>Spatial 3D :: Core</name>
-    <description>Utilities and Algorithms for 3D Spatial Analysis</description>
+    <name>Spatial Algorithms :: Core</name>
+    <description>Data model for use in spatial algorithms</description>
 
     <dependencies>
         <dependency>
