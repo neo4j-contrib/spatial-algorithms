@@ -73,6 +73,10 @@ public interface Point {
         return "POINT(" + getCoordinate()[0] + " " + getCoordinate()[1] + ")";
     }
 
+    default String toLatLon() {
+        return getCoordinate()[1] + " " + getCoordinate()[0];
+    }
+
     default boolean equals(Point other) {
         return Arrays.equals(this.getCoordinate(), other.getCoordinate());
     }

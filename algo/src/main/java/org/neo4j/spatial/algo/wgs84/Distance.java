@@ -111,14 +111,14 @@ public interface Distance {
         boolean withinExtend = extent1 >= 0 && extent2 >= 0 && isSameHemisphere;
 
         if (withinExtend && !u1.equals(u2)) {
-            Vector c1 = u1.cross(u2); // n1×n2 = vector representing great circle through the line segments
-            Vector c2 = v.cross(c1);  // n0×c1 = vector representing great circle through the point normal to c1
+            Vector c1 = u1.cross(u2); // u1×u2 = vector representing great circle through the line segments
+            Vector c2 = v.cross(c1);  // u0×c1 = vector representing great circle through the point normal to c1
             Vector n = c1.cross(c2);  // c2×c1 = nearest point on c1 to n0
 
-            return distance(v, n);
+            return WGSUtil.distance(v, n);
         } else {
-            double d1 = distance(v, u1);
-            double d2 = distance(v, u2);
+            double d1 = WGSUtil.distance(v, u1);
+            double d2 = WGSUtil.distance(v, u2);
 
             return d1 < d2 ? d1 : d2;
         }
@@ -158,24 +158,10 @@ public interface Distance {
      * @return The minimum distance between two points
      */
     public static double distance(Point p1, Point p2) {
-        double radius = 6371e3;
-
         Vector u = new Vector(p1);
         Vector v = new Vector(p2);
 
         //Distance (in meters)
-        return radius * Math.atan2(u.cross(v).magnitude(), u.dot(v));
-    }
-
-    /**
-     * @param u
-     * @param v
-     * @return The minimum distance between two vectors representing points
-     */
-    public static double distance(Vector u, Vector v) {
-        double radius = 6371e3;
-
-        //Distance (in meters)
-        return radius * Math.atan2(u.cross(v).magnitude(), u.dot(v));
+        return WGSUtil.distance(u, v);
     }
 }

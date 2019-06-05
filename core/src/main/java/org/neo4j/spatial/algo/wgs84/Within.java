@@ -1,5 +1,6 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
@@ -41,15 +42,13 @@ public class Within {
         if (sum > 270) {
             //The polygon does not contain a pole
             for (int i = 0; i < points.length - 1; i++) {
-                int j = i + 1;
-                boolean cond1 = (points[i].getCoordinate()[0] <= point.getCoordinate()[0]) && (point.getCoordinate()[0] < points[j].getCoordinate()[0]);
-                boolean cond2 = (points[j].getCoordinate()[0] <= point.getCoordinate()[0]) && (point.getCoordinate()[0] < points[i].getCoordinate()[0]);
-                if (cond1 || cond2) {
-                    double vt = (point.getCoordinate()[0]  - points[i].getCoordinate()[0]) / (points[j].getCoordinate()[0] - points[i].getCoordinate()[0]);
-                    if (point.getCoordinate()[1] <  points[i].getCoordinate()[1] + vt * (points[j].getCoordinate()[1] - points[i].getCoordinate()[1])) {
-                        result = !result;
-                    }
+                Point a = points[i];
+                Point b = points[i+1];
+
+                if (WGSUtil.intersect(LineSegment.lineSegment(a, b), LineSegment.lineSegment(point, Point.point(point.getCoordinate()[0], 90))) != null) {
+                    result = !result;
                 }
+
             }
         } else {
             //The polygon contains at least one pole

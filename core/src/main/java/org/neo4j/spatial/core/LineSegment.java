@@ -46,6 +46,10 @@ public interface LineSegment {
     int dimension();
 
     String toWKT();
+
+    default String toLatLon() {
+        return getPoints()[0].toLatLon() + "; " + getPoints()[1].toLatLon();
+    }
 }
 
 class InMemoryLineSegment implements LineSegment {

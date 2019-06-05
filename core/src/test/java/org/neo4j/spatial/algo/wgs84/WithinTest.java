@@ -45,7 +45,7 @@ public class WithinTest {
                 Point.point(59.01384711, 60.4081352),
                 Point.point(-102.87989594, 14.24491639),
                 Point.point(111.51052972, 1.53036986),
-                Point.point(-23.38160837, 77.4177691)
+                Point.point(-23.38160837, 77.4177691) //Will be inside using cartesian method
         };
 
         boolean[] expected = new boolean[]{
@@ -55,11 +55,11 @@ public class WithinTest {
                 true,
                 false,
                 false,
-                true
+                false
         };
 
         for (int i = 0; i < points.length; i++) {
-            assertThat(Within.within(polygon, points[i]), equalTo(expected[i]));
+            assertThat("Iteration " + i + " failed; " + points[i], Within.within(polygon, points[i]), equalTo(expected[i]));
         }
     }
 
