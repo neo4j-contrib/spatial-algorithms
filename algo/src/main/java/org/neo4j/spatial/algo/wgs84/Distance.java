@@ -1,5 +1,7 @@
-package org.neo4j.spatial.algo.wsg84;
+package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.algo.wgs84.intersect.NaiveIntersect;
+import org.neo4j.spatial.algo.wgs84.intersect.Intersect;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -12,8 +14,31 @@ public interface Distance {
      * @return The minimum distance between two polygons. Returns 0 if one polygon is (partially) contained by the other
      */
     public static double distance(Polygon a, Polygon b) {
-        //TODO implement this method
-        return 0;
+        boolean intersects = new NaiveIntersect().doesIntersect(a, b);
+
+        //Check if one polygon is (partially) contained by the other
+        if (intersects) {
+            return 0;
+        } else  if (Within.within(a, b.getShells()[0].getPoints()[0]) || Within.within(b, a.getShells()[0].getPoints()[0])) {
+            return 0;
+        }
+
+        double minDistance = Double.MAX_VALUE;
+
+        LineSegment[] aLS = a.toLineSegments();
+
+        LineSegment[] bLS = b.toLineSegments();
+
+        for (LineSegment aLineSegment : aLS) {
+            for (LineSegment bLineSegment : bLS) {
+                double current = distance(aLineSegment, bLineSegment);
+                if (current < minDistance) {
+                    minDistance = current;
+                }
+            }
+        }
+
+        return minDistance;
     }
 
     /**
@@ -43,7 +68,9 @@ public interface Distance {
      * @return The minimum distance between a polygon and point. Returns 0 if point is within the polygon
      */
     public static double distance(Polygon polygon, Point point) {
-        //TODO if point is inside the polygon, the distance is 0
+        if (Within.within(polygon, point)) {
+            return 0;
+        }
 
         LineSegment[] lineSegments = polygon.toLineSegments();
 

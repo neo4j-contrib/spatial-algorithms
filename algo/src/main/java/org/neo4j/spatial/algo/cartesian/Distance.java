@@ -1,9 +1,8 @@
 package org.neo4j.spatial.algo.cartesian;
 
 import org.neo4j.spatial.algo.AlgoUtil;
-import org.neo4j.spatial.algo.Within;
-import org.neo4j.spatial.algo.cartesian.Intersect.Intersect;
-import org.neo4j.spatial.algo.cartesian.Intersect.MCSweepLineIntersect;
+import org.neo4j.spatial.algo.cartesian.intersect.Intersect;
+import org.neo4j.spatial.algo.cartesian.intersect.MCSweepLineIntersect;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;

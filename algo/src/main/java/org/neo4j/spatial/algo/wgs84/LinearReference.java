@@ -1,4 +1,4 @@
-package org.neo4j.spatial.algo.wsg84;
+package org.neo4j.spatial.algo.wgs84;
 
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;

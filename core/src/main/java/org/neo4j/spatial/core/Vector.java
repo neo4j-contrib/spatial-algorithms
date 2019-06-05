@@ -91,6 +91,21 @@ public class Vector {
         return Point.point(Math.atan2(this.coordinates[1], this.coordinates[0]) * 180 / Math.PI, Math.atan2(this.coordinates[2], Math.sqrt(Math.pow(this.coordinates[0], 2) + Math.pow(this.coordinates[1], 2))) * 180 / Math.PI);
     }
 
+    public Vector normalize() {
+        double magnitude = this.magnitude();
+
+        if (magnitude == 0 || magnitude == 1) {
+            return this;
+        }
+
+        double[] modifiedCoordinates = new double[coordinates.length];
+        for (int i = 0; i < coordinates.length; i++) {
+            modifiedCoordinates[i] = coordinates[i] / magnitude;
+        }
+
+        return new Vector(modifiedCoordinates);
+    }
+
     @Override
     public boolean equals(Object other) {
         return other instanceof Vector && this.equals((Vector) other);

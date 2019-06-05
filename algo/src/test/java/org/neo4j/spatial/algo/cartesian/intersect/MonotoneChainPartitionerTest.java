@@ -1,4 +1,4 @@
-package org.neo4j.spatial.algo.cartesian.Intersect;
+package org.neo4j.spatial.algo.cartesian.intersect;
 
 import org.junit.Test;
 import org.neo4j.spatial.core.MonotoneChain;

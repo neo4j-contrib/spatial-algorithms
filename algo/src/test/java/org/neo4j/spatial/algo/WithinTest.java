@@ -1,8 +1,8 @@
 package org.neo4j.spatial.algo;
 
+import org.neo4j.spatial.algo.cartesian.Within;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;

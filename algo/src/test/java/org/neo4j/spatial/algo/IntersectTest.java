@@ -4,9 +4,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.neo4j.spatial.algo.cartesian.Intersect.Intersect;
-import org.neo4j.spatial.algo.cartesian.Intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.algo.cartesian.Intersect.NaiveIntersect;
+import org.neo4j.spatial.algo.cartesian.intersect.Intersect;
+import org.neo4j.spatial.algo.cartesian.intersect.MCSweepLineIntersect;
+import org.neo4j.spatial.algo.cartesian.intersect.NaiveIntersect;
 import org.neo4j.spatial.core.*;
 
 import java.util.Arrays;
