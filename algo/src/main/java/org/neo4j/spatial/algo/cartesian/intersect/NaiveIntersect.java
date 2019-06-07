@@ -1,10 +1,13 @@
 package org.neo4j.spatial.algo.cartesian.intersect;
 
+import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class NaiveIntersect implements Intersect {
@@ -25,12 +28,12 @@ public class NaiveIntersect implements Intersect {
     }
 
     private Point[] compareLineSegments(LineSegment[] aLS, LineSegment[] bLS, boolean shortcut) {
-        Set<Point> intersections = new HashSet<>();
+        List<Point> intersections = new ArrayList<>();
         for (int i = 0; i < aLS.length; i++) {
             for (int j = 0; j < bLS.length; j++) {
-                Point intersection = Intersect.intersect(aLS[i], bLS[j]);
-                if (intersection != null) {
-                    intersections.add(intersection);
+                Point newIntersection = Intersect.intersect(aLS[i], bLS[j]);
+                if (newIntersection != null) {
+                    addPoint(intersections, newIntersection);
                     if (shortcut) {
                         return intersections.toArray(new Point[0]);
                     }
@@ -39,5 +42,19 @@ public class NaiveIntersect implements Intersect {
         }
 
         return intersections.toArray(new Point[0]);
+    }
+
+    private void addPoint(List<Point> intersections, Point newIntersection) {
+        boolean flag = false;
+        for (Point intersection : intersections) {
+            if (AlgoUtil.equal(intersection, newIntersection)) {
+                flag = true;
+                break;
+            }
+        }
+
+        if (!flag) {
+            intersections.add(newIntersection);
+        }
     }
 }

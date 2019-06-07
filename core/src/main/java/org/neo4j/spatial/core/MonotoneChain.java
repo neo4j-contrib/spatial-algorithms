@@ -56,6 +56,17 @@ public class MonotoneChain {
         return vertices;
     }
 
+    public List<LineSegment> getLineSegments() {
+        List<LineSegment> segments = new ArrayList<>();
+        for (int i = 0; i < vertices.size() - 1; i++) {
+            Point a = vertices.get(i).getPoint();
+            Point b = vertices.get(i+1).getPoint();
+
+            segments.add(LineSegment.lineSegment(a, b));
+        }
+        return segments;
+    }
+
     public double getMinX() {
         double x1 = vertices.get(0).getPoint().getCoordinate()[0];
         double x2 = vertices.get(vertices.size() - 1).getPoint().getCoordinate()[0];

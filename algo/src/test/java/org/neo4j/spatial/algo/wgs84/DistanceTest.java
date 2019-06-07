@@ -33,7 +33,7 @@ public class DistanceTest {
 
     @Test
     public void distanceLineSegmentLineSegment() {
-        LineSegment a = LineSegment.lineSegment(Point.point(1.0, 51.0), Point.point(2.0, 51.0));
+        LineSegment a = LineSegment.lineSegment(Point.point(-1.0, 51.0), Point.point(2.0, 51.0));
         LineSegment b = LineSegment.lineSegment(Point.point(0.5, 50.0), Point.point(0.5, 52.0));
 
         assertThat(Distance.distance(a, b), equalTo(0.0));

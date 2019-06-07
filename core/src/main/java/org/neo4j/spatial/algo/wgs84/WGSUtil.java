@@ -1,7 +1,9 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Vector;
 
 public class WGSUtil {
@@ -25,6 +27,47 @@ public class WGSUtil {
 
     public static double finalBearing(Point start, Point end) {
         return (WGSUtil.initialBearing(end, start) + 180) % 360;
+    }
+
+    public static double courseDelta(Polygon.SimplePolygon polygon) {
+        Point[] points = polygon.getPoints();
+
+        double sum = 0;
+        double previous = 0;
+        boolean first = true;
+        for (int i = 0; i < points.length - 1; i++) {
+            int j = (i + 1) % (points.length - 1);
+
+            double initialBearing = WGSUtil.initialBearing(points[i], points[j]);
+            double finalBearing = WGSUtil.finalBearing(points[i], points[j]);
+
+            if (first) {
+                first = false;
+            } else {
+                sum = sum + angleDelta(initialBearing, previous);
+            }
+
+            sum = sum + angleDelta(finalBearing, initialBearing);
+
+            previous = finalBearing;
+
+        }
+        double initialBearing = WGSUtil.initialBearing(points[0], points[1]);
+        return sum + angleDelta(initialBearing, previous);
+    }
+
+    private static double angleDelta(double a, double b) {
+        if (b < a) {
+            b += 360;
+        }
+
+        double result = b - a;
+
+        if (result > 180) {
+            result -= 360;
+        }
+
+        return result;
     }
 
     public static Point mean(Point... points) {
@@ -54,18 +97,18 @@ public class WGSUtil {
 
         Vector mid = u1.add(u2).add(v1).add(v2);
 
+        Vector intersect;
         double u1u2Distance = distance(u1, u2);
         double v1v2Distance = distance(v1, v2);
         if (mid.dot(i1) > 0) {
-            if (u1u2Distance >= distance(u1, i1) && u1u2Distance >= distance(u2, i1)
-                    && v1v2Distance >= distance(v1, i1) && v1v2Distance >= distance(v2, i1)) {
-                return i1.toPoint();
-            }
+            intersect = i1;
         } else {
-            if (u1u2Distance >= distance(u1, i2) && u1u2Distance >= distance(u2, i2)
-                    && v1v2Distance >= distance(v1, i2) && v1v2Distance >= distance(v2, i2)) {
-                return i2.toPoint();
-            }
+            intersect = i2;
+        }
+
+        if (AlgoUtil.lessOrEqual(distance(u1, intersect), u1u2Distance) && AlgoUtil.lessOrEqual(distance(u2, intersect), u1u2Distance)
+                && AlgoUtil.lessOrEqual(distance(v1, intersect), v1v2Distance) && AlgoUtil.lessOrEqual(distance(v2, intersect), v1v2Distance)) {
+            return intersect.toPoint();
         }
 
         return null;

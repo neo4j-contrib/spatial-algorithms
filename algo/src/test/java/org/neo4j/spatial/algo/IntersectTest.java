@@ -75,7 +75,7 @@ public class IntersectTest {
         assertThat(Intersect.intersect(a, b), is(nullValue()));
 
         a = LineSegment.lineSegment(Point.point(0, 0), Point.point(1,1));
-        b = LineSegment.lineSegment(Point.point(0,1e-10), Point.point(1,1+1e-10));
+        b = LineSegment.lineSegment(Point.point(0,1e-9), Point.point(1,1+1e-9));
         assertThat(Intersect.intersect(a, b), is(nullValue()));
     }
 
@@ -251,12 +251,7 @@ public class IntersectTest {
             b.insertPolygon(Polygon.simple(points));
         }
 
-        System.out.println(a.toWKT());
-        System.out.println(b.toWKT());
-
         Point[] actual = polygonImpl.intersect(a, b);
-
-        System.out.println(Arrays.toString(actual));
 
         Point[] expected = new Point[]{
                 Point.point(10.0, 1.0),
@@ -292,8 +287,6 @@ public class IntersectTest {
                 Point.point(1.0, 9.0),
                 Point.point(1.0, 10.0)
         };
-
-        System.out.println(Arrays.toString(expected));
 
         matchPoints(actual, expected);
     }
@@ -340,6 +333,7 @@ public class IntersectTest {
                 if (AlgoUtil.equal(actual[j].getCoordinate()[0], expected[i].getCoordinate()[0]) &&
                         AlgoUtil.equal(actual[j].getCoordinate()[1], expected[i].getCoordinate()[1])) {
                     flag = true;
+                    break;
                 }
             }
             assertThat("Point " + i + " is not present", flag, is(true));
