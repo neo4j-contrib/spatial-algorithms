@@ -137,7 +137,7 @@ public class MCSweepLineIntersect implements Intersect {
     }
 
     private void addToOutput(Point rotatedPoint) {
-        Point point = Point.point(AlgoUtil.rotate(rotatedPoint, -this.sweepAngle));
+        Point point = Point.point(CRS.Cartesian, AlgoUtil.rotate(rotatedPoint, -this.sweepAngle));
         for (Point inList : outputList) {
             if (AlgoUtil.equal(point, inList)) {
                 return;

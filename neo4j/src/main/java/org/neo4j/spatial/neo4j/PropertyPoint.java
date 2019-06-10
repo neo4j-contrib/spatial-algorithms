@@ -1,6 +1,7 @@
 package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 
 import java.util.Arrays;
@@ -23,6 +24,12 @@ public class PropertyPoint implements Point{
 
     public boolean equals(Object other) {
         return other instanceof Point && this.equals((Point) other);
+    }
+
+    @Override
+    public CRS getCRS() {
+        //TODO support different CRS
+        return CRS.Cartesian;
     }
 
     @Override

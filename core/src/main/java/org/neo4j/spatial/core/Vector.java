@@ -88,7 +88,7 @@ public class Vector {
     }
 
     public Point toPoint() {
-        return Point.point(Math.atan2(this.coordinates[1], this.coordinates[0]) * 180 / Math.PI, Math.atan2(this.coordinates[2], Math.sqrt(Math.pow(this.coordinates[0], 2) + Math.pow(this.coordinates[1], 2))) * 180 / Math.PI);
+        return Point.point(CRS.WGS84, Math.atan2(this.coordinates[1], this.coordinates[0]) * 180 / Math.PI, Math.atan2(this.coordinates[2], Math.sqrt(Math.pow(this.coordinates[0], 2) + Math.pow(this.coordinates[1], 2))) * 180 / Math.PI);
     }
 
     public Vector normalize() {

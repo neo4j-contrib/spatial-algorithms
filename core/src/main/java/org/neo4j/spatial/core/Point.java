@@ -5,9 +5,11 @@ import java.util.Arrays;
 import static java.lang.String.format;
 
 public interface Point {
-    static Point point(double... coordinate) {
-        return new InMemoryPoint(coordinate);
+    static Point point(CRS crs, double... coordinate) {
+        return new InMemoryPoint(crs, coordinate);
     }
+
+    CRS getCRS();
 
     double[] getCoordinate();
 
@@ -42,7 +44,7 @@ public interface Point {
         for (int i = 0; i < shifted.length; i++) {
             shifted[i] += shifts[i];
         }
-        return Point.point(shifted);
+        return Point.point(this.getCRS(), shifted);
     }
 
     default Point subtract(double... shifts) {
@@ -50,7 +52,7 @@ public interface Point {
         for (int i = 0; i < shifted.length; i++) {
             shifted[i] -= shifts[i];
         }
-        return Point.point(shifted);
+        return Point.point(this.getCRS(), shifted);
     }
 
     default Point multiply(double multiplyBy) {
@@ -58,7 +60,7 @@ public interface Point {
         for (int i = 0; i < shifted.length; i++) {
             shifted[i] *= multiplyBy;
         }
-        return Point.point(shifted);
+        return Point.point(this.getCRS(), shifted);
     }
 
     default Point divide(double divideBy) {
@@ -66,7 +68,7 @@ public interface Point {
         for (int i = 0; i < shifted.length; i++) {
             shifted[i] /= divideBy;
         }
-        return Point.point(shifted);
+        return Point.point(this.getCRS(), shifted);
     }
 
     default String toWKT() {
@@ -84,12 +86,19 @@ public interface Point {
 
 class InMemoryPoint implements Point {
     private final double[] coordinate;
+    private final CRS crs;
 
-    public InMemoryPoint(double... coordinate) {
+    public InMemoryPoint(CRS crs, double... coordinate) {
         if (coordinate.length < 1) {
             throw new IllegalArgumentException("Cannot create point with zero dimensions");
         }
         this.coordinate = coordinate;
+        this.crs = crs;
+    }
+
+    @Override
+    public CRS getCRS() {
+        return crs;
     }
 
     @Override

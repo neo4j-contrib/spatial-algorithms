@@ -162,7 +162,7 @@ public class MCSweepLineIntersect implements Intersect {
     private Point[] fallback(Polygon a, Polygon b, boolean shortcut) {
         Intersect intersect = new NaiveIntersect();
         if (shortcut) {
-            return intersect.doesIntersect(a, b) ? new Point[]{Point.point(0)} : new Point[]{};
+            return intersect.doesIntersect(a, b) ? new Point[]{Point.point(CRS.WGS84, 0)} : new Point[]{};
         } else {
             return intersect.intersect(a, b);
         }

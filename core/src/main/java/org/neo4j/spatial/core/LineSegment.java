@@ -25,7 +25,7 @@ public interface LineSegment {
         for (Point aPoint : a.getPoints()) {
             for (Point bPoint : b.getPoints()) {
                 if (AlgoUtil.equal(aPoint, bPoint)) {
-                    return Point.point(aPoint.getCoordinate());
+                    return Point.point(aPoint.getCRS(), aPoint.getCoordinate());
                 }
             }
         }

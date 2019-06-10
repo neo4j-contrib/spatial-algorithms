@@ -49,7 +49,7 @@ public interface Intersect {
                         new double[]{b0.getCoordinate()[1], b1.getCoordinate()[1]
                         });
                 if (y != null) {
-                    return Point.point(a0.getCoordinate()[0], y);
+                    return Point.point(CRS.Cartesian, a0.getCoordinate()[0], y);
                 }
             }
             return null;
@@ -78,7 +78,7 @@ public interface Intersect {
                     new double[]{a0.getCoordinate()[1], a1.getCoordinate()[1]},
                     new double[]{b0.getCoordinate()[1], b1.getCoordinate()[1]});
 
-            return Point.point(x, y);
+            return Point.point(CRS.Cartesian, x, y);
         }
 
         double[] coordinates = new double[2];
@@ -95,7 +95,7 @@ public interface Intersect {
             }
         }
 
-        return Point.point(coordinates);
+        return Point.point(CRS.Cartesian, coordinates);
     }
 
 
@@ -126,7 +126,7 @@ public interface Intersect {
         }
 
 
-        return Point.point(x, y);
+        return Point.point(CRS.Cartesian, x, y);
     }
 
     /**

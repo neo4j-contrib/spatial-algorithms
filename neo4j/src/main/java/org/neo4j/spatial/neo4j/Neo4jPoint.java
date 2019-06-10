@@ -1,8 +1,9 @@
 package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.spatial.CRS;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
+import org.neo4j.values.storable.CoordinateReferenceSystem;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +35,11 @@ class Neo4jPoint implements Point {
     }
 
     public CRS getCRS() {
+        org.neo4j.graphdb.spatial.CRS neo4jCRS = getNeo4jCRS();
+        return CRSConverter.toInMemoryCRS(neo4jCRS);
+    }
+
+    public org.neo4j.graphdb.spatial.CRS getNeo4jCRS() {
         return ((org.neo4j.graphdb.spatial.Point) this.node.getProperty(property)).getCRS();
     }
 

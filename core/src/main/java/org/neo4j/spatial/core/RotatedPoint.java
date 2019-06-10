@@ -16,6 +16,11 @@ public class RotatedPoint implements Point {
     }
 
     @Override
+    public CRS getCRS() {
+        return this.point.getCRS();
+    }
+
+    @Override
     public double[] getCoordinate() {
         return AlgoUtil.rotate(point, angle);
     }

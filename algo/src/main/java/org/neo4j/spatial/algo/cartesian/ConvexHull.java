@@ -1,6 +1,7 @@
 package org.neo4j.spatial.algo.cartesian;
 
 import org.neo4j.spatial.algo.AlgoUtil;
+import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -121,7 +122,7 @@ public class ConvexHull {
         double angleB = getPolarAngle(reference, b);
 
         if (AlgoUtil.equal(angleA, angleB)) {
-            return Double.compare(Distance.distance(reference, a), Distance.distance(reference, b));
+            return Double.compare(DistanceCalculator.distance(reference, a), DistanceCalculator.distance(reference, b));
         }
 
         return Double.compare(angleA, angleB);

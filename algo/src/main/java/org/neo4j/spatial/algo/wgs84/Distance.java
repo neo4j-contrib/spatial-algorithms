@@ -7,13 +7,9 @@ import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Vector;
 
-public interface Distance {
-    /**
-     * @param a
-     * @param b
-     * @return The minimum distance between two polygons. Returns 0 if one polygon is (partially) contained by the other
-     */
-    public static double distance(Polygon a, Polygon b) {
+public class Distance implements org.neo4j.spatial.algo.Distance {
+    @Override
+    public double distance(Polygon a, Polygon b) {
         boolean intersects = new NaiveIntersect().doesIntersect(a, b);
 
         //Check if one polygon is (partially) contained by the other
@@ -41,12 +37,8 @@ public interface Distance {
         return minDistance;
     }
 
-    /**
-     * @param polygon
-     * @param lineSegment
-     * @return The minimum distance between a polygon and line segment. Returns 0 if the line segment is (partially) contained by the polygon
-     */
-    public static double distance(Polygon polygon, LineSegment lineSegment) {
+    @Override
+    public double distance(Polygon polygon, LineSegment lineSegment) {
         LineSegment[] lineSegments = polygon.toLineSegments();
 
         double minDistance = Double.MAX_VALUE;
@@ -62,12 +54,8 @@ public interface Distance {
         return minDistance;
     }
 
-    /**
-     * @param polygon
-     * @param point
-     * @return The minimum distance between a polygon and point. Returns 0 if point is within the polygon
-     */
-    public static double distance(Polygon polygon, Point point) {
+    @Override
+    public double distance(Polygon polygon, Point point) {
         if (Within.within(polygon, point)) {
             return 0;
         }
@@ -86,12 +74,8 @@ public interface Distance {
         return minDistance;
     }
 
-    /**
-     * @param lineSegment
-     * @param point
-     * @return The minimum distance between a line segment and a point
-     */
-    public static double distance(LineSegment lineSegment, Point point) {
+    @Override
+    public double distance(LineSegment lineSegment, Point point) {
         Vector u1 = new Vector(lineSegment.getPoints()[0]);
         Vector u2 = new Vector(lineSegment.getPoints()[1]);
         Vector v = new Vector(point);
@@ -124,12 +108,8 @@ public interface Distance {
         }
     }
 
-    /**
-     * @param a
-     * @param b
-     * @return The minimum distance between two line segments
-     */
-    public static double distance(LineSegment a, LineSegment b) {
+    @Override
+    public double distance(LineSegment a, LineSegment b) {
         Point intersect = Intersect.intersect(a, b);
         if (intersect != null) {
             return 0;
@@ -152,12 +132,8 @@ public interface Distance {
         return minDistance;
     }
 
-    /**
-     * @param p1
-     * @param p2
-     * @return The minimum distance between two points
-     */
-    public static double distance(Point p1, Point p2) {
+    @Override
+    public double distance(Point p1, Point p2) {
         Vector u = new Vector(p1);
         Vector v = new Vector(p2);
 

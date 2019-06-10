@@ -1,5 +1,6 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -24,7 +25,7 @@ public class Within {
                 Point a = points[i];
                 Point b = points[i+1];
 
-                if (WGSUtil.intersect(LineSegment.lineSegment(a, b), LineSegment.lineSegment(point, Point.point(point.getCoordinate()[0], 90))) != null) {
+                if (WGSUtil.intersect(LineSegment.lineSegment(a, b), LineSegment.lineSegment(point, Point.point(CRS.WGS84, point.getCoordinate()[0], 90))) != null) {
                     result = !result;
                 }
             }

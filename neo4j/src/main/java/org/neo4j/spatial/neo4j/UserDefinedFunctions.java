@@ -325,7 +325,8 @@ public class UserDefinedFunctions {
         for (int i = 0; i < coords.length; i++) {
             coords[i] = coordinates.get(i);
         }
-        return org.neo4j.spatial.core.Point.point(coords);
+        org.neo4j.spatial.core.CRS crs = CRSConverter.toInMemoryCRS(point.getCRS());
+        return org.neo4j.spatial.core.Point.point(crs, coords);
     }
 
     private List<Point> asPoints(CRS crs, org.neo4j.spatial.core.Point[] points) {

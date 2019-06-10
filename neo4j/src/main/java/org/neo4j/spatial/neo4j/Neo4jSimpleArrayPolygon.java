@@ -1,6 +1,7 @@
 package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
@@ -36,7 +37,9 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     public void startTraversal(Point start) {
         this.traversing = false;
         for (int i = 0; i < this.points.length; i++) {
-            Point point = Point.point(points[i].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
+            CRS neo4jCRS = points[i].getCRS();
+            org.neo4j.spatial.core.CRS crs = CRSConverter.toInMemoryCRS(neo4jCRS);
+            Point point = Point.point(crs, points[i].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
             if (point.equals(start)) {
                 this.start = i;
                 this.pointer = i;
@@ -48,7 +51,9 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     @Override
     public Point getNextPoint() {
         this.traversing = true;
-        Point point = Point.point(points[(pointer) % points.length].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
+        CRS neo4jCRS = points[(pointer) % points.length].getCRS();
+        org.neo4j.spatial.core.CRS crs = CRSConverter.toInMemoryCRS(neo4jCRS);
+        Point point = Point.point(crs, points[(pointer) % points.length].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
         pointer = (pointer + 1) % points.length;
         return point;
     }
@@ -62,7 +67,9 @@ public class Neo4jSimpleArrayPolygon implements Polygon.SimplePolygon {
     public Point[] getPoints() {
         Point[] result = new Point[points.length];
         for (int i = 0; i < points.length; i++) {
-            result[i] = Point.point(points[i].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
+            CRS neo4jCRS = points[i].getCRS();
+            org.neo4j.spatial.core.CRS crs = CRSConverter.toInMemoryCRS(neo4jCRS);
+            result[i] = Point.point(crs, points[i].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
         }
         return result;
     }

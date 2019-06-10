@@ -1,5 +1,6 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -24,7 +25,7 @@ public interface LinearReference {
         while (d >= 0) {
             Point p = lineSegments[index].getPoints()[0];
             Point q = lineSegments[index].getPoints()[1];
-            double length = Distance.distance(p, q);
+            double length = DistanceCalculator.distance(p, q);
 
             if (length < d) {
                 d -= length;
@@ -52,7 +53,7 @@ public interface LinearReference {
 
         Point p = lineSegment.getPoints()[0];
         Point q = lineSegment.getPoints()[1];
-        double length = Distance.distance(p, q);
+        double length = DistanceCalculator.distance(p, q);
 
         if (length < d) {
             return null;

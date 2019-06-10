@@ -1,5 +1,7 @@
 package org.neo4j.spatial.algo.cartesian;
 
+import org.neo4j.spatial.algo.DistanceCalculator;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -23,7 +25,7 @@ public interface LinearReference {
         while (d >= 0) {
             Point p = lineSegments[index].getPoints()[0];
             Point q = lineSegments[index].getPoints()[1];
-            double length = Distance.distance(p, q);
+            double length = DistanceCalculator.distance(p, q);
 
             if (length < d) {
                 d -= length;
@@ -59,6 +61,6 @@ public interface LinearReference {
 
         double fraction = d / length;
 
-        return Point.point(p[0] + fraction * (q[0] - p[0]), p[1] + fraction * (q[1] - p[1]));
+        return Point.point(CRS.Cartesian, p[0] + fraction * (q[0] - p[0]), p[1] + fraction * (q[1] - p[1]));
     }
 }

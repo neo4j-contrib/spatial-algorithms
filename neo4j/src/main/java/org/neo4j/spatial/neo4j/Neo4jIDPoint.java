@@ -4,7 +4,9 @@ import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.TokenAccess;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
+import org.neo4j.values.storable.CoordinateReferenceSystem;
 
 import java.util.Arrays;
 
@@ -53,6 +55,28 @@ class Neo4jIDPoint implements Point {
             }
         }
         return coordinates;
+    }
+
+    @Override
+    public CRS getCRS() {
+        CRS crs = CRS.Cartesian;
+        try ( NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor();
+              PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor() ) {
+            ktx.dataRead().singleNode(nodeId, nodeCursor);
+            outer:
+            while (nodeCursor.next()) {
+                nodeCursor.properties(propertyCursor);
+                while (propertyCursor.next()) {
+                    if (propertyCursor.propertyKey() == propertyId) {
+                        org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) propertyCursor.propertyValue();
+                        org.neo4j.graphdb.spatial.CRS neo4jCRS = point.getCRS();
+                        crs = CRSConverter.toInMemoryCRS(neo4jCRS);
+                        break outer;
+                    }
+                }
+            }
+        }
+        return crs;
     }
 
     private void getPropertyId() {
