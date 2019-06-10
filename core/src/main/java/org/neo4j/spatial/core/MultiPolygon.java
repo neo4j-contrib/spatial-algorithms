@@ -1,5 +1,6 @@
 package org.neo4j.spatial.core;
 
+import org.neo4j.spatial.algo.WithinCalculator;
 import org.neo4j.spatial.algo.cartesian.Within;
 
 import java.util.*;
@@ -116,7 +117,7 @@ public class MultiPolygon implements Polygon {
         @Override
         public boolean insertMultiPolygonNode(MultiPolygonNode other) {
             //If other polygon encompasses this polygon, switch places
-            if (Within.within(other.getPolygon(), this.getPolygon().getPoints()[0])) {
+            if (WithinCalculator.within(other.getPolygon(), this.getPolygon().getPoints()[0])) {
                 this.parent.removeChild(this);
                 this.parent.addChild(other);
                 other.addChild(this);
@@ -124,17 +125,17 @@ public class MultiPolygon implements Polygon {
             }
 
             //Non-overlapping polygons should not be inserted in the same subtree
-            if (!Within.within(this.getPolygon(), other.getPolygon().getPoints()[0])) {
+            if (!WithinCalculator.within(this.getPolygon(), other.getPolygon().getPoints()[0])) {
                 return false;
             }
 
             //Move children to other polygon
             List<MultiPolygonNode> containedInOther = new ArrayList<>();
             for (MultiPolygonNode child : super.children) {
-                if (Within.within(child.getPolygon(), other.getPolygon().getPoints()[0])) {
+                if (WithinCalculator.within(child.getPolygon(), other.getPolygon().getPoints()[0])) {
                     child.insertMultiPolygonNode(other);
                     return true;
-                } else if (Within.within(other.getPolygon(), child.getPolygon().getPoints()[0])) {
+                } else if (WithinCalculator.within(other.getPolygon(), child.getPolygon().getPoints()[0])) {
                     containedInOther.add(child);
                 }
             }
