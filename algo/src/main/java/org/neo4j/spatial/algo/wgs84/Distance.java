@@ -110,7 +110,7 @@ public class Distance implements org.neo4j.spatial.algo.Distance {
 
     @Override
     public double distance(LineSegment a, LineSegment b) {
-        Point intersect = Intersect.intersect(a, b);
+        Point intersect = Intersect.lineSegmentIntersect(a, b);
         if (intersect != null) {
             return 0;
         }

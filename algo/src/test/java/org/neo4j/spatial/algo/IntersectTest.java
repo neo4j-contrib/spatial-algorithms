@@ -1,12 +1,8 @@
 package org.neo4j.spatial.algo;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.neo4j.spatial.algo.cartesian.intersect.Intersect;
-import org.neo4j.spatial.algo.cartesian.intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.algo.cartesian.intersect.NaiveIntersect;
 import org.neo4j.spatial.core.*;
 
 import java.util.Arrays;
@@ -18,22 +14,16 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(value = Parameterized.class)
 public class IntersectTest {
-    private Class impl;
-    private Intersect polygonImpl;
+    private IntersectCalculator.AlgorithmVariant variant;
 
     @Parameterized.Parameters
     public static Collection data() {
-        Class[] classes = new Class[]{NaiveIntersect.class, MCSweepLineIntersect.class};
-        return Arrays.asList(classes);
+        IntersectCalculator.AlgorithmVariant[] variants = new IntersectCalculator.AlgorithmVariant[]{IntersectCalculator.AlgorithmVariant.Naive, IntersectCalculator.AlgorithmVariant.MCSweepLine};
+        return Arrays.asList(variants);
     }
 
-    public IntersectTest(Class impl) {
-        this.impl = impl;
-    }
-
-    @Before
-    public void setup() throws IllegalAccessException, InstantiationException {
-        polygonImpl = (Intersect) impl.newInstance();
+    public IntersectTest(IntersectCalculator.AlgorithmVariant variant) {
+        this.variant = variant;
     }
 
     @Test
@@ -41,19 +31,19 @@ public class IntersectTest {
         LineSegment a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 10,10));
         LineSegment b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 10), Point.point(CRS.Cartesian, 10,0));
 
-        assertThat(Intersect.intersect(a, b), equalTo(Point.point(CRS.Cartesian, 5,5)));
+        assertThat(IntersectCalculator.intersect(a, b, variant), equalTo(Point.point(CRS.Cartesian, 5,5)));
 
         a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 10,10));
         b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 10), Point.point(CRS.Cartesian, 10,10));
-        assertThat(Intersect.intersect(a, b), equalTo(Point.point(CRS.Cartesian, 10,10)));
+        assertThat(IntersectCalculator.intersect(a, b, variant), equalTo(Point.point(CRS.Cartesian, 10,10)));
 
         a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 0,10));
         b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 5), Point.point(CRS.Cartesian, 0,15));
-        assertThat(Intersect.intersect(a, b), equalTo(Point.point(CRS.Cartesian, 0,5)));
+        assertThat(IntersectCalculator.intersect(a, b, variant), equalTo(Point.point(CRS.Cartesian, 0,5)));
 
         a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 5,5));
         b = LineSegment.lineSegment(Point.point(CRS.Cartesian, -5, -5), Point.point(CRS.Cartesian, 10,10));
-        assertThat(Intersect.intersect(a, b), equalTo(Point.point(CRS.Cartesian, 0,0)));
+        assertThat(IntersectCalculator.intersect(a, b, variant), equalTo(Point.point(CRS.Cartesian, 0,0)));
     }
 
     @Test
@@ -61,7 +51,7 @@ public class IntersectTest {
         LineSegment a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 1, 1));
         LineSegment b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 1e-2), Point.point(CRS.Cartesian, 1, 0.5));
 
-        double[] actual = Intersect.intersect(a, b).getCoordinate();
+        double[] actual = IntersectCalculator.intersect(a, b, variant).getCoordinate();
         double[] test = Point.point(CRS.Cartesian, 0.0196078, 0.0196078).getCoordinate();
         assertThat(actual[0], closeTo(test[0], 1e-6));
         assertThat(actual[1], closeTo(test[1], 1e-6));
@@ -72,11 +62,11 @@ public class IntersectTest {
         LineSegment a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 10, 10));
         LineSegment b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 10), Point.point(CRS.Cartesian, -10, 0));
 
-        assertThat(Intersect.intersect(a, b), is(nullValue()));
+        assertThat(IntersectCalculator.intersect(a, b, variant), is(nullValue()));
 
         a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 1,1));
         b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0,1e-9), Point.point(CRS.Cartesian, 1,1+1e-9));
-        assertThat(Intersect.intersect(a, b), is(nullValue()));
+        assertThat(IntersectCalculator.intersect(a, b, variant), is(nullValue()));
     }
 
     @Test
@@ -94,8 +84,8 @@ public class IntersectTest {
                 Point.point(CRS.Cartesian, -14, 15)
         );
 
-        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
-        Point[] actual = polygonImpl.intersect(a, b);
+        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
         matchPoints(actual, new Point[]{Point.point(CRS.Cartesian, 15, 0), Point.point(CRS.Cartesian, -5, 0)});
 
         a = Polygon.simple(
@@ -111,8 +101,8 @@ public class IntersectTest {
                 Point.point(CRS.Cartesian, -5, 15)
         );
 
-        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
-        actual = polygonImpl.intersect(a, b);
+        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
+        actual = IntersectCalculator.intersect(a, b, variant);
         matchPoints(actual, new Point[]{Point.point(CRS.Cartesian, -5, 10), Point.point(CRS.Cartesian, 10, -5)});
 
         a = Polygon.simple(
@@ -126,8 +116,8 @@ public class IntersectTest {
                 Point.point(CRS.Cartesian, 0, -5)
         );
 
-        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
-        actual = polygonImpl.intersect(a, b);
+        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
+        actual = IntersectCalculator.intersect(a, b, variant);
         matchPoints(actual, new Point[]{Point.point(CRS.Cartesian, 3.3333333333333335, 0), Point.point(CRS.Cartesian, -3.3333333333333335, 0)});
 
         a = Polygon.simple(
@@ -176,8 +166,8 @@ public class IntersectTest {
                 Point.point(CRS.Cartesian, 2.082783957901631, 0.15247859101009514)
         };
 
-        assertThat(polygonImpl.doesIntersect(a, b), equalTo(true));
-        actual = polygonImpl.intersect(a, b);
+        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
+        actual = IntersectCalculator.intersect(a, b, variant);
         matchPoints(actual, expected);
     }
 
@@ -251,7 +241,7 @@ public class IntersectTest {
             b.insertPolygon(Polygon.simple(points));
         }
 
-        Point[] actual = polygonImpl.intersect(a, b);
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
 
         Point[] expected = new Point[]{
                 Point.point(CRS.Cartesian, 10.0, 1.0),
@@ -304,7 +294,7 @@ public class IntersectTest {
                 Point.point(CRS.Cartesian, 0, 5)
         );
 
-        matchPoints(polygonImpl.intersect(a, b), new Point[]{Point.point(CRS.Cartesian, 0, 5)});
+        matchPoints(IntersectCalculator.intersect(a, b, variant), new Point[]{Point.point(CRS.Cartesian, 0, 5)});
     }
 
     @Test
@@ -321,7 +311,7 @@ public class IntersectTest {
                 Point.point(CRS.Cartesian, 150, 150)
         );
 
-        assertThat(polygonImpl.intersect(a, b), org.hamcrest.Matchers.emptyArray());
+        assertThat(IntersectCalculator.intersect(a, b, variant), org.hamcrest.Matchers.emptyArray());
     }
 
     private void matchPoints(Point[] actual, Point[] expected) {

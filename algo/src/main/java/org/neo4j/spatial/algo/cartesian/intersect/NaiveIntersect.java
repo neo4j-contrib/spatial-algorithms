@@ -6,11 +6,9 @@ import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-public class NaiveIntersect implements Intersect {
+public class NaiveIntersect extends Intersect {
     @Override
     public boolean doesIntersect(Polygon a, Polygon b) {
         LineSegment[] aLS = a.toLineSegments();
@@ -31,7 +29,7 @@ public class NaiveIntersect implements Intersect {
         List<Point> intersections = new ArrayList<>();
         for (int i = 0; i < aLS.length; i++) {
             for (int j = 0; j < bLS.length; j++) {
-                Point newIntersection = Intersect.intersect(aLS[i], bLS[j]);
+                Point newIntersection = super.intersect(aLS[i], bLS[j]);
                 if (newIntersection != null) {
                     addPoint(intersections, newIntersection);
                     if (shortcut) {

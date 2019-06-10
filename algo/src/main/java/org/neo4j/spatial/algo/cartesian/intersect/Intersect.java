@@ -1,33 +1,22 @@
 package org.neo4j.spatial.algo.cartesian.intersect;
 
 import org.neo4j.spatial.algo.AlgoUtil;
+import org.neo4j.spatial.algo.LinearReference;
 import org.neo4j.spatial.core.*;
 
-public interface Intersect {
-    /**
-     * Given two polygons, returns all points for which the two polygons intersect.
-     *
-     * @param a
-     * @param b
-     * @return Array of intersections
-     */
-    Point[] intersect(Polygon a, Polygon b);
+public abstract class Intersect implements org.neo4j.spatial.algo.Intersect {
+    @Override
+    public abstract Point[] intersect(Polygon a, Polygon b);
 
-    /**
-     * @param a
-     * @param b
-     * @return True iff the polygons a and b intersect in at least 1 point.
-     */
-    boolean doesIntersect(Polygon a, Polygon b);
+    @Override
+    public abstract boolean doesIntersect(Polygon a, Polygon b);
 
-    /**
-     * Given two line segment returns the point of intersection if and only if it exists, else it will return null.
-     *
-     * @param a
-     * @param b
-     * @return Point of intersection if it exists, else null
-     */
-    static Point intersect(LineSegment a, LineSegment b) {
+    @Override
+    public Point intersect(LineSegment a, LineSegment b) {
+        return lineSegmentIntersect(a, b);
+    }
+
+    public static Point lineSegmentIntersect(LineSegment a, LineSegment b) {
         Point shared = LineSegment.sharedPoint(a, b);
         if (shared != null) {
             return shared;
@@ -97,7 +86,6 @@ public interface Intersect {
 
         return Point.point(CRS.Cartesian, coordinates);
     }
-
 
     /**
      * Computes the intersection of one vertical and one non-vertical line segment

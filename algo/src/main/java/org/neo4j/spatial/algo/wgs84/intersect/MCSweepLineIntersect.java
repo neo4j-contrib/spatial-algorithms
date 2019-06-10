@@ -7,7 +7,7 @@ import org.neo4j.spatial.core.*;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class MCSweepLineIntersect implements Intersect {
+public class MCSweepLineIntersect extends Intersect {
     private List<MonotoneChain> activeChainList;
     private List<MonotoneChain> sweepingChainList;
     private List<Point> outputList;
@@ -182,7 +182,7 @@ public class MCSweepLineIntersect implements Intersect {
 
         for (LineSegment vertical : verticals) {
             for (LineSegment segment : segments) {
-                Point intersect = Intersect.intersect(vertical, segment);
+                Point intersect = super.intersect(vertical, segment);
                 if (intersect != null) {
                     addToOutput(intersect);
                 }
@@ -283,7 +283,7 @@ public class MCSweepLineIntersect implements Intersect {
             return;
         }
 
-        Point intersect = Intersect.intersect(aSegment, bSegment);
+        Point intersect = super.intersect(aSegment, bSegment);
 
         if (intersect == null) {
             return;

@@ -6,6 +6,18 @@ import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
 public class CRSChecker {
+    public static CRS check(Point point) {
+        return getCRS(point);
+    }
+
+    public static CRS check(Polygon polygon) {
+        return getCRS(polygon);
+    }
+
+    public static CRS check(LineSegment lineSegment) {
+        return getCRS(lineSegment);
+    }
+
     public static CRS check(Polygon a, Polygon b) throws IllegalArgumentException {
         CRS x = getCRS(a);
         CRS y = getCRS(b);

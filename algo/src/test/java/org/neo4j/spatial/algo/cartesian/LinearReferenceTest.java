@@ -1,6 +1,7 @@
 package org.neo4j.spatial.algo.cartesian;
 
 import org.junit.Test;
+import org.neo4j.spatial.algo.LinearReferenceCalculator;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
@@ -15,11 +16,11 @@ public class LinearReferenceTest {
     public void referenceLineSegment() {
         LineSegment l = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 10, 10));
 
-        assertThat(LinearReference.reference(l, 0), equalTo(Point.point(CRS.Cartesian, 0, 0)));
-        assertThat(LinearReference.reference(l, Math.sqrt(200)/2), equalTo(Point.point(CRS.Cartesian, 5, 5)));
-        assertThat(LinearReference.reference(l, Math.sqrt(200)), equalTo(Point.point(CRS.Cartesian, 10, 10)));
-        assertThat(LinearReference.reference(l, 100), is(nullValue()));
-        assertThat(LinearReference.reference(l, -1), is(nullValue()));
+        assertThat(LinearReferenceCalculator.reference(l, 0), equalTo(Point.point(CRS.Cartesian, 0, 0)));
+        assertThat(LinearReferenceCalculator.reference(l, Math.sqrt(200)/2), equalTo(Point.point(CRS.Cartesian, 5, 5)));
+        assertThat(LinearReferenceCalculator.reference(l, Math.sqrt(200)), equalTo(Point.point(CRS.Cartesian, 10, 10)));
+        assertThat(LinearReferenceCalculator.reference(l, 100), is(nullValue()));
+        assertThat(LinearReferenceCalculator.reference(l, -1), is(nullValue()));
     }
 
     @Test
@@ -31,10 +32,10 @@ public class LinearReferenceTest {
                 Point.point(CRS.Cartesian, -10, 10)
         );
 
-        assertThat(LinearReference.reference(p, 0), equalTo(Point.point(CRS.Cartesian, -10, -10)));
-        assertThat(LinearReference.reference(p, 10), equalTo(Point.point(CRS.Cartesian, 0, -10)));
-        assertThat(LinearReference.reference(p, 25), equalTo(Point.point(CRS.Cartesian, 10, -5)));
-        assertThat(LinearReference.reference(p, 125), equalTo(Point.point(CRS.Cartesian, 5, 10)));
-        assertThat(LinearReference.reference(p, -1), is(nullValue()));
+        assertThat(LinearReferenceCalculator.reference(p, 0), equalTo(Point.point(CRS.Cartesian, -10, -10)));
+        assertThat(LinearReferenceCalculator.reference(p, 10), equalTo(Point.point(CRS.Cartesian, 0, -10)));
+        assertThat(LinearReferenceCalculator.reference(p, 25), equalTo(Point.point(CRS.Cartesian, 10, -5)));
+        assertThat(LinearReferenceCalculator.reference(p, 125), equalTo(Point.point(CRS.Cartesian, 5, 10)));
+        assertThat(LinearReferenceCalculator.reference(p, -1), is(nullValue()));
     }
 }
