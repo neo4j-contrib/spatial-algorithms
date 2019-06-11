@@ -47,6 +47,38 @@ public class IntersectTest {
     }
 
     @Test
+    public void shouldFindIntersectionBetweenPolylineAndLineSegment() {
+        Polyline a = Polyline.polyline(
+                Point.point(CRS.Cartesian, -5, -5),
+                Point.point(CRS.Cartesian, -5, 0),
+                Point.point(CRS.Cartesian, -2.5, 2.5),
+                Point.point(CRS.Cartesian, 2.5, 2.5)
+        );
+        LineSegment b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 0, 10));
+
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        Point[] expected = new Point[]{Point.point(CRS.Cartesian, 0, 2.5)};
+        matchPoints(actual, expected);
+
+        a = Polyline.polyline(
+                Point.point(CRS.Cartesian, -5, -5),
+                Point.point(CRS.Cartesian, -5, 0),
+                Point.point(CRS.Cartesian, -2.5, 2.5),
+                Point.point(CRS.Cartesian, 2.5, 2.5),
+                Point.point(CRS.Cartesian, 2.5, 5),
+                Point.point(CRS.Cartesian, -2.5, 5)
+        );
+        b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 0, 10));
+
+        actual = IntersectCalculator.intersect(a, b, variant);
+        expected = new Point[]{
+                Point.point(CRS.Cartesian, 0, 2.5),
+                Point.point(CRS.Cartesian, 0, 5)
+        };
+        matchPoints(actual, expected);
+    }
+
+    @Test
     public void shouldFindIntersectionBetweenLineSegmentsWithAccuracy() {
         LineSegment a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 1, 1));
         LineSegment b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 1e-2), Point.point(CRS.Cartesian, 1, 0.5));
@@ -67,6 +99,76 @@ public class IntersectTest {
         a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 1,1));
         b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0,1e-9), Point.point(CRS.Cartesian, 1,1+1e-9));
         assertThat(IntersectCalculator.intersect(a, b, variant), is(nullValue()));
+    }
+
+    @Test
+    public void shouldFindIntersectionsBetweenPolylines() {
+        Polyline a = Polyline.polyline(
+                Point.point(CRS.Cartesian, -10, -10),
+                Point.point(CRS.Cartesian, 10, -10),
+                Point.point(CRS.Cartesian, 20, 10),
+                Point.point(CRS.Cartesian, -0, 10)
+        );
+        Polyline b = Polyline.polyline(
+                Point.point(CRS.Cartesian, -15, 0),
+                Point.point(CRS.Cartesian, 25, 0),
+                Point.point(CRS.Cartesian, 26, 15),
+                Point.point(CRS.Cartesian, -14, 15)
+        );
+
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.Cartesian, 15, 0)});
+
+        a = Polyline.polyline(
+                Point.point(CRS.Cartesian, -10, -10),
+                Point.point(CRS.Cartesian, 10, -10),
+                Point.point(CRS.Cartesian, 10, 10),
+                Point.point(CRS.Cartesian, -10, 10)
+        );
+        b = Polyline.polyline(
+                Point.point(CRS.Cartesian, -5, -5),
+                Point.point(CRS.Cartesian, 15, -5),
+                Point.point(CRS.Cartesian, 15, 15),
+                Point.point(CRS.Cartesian, -5, 15)
+        );
+
+        actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.Cartesian, 10, -5)});
+    }
+
+    @Test
+    public void shouldFindIntersectionsBetweenPolygonAndPolyline() {
+        Polygon.SimplePolygon a = Polygon.simple(
+                Point.point(CRS.Cartesian, -10, -10),
+                Point.point(CRS.Cartesian, 10, -10),
+                Point.point(CRS.Cartesian, 20, 10),
+                Point.point(CRS.Cartesian, -0, 10)
+        );
+        Polyline b = Polyline.polyline(
+                Point.point(CRS.Cartesian, -15, 0),
+                Point.point(CRS.Cartesian, 25, 0),
+                Point.point(CRS.Cartesian, 26, 15),
+                Point.point(CRS.Cartesian, -14, 15)
+        );
+
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.Cartesian, 15, 0), Point.point(CRS.Cartesian, -5, 0)});
+
+        a = Polygon.simple(
+                Point.point(CRS.Cartesian, -10, -10),
+                Point.point(CRS.Cartesian, 10, -10),
+                Point.point(CRS.Cartesian, 10, 10),
+                Point.point(CRS.Cartesian, -10, 10)
+        );
+        b = Polyline.polyline(
+                Point.point(CRS.Cartesian, -5, -5),
+                Point.point(CRS.Cartesian, 15, -5),
+                Point.point(CRS.Cartesian, 15, 15),
+                Point.point(CRS.Cartesian, -5, 15)
+        );
+
+        actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.Cartesian, 10, -5)});
     }
 
     @Test

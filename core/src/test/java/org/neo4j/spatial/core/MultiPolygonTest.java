@@ -71,7 +71,7 @@
 //        };
 //
 //        for (int i = 0; i < polygons.length; i++) {
-//            polygons[i] = Polygon.simple(input[i]);
+//            polygons[i] = Polygon.polyline(input[i]);
 //        }
 //
 //        MultiPolygon multiPolygon = new MultiPolygon();

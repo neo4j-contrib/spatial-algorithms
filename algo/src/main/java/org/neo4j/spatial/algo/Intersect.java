@@ -2,9 +2,16 @@ package org.neo4j.spatial.algo;
 
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polyline;
 import org.neo4j.spatial.core.Polygon;
 
 public interface Intersect {
+    /**
+     * @param a
+     * @param b
+     * @return True iff the polygons a and b intersect in at least 1 point.
+     */
+    boolean doesIntersect(Polygon a, Polygon b);
     /**
      * Given two polygons, returns all points for which the two polygons intersect.
      *
@@ -17,12 +24,39 @@ public interface Intersect {
     /**
      * @param a
      * @param b
-     * @return True iff the polygons a and b intersect in at least 1 point.
+     * @return True iff the polygon and polyline intersect in at least 1 point.
      */
-    boolean doesIntersect(Polygon a, Polygon b);
+    boolean doesIntersect(Polygon a, Polyline b);
 
     /**
-     * Given two line segment returns the point of intersection if and only if it exists, else it will return null.
+     * Given a polygon and a polyline, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Array of intersections
+     */
+    Point[] intersect(Polygon a, Polyline b);
+
+    /**
+     * Given two polylines, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(Polyline a, Polyline b);
+
+    /**
+     * Given a polyline and a line segment, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(Polyline a, LineSegment b);
+
+    /**
+     * Given two line segment, returns the point of intersection if and only if it exists, else it will return null.
      *
      * @param a
      * @param b

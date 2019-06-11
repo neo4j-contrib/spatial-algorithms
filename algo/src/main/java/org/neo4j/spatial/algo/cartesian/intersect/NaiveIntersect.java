@@ -3,6 +3,7 @@ package org.neo4j.spatial.algo.cartesian.intersect;
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polyline;
 import org.neo4j.spatial.core.Polygon;
 
 import java.util.ArrayList;
@@ -16,6 +17,37 @@ public class NaiveIntersect extends Intersect {
 
         return compareLineSegments(aLS, bLS, true).length > 0;
     }
+    @Override
+    public Point[] intersect(Polygon a, Polyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
+    }
+
+    @Override
+    public boolean doesIntersect(Polygon polygon, Polyline polyline) {
+        LineSegment[] aLS = polygon.toLineSegments();
+        LineSegment[] bLS = polyline.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(Polyline a, Polyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
+    }
+
+    @Override
+    public Point[] intersect(Polyline a, LineSegment b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = new LineSegment[]{b};
+
+        return compareLineSegments(aLS, bLS, false);
+    }
 
     @Override
     public Point[] intersect(Polygon a, Polygon b) {
@@ -27,9 +59,9 @@ public class NaiveIntersect extends Intersect {
 
     private Point[] compareLineSegments(LineSegment[] aLS, LineSegment[] bLS, boolean shortcut) {
         List<Point> intersections = new ArrayList<>();
-        for (int i = 0; i < aLS.length; i++) {
-            for (int j = 0; j < bLS.length; j++) {
-                Point newIntersection = super.intersect(aLS[i], bLS[j]);
+        for (LineSegment aL : aLS) {
+            for (LineSegment bL : bLS) {
+                Point newIntersection = super.intersect(aL, bL);
                 if (newIntersection != null) {
                     addPoint(intersections, newIntersection);
                     if (shortcut) {

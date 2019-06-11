@@ -1,13 +1,14 @@
 package org.neo4j.spatial.algo;
 
-import org.neo4j.spatial.core.CRS;
-import org.neo4j.spatial.core.LineSegment;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.*;
 
 public class CRSChecker {
     public static CRS check(Point point) {
         return getCRS(point);
+    }
+
+    public static CRS check(Polyline polyline) {
+        return getCRS(polyline);
     }
 
     public static CRS check(Polygon polygon) {
@@ -34,6 +35,34 @@ public class CRSChecker {
 
     public static CRS check(Polygon polygon, Point point) throws IllegalArgumentException {
         CRS x = getCRS(polygon);
+        CRS y = getCRS(point);
+
+        return check(x, y);
+    }
+
+    public static CRS check(Polygon polygon, Polyline polyline) throws IllegalArgumentException {
+        CRS x = getCRS(polygon);
+        CRS y = getCRS(polyline);
+
+        return check(x, y);
+    }
+
+    public static CRS check(Polyline a, Polyline b) throws IllegalArgumentException {
+        CRS x = getCRS(a);
+        CRS y = getCRS(b);
+
+        return check(x, y);
+    }
+
+    public static CRS check(Polyline polyline, LineSegment lineSegment) throws IllegalArgumentException {
+        CRS x = getCRS(polyline);
+        CRS y = getCRS(lineSegment);
+
+        return check(x, y);
+    }
+
+    public static CRS check(Polyline polyline, Point point) throws IllegalArgumentException {
+        CRS x = getCRS(polyline);
         CRS y = getCRS(point);
 
         return check(x, y);
@@ -69,6 +98,10 @@ public class CRSChecker {
 
     private static CRS getCRS(Point point) {
         return point.getCRS();
+    }
+
+    private static CRS getCRS(Polyline polyline) {
+        return polyline.getPoints()[0].getCRS();
     }
 
     private static CRS getCRS(Polygon polygon) {

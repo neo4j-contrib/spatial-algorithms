@@ -27,15 +27,150 @@ public class MCSweepLineIntersect extends Intersect {
         this.outputList = new ArrayList<>();
     }
 
-
     @Override
     public boolean doesIntersect(Polygon a, Polygon b) {
-        return intersect(a, b, true).length > 0;
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
+        Polygon.SimplePolygon[] bPolygons = getSimplePolygons(b);
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(bPolygons, false));
+        return intersect(inputList, true).length > 0;
+    }
+    @Override
+    public Point[] intersect(Polygon a, Polygon b) {
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
+        Polygon.SimplePolygon[] bPolygons = getSimplePolygons(b);
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(bPolygons, false));
+        return intersect(inputList, false);
     }
 
     @Override
-    public Point[] intersect(Polygon a, Polygon b) {
-        return intersect(a, b, false);
+    public boolean doesIntersect(Polygon polygon, Polyline polyline) {
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(polygon);
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(polygon.toLineSegments()));
+        angleSet.addAll(computeAngles(polyline.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(polyline, false));
+        return intersect(inputList, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(Polygon a, Polyline b) {
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(b, false));
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public Point[] intersect(Polyline a, Polyline b) {
+        initialize();
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(a, true));
+        inputList.addAll(getMonotoneChains(b, false));
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public Point[] intersect(Polyline a, LineSegment b) {
+        initialize();
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(new LineSegment[]{b}));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(a, true));
+        MonotoneChain bChain = new MonotoneChain();
+        bChain.add(createRotatedLineSegment(b));
+        bChain.initialize();
+        inputList.add(bChain);
+        return intersect(inputList, false);
+    }
+
+    /**
+     * @param polygons
+     * @param first
+     * @return The monotone chains that make up the polygons
+     */
+    private List<MonotoneChain> getMonotoneChains(Polygon.SimplePolygon[] polygons, boolean first) {
+        List<MonotoneChain> result = new ArrayList<>();
+        for (int i = 0; i < polygons.length; i++) {
+            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(polygons[i]);
+            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotatedPolygon);
+            result.addAll(partitioned);
+        }
+
+        if (first) {
+            splitId = result.get(result.size() - 1).getId() + 1;
+        }
+
+        return result;
+    }
+
+    /**
+     * @param polyline
+     * @param first
+     * @return The monotone chains that make up the polyline
+     */
+    private List<MonotoneChain> getMonotoneChains(Polyline polyline, boolean first) {
+        Polyline rotatedPolyline = createRotatedPolyline(polyline);
+        List<MonotoneChain> result = MonotoneChainPartitioner.partition(rotatedPolyline);
+        if (first) {
+            splitId = result.get(result.size() - 1).getId() + 1;
+        }
+
+        return result;
+    }
+
+    /**
+     * @param polygon
+     * @return List of all the shells and holes of the input polygon as simple polygons
+     */
+    private Polygon.SimplePolygon[] getSimplePolygons(Polygon polygon) {
+        Polygon.SimplePolygon[] aPolygons = Stream.concat(Arrays.stream(polygon.getShells()), Arrays.stream(polygon.getHoles()))
+                .toArray(Polygon.SimplePolygon[]::new);
+        for (int i = 0; i < aPolygons.length; i++) {
+            aPolygons[i] = filterCollinear(aPolygons[i]);
+        }
+        return aPolygons;
     }
 
     /**
@@ -43,45 +178,11 @@ public class MCSweepLineIntersect extends Intersect {
      * Park S.C., Shin H., Choi B.K. (2001) A sweep line algorithm for polygonal chain intersection and its applications.
      * In: Kimura F. (eds) Geometric Modelling. GEO 1998. IFIP — The International Federation for Information Processing, vol 75. Springer, Boston, MA
      *
-     * @param a
-     * @param b
+     * @param inputList
+     * @param shortcut
      * @return An array of points at which the two input polygons intersect
      */
-    public Point[] intersect(Polygon a, Polygon b, boolean shortcut) {
-        initialize();
-
-        Polygon.SimplePolygon[] aPolygons = Stream.concat(Arrays.stream(a.getShells()), Arrays.stream(a.getHoles()))
-                .toArray(Polygon.SimplePolygon[]::new);
-        Polygon.SimplePolygon[] bPolygons = Stream.concat(Arrays.stream(b.getShells()), Arrays.stream(b.getHoles()))
-                .toArray(Polygon.SimplePolygon[]::new);
-
-        for (int i = 0; i < aPolygons.length; i++) {
-            aPolygons[i] = filterCollinear(aPolygons[i]);
-        }
-
-        for (int i = 0; i < bPolygons.length; i++) {
-            bPolygons[i] = filterCollinear(bPolygons[i]);
-        }
-
-        computeSweepDirection(aPolygons, bPolygons);
-
-        List<MonotoneChain> inputList = new ArrayList<>();
-        for (int i = 0; i < aPolygons.length; i++) {
-            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(aPolygons[i]);
-            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotatedPolygon);
-            inputList.addAll(partitioned);
-        }
-
-        for (int i = 0; i < bPolygons.length; i++) {
-            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(bPolygons[i]);
-            List<MonotoneChain> partitioned = MonotoneChainPartitioner.partition(rotatedPolygon);
-            inputList.addAll(partitioned);
-
-            if (i == 0) {
-                splitId = partitioned.get(0).getId();
-            }
-        }
-
+    public Point[] intersect(List<MonotoneChain> inputList, boolean shortcut) {
         for (MonotoneChain monotoneChain : inputList) {
             insertMonotoneChainInACL(monotoneChain);
         }
@@ -156,25 +257,38 @@ public class MCSweepLineIntersect extends Intersect {
     }
 
     /**
-     * Compute an angle for which no vertical line segments exist
-     * @param aShells
-     * @param bShells
+     * @param polyline The input polyline
+     * @return A new polyline which is the input polyline, but rotated to the sweep angle
      */
-    private void computeSweepDirection(Polygon.SimplePolygon[] aShells, Polygon.SimplePolygon[] bShells) {
-        Set<Double> angleSet = new HashSet<>();
+    private Polyline createRotatedPolyline(Polyline polyline) {
+        Point[] rotatedPoints = Arrays.stream(polyline.getPoints()).map(p -> new RotatedPoint(p, this.sweepAngle)).toArray(RotatedPoint[]::new);
+        return Polyline.polyline(rotatedPoints);
+    }
 
-        angleSet.addAll(computeAngles(aShells));
-        angleSet.addAll(computeAngles(bShells));
+    /**
+     * @param lineSegment The input lineSegment
+     * @return A new lineSegment which is the input lineSegment, but rotated to the sweep angle
+     */
+    private LineSegment createRotatedLineSegment(LineSegment lineSegment) {
+        Point[] rotatedPoints = Arrays.stream(lineSegment.getPoints()).map(p -> new RotatedPoint(p, this.sweepAngle)).toArray(RotatedPoint[]::new);
+        return LineSegment.lineSegment(rotatedPoints[0], rotatedPoints[1]);
+    }
 
+    /**
+     * Compute an angle for which no vertical line segments exist
+     *
+     * @param angleSet
+     */
+    private void computeSweepDirection(Set<Double> angleSet) {
         List<Double> angles = new ArrayList<>(angleSet);
         Collections.sort(angles);
 
         double angle = -1;
         for (int i = 0; i < angles.size() - 1; i++) {
-            double currentAngle = (angles.get(i+1) + angles.get(i)) / 2d;
+            double currentAngle = (angles.get(i + 1) + angles.get(i)) / 2d;
 
             boolean flag = false;
-            double vertical = angle + (Math.PI/2);
+            double vertical = angle + (Math.PI / 2);
 
             if (vertical < 0) {
                 vertical -= Math.PI;
@@ -200,28 +314,26 @@ public class MCSweepLineIntersect extends Intersect {
     }
 
     /**
-     * @param polygons All shells and holes of a polygon
+     * @param lineSegments All the line segments of the geometry
      * @return Compute the angles of the line segments
      */
-    private Set<Double> computeAngles(Polygon.SimplePolygon[] polygons) {
+    private Set<Double> computeAngles(LineSegment[] lineSegments) {
         Set<Double> angles = new HashSet<>();
 
-        for (Polygon.SimplePolygon polygon : polygons) {
-            for (LineSegment segment : polygon.toLineSegments()) {
-                Point p = segment.getPoints()[0];
-                Point q = segment.getPoints()[1];
+        for (LineSegment segment : lineSegments) {
+            Point p = segment.getPoints()[0];
+            Point q = segment.getPoints()[1];
 
-                double dx = q.getCoordinate()[0] - p.getCoordinate()[0];
-                double dy = q.getCoordinate()[1] - p.getCoordinate()[1];
+            double dx = q.getCoordinate()[0] - p.getCoordinate()[0];
+            double dy = q.getCoordinate()[1] - p.getCoordinate()[1];
 
-                double angle = Math.atan2(dy, dx);
+            double angle = Math.atan2(dy, dx);
 
-                if (angle < -0) {
-                    angle += Math.PI;
-                }
-
-                angles.add(angle);
+            if (angle < -0) {
+                angle += Math.PI;
             }
+
+            angles.add(angle);
         }
 
         return angles;

@@ -3,6 +3,7 @@ package org.neo4j.spatial.algo.wgs84.intersect;
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polyline;
 import org.neo4j.spatial.core.Polygon;
 
 import java.util.ArrayList;
@@ -15,6 +16,37 @@ public class NaiveIntersect extends Intersect {
         LineSegment[] bLS = b.toLineSegments();
 
         return compareLineSegments(aLS, bLS, true).length > 0;
+    }
+    @Override
+    public Point[] intersect(Polygon a, Polyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
+    }
+
+    @Override
+    public boolean doesIntersect(Polygon polygon, Polyline polyline) {
+        LineSegment[] aLS = polygon.toLineSegments();
+        LineSegment[] bLS = polyline.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(Polyline a, Polyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
+    }
+
+    @Override
+    public Point[] intersect(Polyline polyline, LineSegment lineSegment) {
+        LineSegment[] aLS = new LineSegment[]{lineSegment};
+        LineSegment[] bLS = polyline.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
     }
 
     @Override

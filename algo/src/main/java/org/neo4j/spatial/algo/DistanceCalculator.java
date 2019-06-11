@@ -1,9 +1,6 @@
 package org.neo4j.spatial.algo;
 
-import org.neo4j.spatial.core.CRS;
-import org.neo4j.spatial.core.LineSegment;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.*;
 
 public class DistanceCalculator {
     private static org.neo4j.spatial.algo.cartesian.Distance cartesian;
@@ -61,6 +58,59 @@ public class DistanceCalculator {
             return getWGS84().distance(polygon, point);
         }
     }
+
+    /**
+     * @param polygon
+     * @param polyline
+     * @return The minimum distance between a polygon and polyline. Returns 0 if the polyline intersects with or is (partially) containted by the polygon
+     */
+    double distance(Polygon polygon, Polyline polyline) {
+        if (CRSChecker.check(polygon, polyline) == CRS.Cartesian) {
+            return getCartesian().distance(polygon, polyline);
+        } else {
+            return getWGS84().distance(polygon, polyline);
+        }
+    }
+
+    /**
+     * @param a
+     * @param b
+     * @return The minimum distance between two polylines. Returns 0 if they intersect
+     */
+    double distance(Polyline a, Polyline b) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            return getCartesian().distance(a, b);
+        } else {
+            return getWGS84().distance(a, b);
+        }
+    }
+
+    /**
+     * @param polyline
+     * @param lineSegment
+     * @return The minimum distance between a polyline and line segment. Returns 0 if they intersect
+     */
+    double distance(Polyline polyline, LineSegment lineSegment) {
+        if (CRSChecker.check(polyline, lineSegment) == CRS.Cartesian) {
+            return getCartesian().distance(polyline, lineSegment);
+        } else {
+            return getWGS84().distance(polyline, lineSegment);
+        }
+    }
+
+    /**
+     * @param polyline
+     * @param point
+     * @return The minimum distance between a polyline and point
+     */
+    double distance(Polyline polyline, Point point) {
+        if (CRSChecker.check(polyline, point) == CRS.Cartesian) {
+            return getCartesian().distance(polyline, point);
+        } else {
+            return getWGS84().distance(polyline, point);
+        }
+    }
+
 
     /**
      * @param lineSegment

@@ -1,9 +1,6 @@
 package org.neo4j.spatial.algo;
 
-import org.neo4j.spatial.core.CRS;
-import org.neo4j.spatial.core.LineSegment;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.*;
 
 public class IntersectCalculator {
     private static org.neo4j.spatial.algo.cartesian.intersect.Intersect cartesianNaive;
@@ -100,6 +97,108 @@ public class IntersectCalculator {
                 return getWGS84Naive().doesIntersect(a, b);
             } else {
                 return getWGS84Sweep().doesIntersect(a, b);
+            }
+        }
+    }
+
+    /**
+     * Given a polygon and a polyline, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Array of intersections
+     */
+    public static Point[] intersect(Polygon a, Polyline b) {
+        return intersect(a, b, AlgorithmVariant.Naive);
+    }
+
+    /**
+     * Given a polygon and a polyline, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Array of intersections
+     */
+    public static Point[] intersect(Polygon a, Polyline b, AlgorithmVariant variant) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            if (variant == AlgorithmVariant.Naive) {
+                return getCartesianNaive().intersect(a, b);
+            } else {
+                return getCartesianSweep().intersect(a, b);
+            }
+        } else {
+            if (variant == AlgorithmVariant.MCSweepLine) {
+                return getWGS84Naive().intersect(a, b);
+            } else {
+                return getWGS84Sweep().intersect(a, b);
+            }
+        }
+    }
+
+    /**
+     * Given two polylines, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    public static Point[] intersect(Polyline a, Polyline b) {
+        return intersect(a, b, AlgorithmVariant.Naive);
+    }
+
+    /**
+     * Given two polylines, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    public static Point[] intersect(Polyline a, Polyline b, AlgorithmVariant variant) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            if (variant == AlgorithmVariant.Naive) {
+                return getCartesianNaive().intersect(a, b);
+            } else {
+                return getCartesianSweep().intersect(a, b);
+            }
+        } else {
+            if (variant == AlgorithmVariant.MCSweepLine) {
+                return getWGS84Naive().intersect(a, b);
+            } else {
+                return getWGS84Sweep().intersect(a, b);
+            }
+        }
+    }
+
+    /**
+     * Given a polyline and a line segment, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    public static Point[] intersect(Polyline a, LineSegment b) {
+        return intersect(a, b, AlgorithmVariant.Naive);
+    }
+
+    /**
+     * Given a polyline and a line segment, returns all points for which the two intersect.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    public static Point[] intersect(Polyline a, LineSegment b, AlgorithmVariant variant) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            if (variant == AlgorithmVariant.Naive) {
+                return getCartesianNaive().intersect(a, b);
+            } else {
+                return getCartesianSweep().intersect(a, b);
+            }
+        } else {
+            if (variant == AlgorithmVariant.MCSweepLine) {
+                return getWGS84Naive().intersect(a, b);
+            } else {
+                return getWGS84Sweep().intersect(a, b);
             }
         }
     }

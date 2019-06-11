@@ -3,6 +3,7 @@ package org.neo4j.spatial.algo;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
 
 public interface Distance {
     /**
@@ -25,6 +26,34 @@ public interface Distance {
      * @return The minimum distance between a polygon and point. Returns 0 if point is within the polygon
      */
     double distance(Polygon polygon, Point point);
+
+    /**
+     * @param polygon
+     * @param polyline
+     * @return The minimum distance between a polygon and polyline. Returns 0 if the polyline intersects with or is (partially) containted by the polygon
+     */
+    double distance(Polygon polygon, Polyline polyline);
+
+    /**
+     * @param a
+     * @param b
+     * @return The minimum distance between two polylines. Returns 0 if they intersect
+     */
+    double distance(Polyline a, Polyline b);
+
+    /**
+     * @param polyline
+     * @param lineSegment
+     * @return The minimum distance between a polyline and line segment. Returns 0 if they intersect
+     */
+    double distance(Polyline polyline, LineSegment lineSegment);
+
+    /**
+     * @param polyline
+     * @param point
+     * @return The minimum distance between a polyline and point
+     */
+    double distance(Polyline polyline, Point point);
 
     /**
      * @param lineSegment

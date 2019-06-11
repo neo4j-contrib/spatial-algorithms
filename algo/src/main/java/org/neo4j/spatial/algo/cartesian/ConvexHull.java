@@ -29,7 +29,7 @@ public class ConvexHull {
         return convexHull(Stream.of(convexHulls).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).toArray(Point[]::new));
     }
     /**
-     * Computes the convex hull of a simple polygon using Graham's scan
+     * Computes the convex hull of a polyline polygon using Graham's scan
      *
      * @param polygon
      * @return A polygon which is the convex hull of the input polygon

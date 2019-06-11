@@ -64,6 +64,113 @@ public class IntersectTest {
     }
 
     @Test
+    public void shouldFindIntersectionBetweenPolylineAndLineSegment() {
+        Polyline a = Polyline.polyline(
+                Point.point(CRS.WGS84, -60, 0),
+                Point.point(CRS.WGS84, -50, 0),
+                Point.point(CRS.WGS84, -30, 0),
+                Point.point(CRS.WGS84, -20, 0),
+                Point.point(CRS.WGS84, -20, 1),
+                Point.point(CRS.WGS84, -50, 1)
+
+        );
+        LineSegment b = LineSegment.lineSegment(
+                Point.point(CRS.WGS84, -40, -5),
+                Point.point(CRS.WGS84, -40, 3));
+
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        Point[] expected = new Point[]{Point.point(CRS.Cartesian, -40, 0), Point.point(CRS.Cartesian, -40, 1.0313299764)};
+        matchPoints(actual, expected);
+
+        a = Polyline.polyline(
+                Point.point(CRS.Cartesian, -5, -5),
+                Point.point(CRS.Cartesian, -5, 0),
+                Point.point(CRS.Cartesian, -2.5, 2.5),
+                Point.point(CRS.Cartesian, 2.5, 2.5),
+                Point.point(CRS.Cartesian, 2.5, 5),
+                Point.point(CRS.Cartesian, -2.5, 5)
+        );
+        b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 0, 10));
+
+        actual = IntersectCalculator.intersect(a, b, variant);
+        expected = new Point[]{
+                Point.point(CRS.Cartesian, 0, 2.5),
+                Point.point(CRS.Cartesian, 0, 5)
+        };
+        matchPoints(actual, expected);
+    }
+
+    @Test
+    public void shouldFindIntersectionsBetweenPolylines() {
+        Polyline a = Polyline.polyline(
+                Point.point(CRS.WGS84, -10, -10),
+                Point.point(CRS.WGS84, 10, -10),
+                Point.point(CRS.WGS84, 20, 10),
+                Point.point(CRS.WGS84, -0, 10)
+        );
+        Polyline b = Polyline.polyline(
+                Point.point(CRS.WGS84, -15, 0),
+                Point.point(CRS.WGS84, 25, 0),
+                Point.point(CRS.WGS84, 26, 15),
+                Point.point(CRS.WGS84, -14, 15)
+        );
+
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 15, 0)});
+
+        a = Polyline.polyline(
+                Point.point(CRS.WGS84, -10, -10),
+                Point.point(CRS.WGS84, 10, -10),
+                Point.point(CRS.WGS84, 10, 10),
+                Point.point(CRS.WGS84, -10, 10)
+        );
+        b = Polyline.polyline(
+                Point.point(CRS.WGS84, -5, -5),
+                Point.point(CRS.WGS84, 15, -5),
+                Point.point(CRS.WGS84, 15, 15),
+                Point.point(CRS.WGS84, -5, 15)
+        );
+
+        actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 10.0, -5.0575148968282075)});
+    }
+
+    @Test
+    public void shouldFindIntersectionsBetweenPolygonAndPolyline() {
+        Polygon.SimplePolygon a = Polygon.simple(
+                Point.point(CRS.WGS84, -10, -10),
+                Point.point(CRS.WGS84, 10, -10),
+                Point.point(CRS.WGS84, 20, 10),
+                Point.point(CRS.WGS84, -0, 10)
+        );
+        Polyline b = Polyline.polyline(
+                Point.point(CRS.WGS84, -15, 0),
+                Point.point(CRS.WGS84, 25, 0),
+                Point.point(CRS.WGS84, 26, 15),
+                Point.point(CRS.WGS84, -14, 15)
+        );
+
+        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 15, 0), Point.point(CRS.WGS84, -5, 0)});
+
+        a = Polygon.simple(
+                Point.point(CRS.WGS84, -10, -10),
+                Point.point(CRS.WGS84, 10, -10),
+                Point.point(CRS.WGS84, 10, 10),
+                Point.point(CRS.WGS84, -10, 10)
+        );
+        b = Polyline.polyline(
+                Point.point(CRS.WGS84, -5, -5),
+                Point.point(CRS.WGS84, 15, -5),
+                Point.point(CRS.WGS84, 15, 15),
+                Point.point(CRS.WGS84, -5, 15)
+        );
+
+        actual = IntersectCalculator.intersect(a, b, variant);
+        matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 10.0, -5.0575148968282075)});
+    }
+
+    @Test
     public void shouldNotFindIntersectionsBetweenSimplePolygons() {
         Polygon.SimplePolygon a = Polygon.simple(
                 Point.point(CRS.WGS84, -10, -10),

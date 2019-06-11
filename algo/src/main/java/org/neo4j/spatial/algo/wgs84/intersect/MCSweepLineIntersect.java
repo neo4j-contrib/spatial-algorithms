@@ -1,5 +1,6 @@
 package org.neo4j.spatial.algo.wgs84.intersect;
 
+import org.neo4j.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 import org.neo4j.spatial.core.*;
@@ -26,15 +27,220 @@ public class MCSweepLineIntersect extends Intersect {
         this.outputList = new ArrayList<>();
     }
 
-
     @Override
     public boolean doesIntersect(Polygon a, Polygon b) {
-        return intersect(a, b, true).length > 0;
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
+        Polygon.SimplePolygon[] bPolygons = getSimplePolygons(b);
+
+        if (!validate(aPolygons) || !validate(bPolygons)) {
+            return new NaiveIntersect().doesIntersect(a, b);
+        }
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
+        inputList.addAll(aPair.first());
+        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(bPolygons, false);
+        inputList.addAll(bPair.first());
+
+        //Check the vertical intersections
+        checkVerticals(aPair.other(), bPair.first());
+        checkVerticals(bPair.other(), aPair.first());
+
+        return intersect(inputList, true).length > 0;
     }
 
     @Override
     public Point[] intersect(Polygon a, Polygon b) {
-        return intersect(a, b, false);
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
+        Polygon.SimplePolygon[] bPolygons = getSimplePolygons(b);
+
+        if (!validate(aPolygons) || !validate(bPolygons)) {
+            return new NaiveIntersect().intersect(a, b);
+        }
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
+        inputList.addAll(aPair.first());
+        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(bPolygons, false);
+        inputList.addAll(bPair.first());
+
+        //Check the vertical intersections
+        checkVerticals(aPair.other(), bPair.first());
+        checkVerticals(bPair.other(), aPair.first());
+
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public boolean doesIntersect(Polygon polygon, Polyline polyline) {
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(polygon);
+
+        if (!validate(aPolygons) || !validate(polyline)) {
+            return new NaiveIntersect().doesIntersect(polygon, polyline);
+        }
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
+        inputList.addAll(aPair.first());
+        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(polyline, false);
+        inputList.addAll(bPair.first());
+
+        //Check the vertical intersections
+        checkVerticals(aPair.other(), bPair.first());
+        checkVerticals(bPair.other(), aPair.first());
+
+        return intersect(inputList, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(Polygon a, Polyline b) {
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
+
+        if (!validate(aPolygons) || !validate(b)) {
+            return new NaiveIntersect().intersect(a, b);
+        }
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
+        inputList.addAll(aPair.first());
+        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(b, false);
+        inputList.addAll(bPair.first());
+
+        //Check the vertical intersections
+        checkVerticals(aPair.other(), bPair.first());
+        checkVerticals(bPair.other(), aPair.first());
+
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public Point[] intersect(Polyline a, Polyline b) {
+        initialize();
+
+        if (!validate(a) || !validate(b)) {
+            return new NaiveIntersect().intersect(a, b);
+        }
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(a, true);
+        inputList.addAll(aPair.first());
+        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(b, false);
+        inputList.addAll(bPair.first());
+
+        //Check the vertical intersections
+        checkVerticals(aPair.other(), bPair.first());
+        checkVerticals(bPair.other(), aPair.first());
+
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public Point[] intersect(Polyline a, LineSegment b) {
+        initialize();
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(a, true);
+        inputList.addAll(aPair.first());
+
+        if (MonotoneChainPartitioner.getXDirection(b) == 0) {
+            ArrayList<LineSegment> verticals = new ArrayList<>();
+            verticals.add(b);
+            checkVerticals(verticals, aPair.first());
+            return outputList.toArray(new Point[0]);
+        }
+
+        MonotoneChain bChain = new MonotoneChain();
+        bChain.add(b);
+        bChain.initialize();
+        inputList.add(bChain);
+        return intersect(inputList, false);
+    }
+
+    /**
+     * Checks the validness of the polygons. A polygon is invalid if it is around a pole or crosses the Date line
+     * @param polygons
+     * @return True iff none of the polygons are invalid
+     */
+    private boolean validate(Polygon.SimplePolygon[] polygons) {
+        boolean outOfBounds = Arrays.stream(polygons).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).anyMatch(p -> p.getCoordinate()[0] > 180 || p.getCoordinate()[0] < -180);
+        if (outOfBounds) {
+            //Polygon wraps around the Date line
+            return false;
+        }
+        for (Polygon.SimplePolygon polygon : polygons) {
+            double courseDelta = WGSUtil.courseDelta(polygon);
+            if (courseDelta < 270) {
+                //Polygon is around a Pole
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Checks the validness of the polyline. A polyline is invalid if it crosses the Date line
+     * @param polyline
+     * @return True iff the polyline is valid
+     */
+    private boolean validate(Polyline polyline) {
+        boolean outOfBounds = Arrays.stream(polyline.getPoints()).anyMatch(p -> p.getCoordinate()[0] > 180 || p.getCoordinate()[0] < -180);
+        if (outOfBounds) {
+            //Polygon wraps around the Date line
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @param polygons
+     * @param first
+     * @return The monotone chains that make up the polygons
+     */
+    private Pair<List<MonotoneChain>, List<LineSegment>> getMonotoneChains(Polygon.SimplePolygon[] polygons, boolean first) {
+        List<MonotoneChain> result = new ArrayList<>();
+        MonotoneChainPartitioner partitioner = new MonotoneChainPartitioner();
+        for (int i = 0; i < polygons.length; i++) {
+            List<MonotoneChain> partitioned = partitioner.partition(polygons[i]);
+            result.addAll(partitioned);
+        }
+
+        if (first) {
+            splitId = result.get(result.size() - 1).getId() + 1;
+        }
+
+        return Pair.of(result, partitioner.getVerticals());
+    }
+
+    /**
+     * @param polyline
+     * @param first
+     * @return The monotone chains that make up the polyline
+     */
+    private Pair<List<MonotoneChain>, List<LineSegment>> getMonotoneChains(Polyline polyline, boolean first) {
+        MonotoneChainPartitioner partitioner = new MonotoneChainPartitioner();
+        List<MonotoneChain> result = partitioner.partition(polyline);
+        if (first) {
+            splitId = result.get(result.size() - 1).getId() + 1;
+        }
+
+        return Pair.of(result, partitioner.getVerticals());
+    }
+
+    /**
+     * @param polygon
+     * @return List of all the shells and holes of the input polygon as simple polygons
+     */
+    private Polygon.SimplePolygon[] getSimplePolygons(Polygon polygon) {
+        Polygon.SimplePolygon[] aPolygons = Stream.concat(Arrays.stream(polygon.getShells()), Arrays.stream(polygon.getHoles()))
+                .toArray(Polygon.SimplePolygon[]::new);
+        for (int i = 0; i < aPolygons.length; i++) {
+            aPolygons[i] = filterCollinear(aPolygons[i]);
+        }
+        return aPolygons;
     }
 
     /**
@@ -42,70 +248,11 @@ public class MCSweepLineIntersect extends Intersect {
      * Park S.C., Shin H., Choi B.K. (2001) A sweep line algorithm for polygonal chain intersection and its applications.
      * In: Kimura F. (eds) Geometric Modelling. GEO 1998. IFIP — The International Federation for Information Processing, vol 75. Springer, Boston, MA
      *
-     * @param a
-     * @param b
+     * @param inputList
      * @return An array of points at which the two input polygons intersect
      */
-    public Point[] intersect(Polygon a, Polygon b, boolean shortcut) {
-        initialize();
-
-        Polygon.SimplePolygon[] aPolygons = Stream.concat(Arrays.stream(a.getShells()), Arrays.stream(a.getHoles()))
-                .toArray(Polygon.SimplePolygon[]::new);
-        Polygon.SimplePolygon[] bPolygons = Stream.concat(Arrays.stream(b.getShells()), Arrays.stream(b.getHoles()))
-                .toArray(Polygon.SimplePolygon[]::new);
-
-        for (int i = 0; i < aPolygons.length; i++) {
-            aPolygons[i] = filterCollinear(aPolygons[i]);
-
-            double courseDelta = WGSUtil.courseDelta(aPolygons[i]);
-            boolean outOfBounds = Arrays.stream(aPolygons).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).anyMatch(p -> p.getCoordinate()[0] > 180 || p.getCoordinate()[0] < -180);
-            if (courseDelta < 270 || outOfBounds) {
-                //Polygon is around North Pole or wraps around the date-time line; Fallback on naive intersection algorithm
-                return fallback(a, b, shortcut);
-            }
-
-        }
-
-        for (int i = 0; i < bPolygons.length; i++) {
-            bPolygons[i] = filterCollinear(bPolygons[i]);
-
-            double courseDelta = WGSUtil.courseDelta(bPolygons[i]);
-            boolean outOfBounds = Arrays.stream(aPolygons).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).anyMatch(p -> p.getCoordinate()[0] > 180 || p.getCoordinate()[0] < -180);
-            if (courseDelta < 270 || outOfBounds) {
-                //Polygon is around North Pole or wraps around the date-time line; Fallback on naive intersection algorithm
-                return fallback(a, b, shortcut);
-            }
-        }
-
-        List<MonotoneChain> aInputList = new ArrayList<>();
-        MonotoneChainPartitioner partitioner = new MonotoneChainPartitioner();
-        for (int i = 0; i < aPolygons.length; i++) {
-
-            List<MonotoneChain> partitioned = partitioner.partition(aPolygons[i]);
-            aInputList.addAll(partitioned);
-        }
-        List<LineSegment> aVerticals = partitioner.getVerticals();
-
-        partitioner = new MonotoneChainPartitioner();
-        List<MonotoneChain> bInputList = new ArrayList<>();
-        for (int i = 0; i < bPolygons.length; i++) {
-            List<MonotoneChain> partitioned = partitioner.partition(bPolygons[i]);
-            bInputList.addAll(partitioned);
-
-            if (i == 0) {
-                splitId = partitioned.get(0).getId();
-            }
-        }
-        List<LineSegment> bVerticals = partitioner.getVerticals();
-
-        checkVerticals(aVerticals, bInputList);
-        checkVerticals(bVerticals, aInputList);
-
-        for (MonotoneChain monotoneChain : aInputList) {
-            insertMonotoneChainInACL(monotoneChain);
-        }
-
-        for (MonotoneChain monotoneChain : bInputList) {
+    public Point[] intersect(List<MonotoneChain> inputList, boolean shortcut) {
+        for (MonotoneChain monotoneChain : inputList) {
             insertMonotoneChainInACL(monotoneChain);
         }
 
@@ -157,15 +304,6 @@ public class MCSweepLineIntersect extends Intersect {
         }
 
         return outputList.toArray(new Point[0]);
-    }
-
-    private Point[] fallback(Polygon a, Polygon b, boolean shortcut) {
-        Intersect intersect = new NaiveIntersect();
-        if (shortcut) {
-            return intersect.doesIntersect(a, b) ? new Point[]{Point.point(CRS.WGS84, 0)} : new Point[]{};
-        } else {
-            return intersect.intersect(a, b);
-        }
     }
 
     /**
