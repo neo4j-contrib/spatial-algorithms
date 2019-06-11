@@ -4,7 +4,7 @@ import org.neo4j.spatial.algo.wgs84.intersect.Intersect;
 import org.neo4j.spatial.algo.wgs84.intersect.MCSweepLineIntersect;
 import org.neo4j.spatial.core.*;
 
-public class Distance implements org.neo4j.spatial.algo.Distance {
+public class Distance extends org.neo4j.spatial.algo.Distance {
     @Override
     public double distance(Polygon a, Polygon b) {
         boolean intersects = new MCSweepLineIntersect().doesIntersect(a, b);
@@ -16,19 +16,10 @@ public class Distance implements org.neo4j.spatial.algo.Distance {
             return 0;
         }
 
-        double minDistance = Double.MAX_VALUE;
-
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
-        for (LineSegment aLineSegment : aLS) {
-            for (LineSegment bLineSegment : bLS) {
-                double current = distance(aLineSegment, bLineSegment);
-                if (current < minDistance) {
-                    minDistance = current;
-                }
-            }
-        }
+        double minDistance = getMinDistance(aLS, bLS);
 
         return minDistance;
     }
@@ -81,38 +72,20 @@ public class Distance implements org.neo4j.spatial.algo.Distance {
             return 0;
         }
 
-        double minDistance = Double.MAX_VALUE;
-
         LineSegment[] aLS = polygon.toLineSegments();
         LineSegment[] bLS = polyline.toLineSegments();
 
-        for (LineSegment aLineSegment : aLS) {
-            for (LineSegment bLineSegment : bLS) {
-                double current = distance(aLineSegment, bLineSegment);
-                if (current < minDistance) {
-                    minDistance = current;
-                }
-            }
-        }
+        double minDistance = getMinDistance(aLS, bLS);
 
         return minDistance;
     }
 
     @Override
     public double distance(Polyline a, Polyline b) {
-        double minDistance = Double.MAX_VALUE;
-
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
-        for (LineSegment aLineSegment : aLS) {
-            for (LineSegment bLineSegment : bLS) {
-                double current = distance(aLineSegment, bLineSegment);
-                if (current < minDistance) {
-                    minDistance = current;
-                }
-            }
-        }
+        double minDistance = getMinDistance(aLS, bLS);
 
         return minDistance;
     }

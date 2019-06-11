@@ -10,8 +10,7 @@ import org.neo4j.spatial.core.Polyline;
 
 import static java.lang.String.format;
 
-public class Distance implements org.neo4j.spatial.algo.Distance {
-
+public class Distance extends org.neo4j.spatial.algo.Distance {
     public double distance(Polygon a, Polygon b) {
         boolean intersects = new MCSweepLineIntersect().doesIntersect(a, b);
 
@@ -22,19 +21,10 @@ public class Distance implements org.neo4j.spatial.algo.Distance {
             return 0;
         }
 
-        double minDistance = Double.MAX_VALUE;
-
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
-        for (LineSegment aLineSegment : aLS) {
-            for (LineSegment bLineSegment : bLS) {
-                double current = distance(aLineSegment, bLineSegment);
-                if (current < minDistance) {
-                    minDistance = current;
-                }
-            }
-        }
+        double minDistance = getMinDistance(aLS, bLS);
 
         return minDistance;
     }
@@ -68,6 +58,7 @@ public class Distance implements org.neo4j.spatial.algo.Distance {
 
         for (LineSegment lineSegment : lineSegments) {
             double current = distance(lineSegment, point);
+
             if (current < minDistance) {
                 minDistance = current;
             }
@@ -87,38 +78,20 @@ public class Distance implements org.neo4j.spatial.algo.Distance {
             return 0;
         }
 
-        double minDistance = Double.MAX_VALUE;
-
         LineSegment[] aLS = polygon.toLineSegments();
         LineSegment[] bLS = polyline.toLineSegments();
 
-        for (LineSegment aLineSegment : aLS) {
-            for (LineSegment bLineSegment : bLS) {
-                double current = distance(aLineSegment, bLineSegment);
-                if (current < minDistance) {
-                    minDistance = current;
-                }
-            }
-        }
+        double minDistance = getMinDistance(aLS, bLS);
 
         return minDistance;
     }
 
     @Override
     public double distance(Polyline a, Polyline b) {
-        double minDistance = Double.MAX_VALUE;
-
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
-        for (LineSegment aLineSegment : aLS) {
-            for (LineSegment bLineSegment : bLS) {
-                double current = distance(aLineSegment, bLineSegment);
-                if (current < minDistance) {
-                    minDistance = current;
-                }
-            }
-        }
+        double minDistance = getMinDistance(aLS, bLS);
 
         return minDistance;
     }
