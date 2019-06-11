@@ -283,34 +283,23 @@ public class MCSweepLineIntersect extends Intersect {
         List<Double> angles = new ArrayList<>(angleSet);
         Collections.sort(angles);
 
-        double angle = -1;
+        double maxDelta = Double.MIN_VALUE;
+        double maxAngle = 0;
         for (int i = 0; i < angles.size() - 1; i++) {
+            double currentDelta = angles.get(i + 1) - angles.get(i);
             double currentAngle = (angles.get(i + 1) + angles.get(i)) / 2d;
 
-            boolean flag = false;
-            double vertical = angle + (Math.PI / 2);
+            if (currentDelta > maxDelta) {
+                maxDelta = currentDelta;
+                maxAngle = currentAngle;
 
-            if (vertical < 0) {
-                vertical -= Math.PI;
-            }
-
-            for (Double toCheck : angles) {
-                if (AlgoUtil.equal(toCheck, vertical)) {
-                    flag = true;
+                if (currentDelta > 1e-4 * Math.PI) {
+                    break;
                 }
             }
-
-            if (!flag) {
-                angle = currentAngle;
-                break;
-            }
         }
 
-        if (angle == -1) {
-            throw new IllegalArgumentException("Vertical line segments found for every possible sweep direction");
-        }
-
-        this.sweepAngle = angle;
+        this.sweepAngle = maxAngle;
     }
 
     /**
