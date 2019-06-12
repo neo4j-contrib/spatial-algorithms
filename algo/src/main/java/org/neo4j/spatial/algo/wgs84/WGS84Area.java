@@ -1,10 +1,11 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.algo.Area;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Vector;
 
-public class Area extends org.neo4j.spatial.algo.Area {
+public class WGS84Area extends Area {
     /**
      * Computes the area of the polygon according to Girard’s theorem
      * @param polygon

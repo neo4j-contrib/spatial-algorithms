@@ -8,7 +8,7 @@ import org.neo4j.spatial.core.Polygon;
 import static org.hamcrest.Matchers.closeTo;
 import static org.junit.Assert.assertThat;
 
-public class AreaTest {
+public class WGS84AreaTest {
 
     @Test
     public void area() {
@@ -18,7 +18,7 @@ public class AreaTest {
                 Point.point(CRS.WGS84, 1, 0)
         );
 
-        double actual = new Area().area(simple);
+        double actual = new WGS84Area().area(simple);
         double expected = 6.18e9;
         assertThat(actual, closeTo(expected, 0.01e9));
 
@@ -28,7 +28,7 @@ public class AreaTest {
                 Point.point(CRS.WGS84, 10, 10)
         );
 
-        actual = new Area().area(simple);
+        actual = new WGS84Area().area(simple);
         expected = 2.4e12;
         assertThat(actual, closeTo(expected, 0.1e12));
     }

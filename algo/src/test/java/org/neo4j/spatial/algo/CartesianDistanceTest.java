@@ -1,6 +1,5 @@
 package org.neo4j.spatial.algo;
 
-import org.neo4j.spatial.algo.cartesian.Distance;
 import org.neo4j.spatial.core.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -10,7 +9,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 
-public class DistanceTest {
+public class CartesianDistanceTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 

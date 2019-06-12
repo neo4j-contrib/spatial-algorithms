@@ -1,9 +1,10 @@
 package org.neo4j.spatial.algo.cartesian;
 
+import org.neo4j.spatial.algo.CCW;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
-public class CCW implements org.neo4j.spatial.algo.CCW {
+public class CartesianCCW implements CCW {
     @Override
     public boolean isCCW(Polygon.SimplePolygon polygon) {
         return shoelace(polygon) < 0;

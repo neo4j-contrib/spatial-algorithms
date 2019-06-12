@@ -10,7 +10,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertThat;
 
-public class DistanceTest {
+public class WGS84DistanceTest {
 
     @Test
     public void distancePointPoint() {

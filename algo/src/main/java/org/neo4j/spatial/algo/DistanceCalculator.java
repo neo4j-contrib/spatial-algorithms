@@ -1,21 +1,23 @@
 package org.neo4j.spatial.algo;
 
+import org.neo4j.spatial.algo.cartesian.CartesianDistance;
+import org.neo4j.spatial.algo.wgs84.WGS84Distance;
 import org.neo4j.spatial.core.*;
 
 public class DistanceCalculator {
-    private static org.neo4j.spatial.algo.cartesian.Distance cartesian;
-    private static org.neo4j.spatial.algo.wgs84.Distance wgs84;
+    private static CartesianDistance cartesian;
+    private static WGS84Distance wgs84;
 
     private static Distance getCartesian() {
         if (cartesian == null) {
-            cartesian = new org.neo4j.spatial.algo.cartesian.Distance();
+            cartesian = new CartesianDistance();
         }
         return cartesian;
     }
 
     private static Distance getWGS84() {
         if (wgs84 == null) {
-            wgs84 = new org.neo4j.spatial.algo.wgs84.Distance();
+            wgs84 = new WGS84Distance();
         }
         return wgs84;
     }

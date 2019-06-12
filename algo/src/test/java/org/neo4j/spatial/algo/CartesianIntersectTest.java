@@ -13,7 +13,7 @@ import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertThat;
 
 @RunWith(value = Parameterized.class)
-public class IntersectTest {
+public class CartesianIntersectTest {
     private IntersectCalculator.AlgorithmVariant variant;
 
     @Parameterized.Parameters
@@ -22,7 +22,7 @@ public class IntersectTest {
         return Arrays.asList(variants);
     }
 
-    public IntersectTest(IntersectCalculator.AlgorithmVariant variant) {
+    public CartesianIntersectTest(IntersectCalculator.AlgorithmVariant variant) {
         this.variant = variant;
     }
 

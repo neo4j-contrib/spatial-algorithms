@@ -10,7 +10,7 @@ import org.neo4j.spatial.core.Polygon;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
-public class LinearReferenceTest {
+public class CartesianLinearReferenceTest {
 
     @Test
     public void referenceLineSegment() {

@@ -8,9 +8,9 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.neo4j.spatial.algo.cartesian.ConvexHull;
-import org.neo4j.spatial.algo.cartesian.intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.algo.cartesian.intersect.NaiveIntersect;
-import org.neo4j.spatial.algo.cartesian.Within;
+import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
+import org.neo4j.spatial.algo.cartesian.intersect.CartesianNaiveIntersect;
+import org.neo4j.spatial.algo.cartesian.CartesianWithin;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
@@ -229,7 +229,7 @@ public class UserDefinedFunctions {
                 throw new IllegalArgumentException("Cannot compare geometries of different CRS: " + polyCrs + " !+ " + pointCrs);
             } else {
                 Polygon.SimplePolygon geometry = Polygon.simple(asPoints(polygon));
-                return Within.within(geometry, asPoint(point));
+                return CartesianWithin.within(geometry, asPoint(point));
             }
         }
     }
@@ -272,7 +272,7 @@ public class UserDefinedFunctions {
         Polygon.SimplePolygon convertedPolygon1 = getSimplePolygon(polygon1);
         Polygon.SimplePolygon convertedPolygon2 = getSimplePolygon(polygon2);
 
-        org.neo4j.spatial.core.Point[] intersections = new NaiveIntersect().intersect(convertedPolygon1, convertedPolygon2);
+        org.neo4j.spatial.core.Point[] intersections = new CartesianNaiveIntersect().intersect(convertedPolygon1, convertedPolygon2);
         return asPoints(polygon1.get(0).getCRS(), intersections);
     }
 
@@ -288,7 +288,7 @@ public class UserDefinedFunctions {
         Polygon.SimplePolygon convertedPolygon1 = getSimplePolygon(polygon1);
         Polygon.SimplePolygon convertedPolygon2 = getSimplePolygon(polygon2);
 
-        org.neo4j.spatial.core.Point[] intersections = new MCSweepLineIntersect().intersect(convertedPolygon1, convertedPolygon2);
+        org.neo4j.spatial.core.Point[] intersections = new CartesianMCSweepLineIntersect().intersect(convertedPolygon1, convertedPolygon2);
         return asPoints(polygon1.get(0).getCRS(), intersections);
     }
 

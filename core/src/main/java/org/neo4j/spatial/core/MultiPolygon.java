@@ -1,7 +1,6 @@
 package org.neo4j.spatial.core;
 
 import org.neo4j.spatial.algo.WithinCalculator;
-import org.neo4j.spatial.algo.cartesian.Within;
 
 import java.util.*;
 

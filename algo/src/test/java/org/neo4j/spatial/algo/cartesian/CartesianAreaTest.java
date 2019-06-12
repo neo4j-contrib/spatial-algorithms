@@ -8,7 +8,7 @@ import org.neo4j.spatial.core.Polygon;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
-public class AreaTest {
+public class CartesianAreaTest {
 
     @Test
     public void area() {
@@ -19,7 +19,7 @@ public class AreaTest {
                 Point.point(CRS.Cartesian, -10, 10)
         );
 
-        double actual = new Area().area(simple);
+        double actual = new CartesianArea().area(simple);
         double expected = 400;
         assertThat(actual, equalTo(expected));
 
@@ -29,7 +29,7 @@ public class AreaTest {
                 Point.point(CRS.Cartesian, -10, 10)
         );
 
-        actual = new Area().area(simple);
+        actual = new CartesianArea().area(simple);
         expected = 200;
         assertThat(actual, equalTo(expected));
     }

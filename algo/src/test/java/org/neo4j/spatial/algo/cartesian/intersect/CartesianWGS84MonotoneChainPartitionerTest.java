@@ -8,11 +8,11 @@ import org.neo4j.spatial.core.Polygon;
 
 import java.util.List;
 
-public class MonotoneChainPartitionerTest {
+public class CartesianWGS84MonotoneChainPartitionerTest {
     @Test
     public void shouldPartitionPolygon() {
         Polygon.SimplePolygon testPolygon = makeTestPolygon();
-        List<MonotoneChain> actual = MonotoneChainPartitioner.partition(testPolygon);
+        List<MonotoneChain> actual = CartesianMonotoneChainPartitioner.partition(testPolygon);
     }
 
     private Polygon.SimplePolygon makeTestPolygon() {

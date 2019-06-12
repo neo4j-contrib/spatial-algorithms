@@ -1,18 +1,24 @@
-package org.neo4j.spatial.algo.wgs84;
+package org.neo4j.spatial.algo.cartesian;
 
-import org.neo4j.spatial.algo.wgs84.intersect.Intersect;
-import org.neo4j.spatial.algo.wgs84.intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.core.*;
+import org.neo4j.spatial.algo.AlgoUtil;
+import org.neo4j.spatial.algo.Distance;
+import org.neo4j.spatial.algo.cartesian.intersect.CartesianIntersect;
+import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
+import org.neo4j.spatial.core.LineSegment;
+import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
 
-public class Distance extends org.neo4j.spatial.algo.Distance {
-    @Override
+import static java.lang.String.format;
+
+public class CartesianDistance extends Distance {
     public double distance(Polygon a, Polygon b) {
-        boolean intersects = new MCSweepLineIntersect().doesIntersect(a, b);
+        boolean intersects = new CartesianMCSweepLineIntersect().doesIntersect(a, b);
 
         //Check if one polygon is (partially) contained by the other
         if (intersects) {
             return 0;
-        } else  if (Within.within(a, b.getShells()[0].getPoints()[0]) || Within.within(b, a.getShells()[0].getPoints()[0])) {
+        } else  if (CartesianWithin.within(a, b.getShells()[0].getPoints()[0]) || CartesianWithin.within(b, a.getShells()[0].getPoints()[0])) {
             return 0;
         }
 
@@ -43,7 +49,7 @@ public class Distance extends org.neo4j.spatial.algo.Distance {
 
     @Override
     public double distance(Polygon polygon, Point point) {
-        if (Within.within(polygon, point)) {
+        if (CartesianWithin.within(polygon, point)) {
             return 0;
         }
 
@@ -53,6 +59,7 @@ public class Distance extends org.neo4j.spatial.algo.Distance {
 
         for (LineSegment lineSegment : lineSegments) {
             double current = distance(lineSegment, point);
+
             if (current < minDistance) {
                 minDistance = current;
             }
@@ -63,12 +70,12 @@ public class Distance extends org.neo4j.spatial.algo.Distance {
 
     @Override
     public double distance(Polygon polygon, Polyline polyline) {
-        boolean intersects = new MCSweepLineIntersect().doesIntersect(polygon, polyline);
+        boolean intersects = new CartesianMCSweepLineIntersect().doesIntersect(polygon, polyline);
 
         //Check if one polygon is (partially) contained by the other
         if (intersects) {
             return 0;
-        } else  if (Within.within(polygon, polyline.getPoints()[0])) {
+        } else  if (CartesianWithin.within(polygon, polyline.getPoints()[0])) {
             return 0;
         }
 
@@ -124,41 +131,30 @@ public class Distance extends org.neo4j.spatial.algo.Distance {
 
     @Override
     public double distance(LineSegment lineSegment, Point point) {
-        Vector u1 = new Vector(lineSegment.getPoints()[0]);
-        Vector u2 = new Vector(lineSegment.getPoints()[1]);
-        Vector v = new Vector(point);
+        Point u = lineSegment.getPoints()[0];
+        Point v = lineSegment.getPoints()[1];
+        double[] a = new double[]{
+                v.getCoordinate()[0] - u.getCoordinate()[0],
+                v.getCoordinate()[1] - u.getCoordinate()[1],
+        };
+        double[] b = new double[]{
+                point.getCoordinate()[0] - u.getCoordinate()[0],
+                point.getCoordinate()[1] - u.getCoordinate()[1],
+        };
 
-        //Check whether the point is within the extent of the line segment
-        Vector u1v = v.subtract(u1);
-        Vector u2v = v.subtract(u2);
-        Vector u1u2 = u2.subtract(u1);
-        Vector u2u1 = u1.subtract(u2);
+        double dotProduct = AlgoUtil.dotProduct(a, b);
+        double lengthSquared = a[0] * a[0] + a[1] * a[1];
 
-        //These dot products tell us whether the point is on the same side as a point of the line segment compared to the remaining point of the line segment
-        double extent1 = u1v.dot(u1u2);
-        double extent2 = u2v.dot(u2u1);
+        double t = Math.max(0, Math.min(1, dotProduct/lengthSquared));
 
-        boolean isSameHemisphere = v.dot(u1) >= 0 && v.dot(u2) >= 0;
+        Point projection = v.subtract(u.getCoordinate()).multiply(t).add(u.getCoordinate());
 
-        boolean withinExtend = extent1 >= 0 && extent2 >= 0 && isSameHemisphere;
-
-        if (withinExtend && !u1.equals(u2)) {
-            Vector c1 = u1.cross(u2); // u1×u2 = vector representing great circle through the line segments
-            Vector c2 = v.cross(c1);  // u0×c1 = vector representing great circle through the point normal to c1
-            Vector n = c1.cross(c2);  // c2×c1 = nearest point on c1 to n0
-
-            return WGSUtil.distance(v, n);
-        } else {
-            double d1 = WGSUtil.distance(v, u1);
-            double d2 = WGSUtil.distance(v, u2);
-
-            return d1 < d2 ? d1 : d2;
-        }
+        return distance(projection, point);
     }
 
     @Override
     public double distance(LineSegment a, LineSegment b) {
-        Point intersect = Intersect.lineSegmentIntersect(a, b);
+        Point intersect = CartesianIntersect.lineSegmentIntersect(a, b);
         if (intersect != null) {
             return 0;
         }
@@ -182,10 +178,21 @@ public class Distance extends org.neo4j.spatial.algo.Distance {
 
     @Override
     public double distance(Point p1, Point p2) {
-        Vector u = new Vector(p1);
-        Vector v = new Vector(p2);
-
-        //Distance (in meters)
-        return WGSUtil.distance(u, v);
+        double[] c1 = p1.getCoordinate();
+        double[] c2 = p2.getCoordinate();
+        return distance(c1, c2);
     }
+
+    public static double distance(double[] c1, double[] c2) {
+        if (c1.length != c2.length) {
+            throw new IllegalArgumentException(format("Cannot calculate distance between points of different dimension: %d != %d", c1.length, c2.length));
+        }
+        double dsqr = 0;
+        for (int i = 0; i < c1.length; i++) {
+            double diff = c1[i] - c2[i];
+            dsqr += diff * diff;
+        }
+        return Math.sqrt(dsqr);
+    }
+
 }

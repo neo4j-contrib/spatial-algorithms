@@ -5,7 +5,7 @@ import org.neo4j.spatial.core.Polygon;
 public interface CCW {
     /**
      * @param polygon
-     * @return True iff the points of the given polygon are in CCW order
+     * @return True iff the points of the given polygon are in CartesianCCW order
      */
     boolean isCCW(Polygon.SimplePolygon polygon);
 }

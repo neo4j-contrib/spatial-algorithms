@@ -7,7 +7,7 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
-import org.neo4j.spatial.algo.cartesian.Distance;
+import org.neo4j.spatial.algo.cartesian.CartesianDistance;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -138,7 +138,7 @@ public class OSMTraverser {
             for (int i = 0; i < wayNodeList.size() - 1; i++) {
                 Node a = wayNodeList.get(i);
                 Node b = wayNodeList.get(i+1);
-                totalDistance += Distance.distance(getCoordinates(a), getCoordinates(b));
+                totalDistance += CartesianDistance.distance(getCoordinates(a), getCoordinates(b));
             }
         }
 
@@ -153,7 +153,7 @@ public class OSMTraverser {
 
             double[] first = getCoordinates(wayToAdd.get(0));
             double[] last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
-            double distance = Distance.distance(first, last);
+            double distance = CartesianDistance.distance(first, last);
 
             // TODO: Confirm that we actually need this
             //The polystring closes itself
@@ -170,8 +170,8 @@ public class OSMTraverser {
                 List<Node> candidateWayToAddTo = polygonsToComplete.get(i);
                 double[] lastCoordinates = getCoordinates(candidateWayToAddTo.get(candidateWayToAddTo.size() - 1));
 
-                double distanceFirst = Distance.distance(first, lastCoordinates);
-                double distanceLast = Distance.distance(last, lastCoordinates);
+                double distanceFirst = CartesianDistance.distance(first, lastCoordinates);
+                double distanceLast = CartesianDistance.distance(last, lastCoordinates);
 
                 if (distanceFirst < minDistance) {
                     minDistance = distanceFirst;
@@ -204,7 +204,7 @@ public class OSMTraverser {
 
             first = getCoordinates(wayToAddTo.get(0));
             last = getCoordinates(wayToAddTo.get(wayToAddTo.size() - 1));
-            distance = Distance.distance(first, last);
+            distance = CartesianDistance.distance(first, last);
 
             //The polystring closes itself
             if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {

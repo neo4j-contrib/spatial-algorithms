@@ -1,22 +1,22 @@
-package org.neo4j.spatial.algo.wgs84.intersect;
+package org.neo4j.spatial.algo.cartesian.intersect;
 
-import org.neo4j.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
-import org.neo4j.spatial.algo.wgs84.WGSUtil;
 import org.neo4j.spatial.core.*;
 
 import java.util.*;
 import java.util.stream.Stream;
 
-public class MCSweepLineIntersect extends Intersect {
+public class CartesianMCSweepLineIntersect extends CartesianIntersect {
     private List<MonotoneChain> activeChainList;
     private List<MonotoneChain> sweepingChainList;
     private List<Point> outputList;
 
+    private double sweepAngle;
+
     //This variable is used to determine the origin of the monotone chains
     private long splitId;
 
-    public MCSweepLineIntersect() {
+    public CartesianMCSweepLineIntersect() {
         initialize();
     }
 
@@ -33,43 +33,30 @@ public class MCSweepLineIntersect extends Intersect {
         Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
         Polygon.SimplePolygon[] bPolygons = getSimplePolygons(b);
 
-        if (!validate(aPolygons) || !validate(bPolygons)) {
-            return new NaiveIntersect().doesIntersect(a, b);
-        }
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
-        inputList.addAll(aPair.first());
-        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(bPolygons, false);
-        inputList.addAll(bPair.first());
-
-        //Check the vertical intersections
-        checkVerticals(aPair.other(), bPair.first());
-        checkVerticals(bPair.other(), aPair.first());
-
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(bPolygons, false));
         return intersect(inputList, true).length > 0;
     }
-
     @Override
     public Point[] intersect(Polygon a, Polygon b) {
         initialize();
         Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
         Polygon.SimplePolygon[] bPolygons = getSimplePolygons(b);
 
-        if (!validate(aPolygons) || !validate(bPolygons)) {
-            return new NaiveIntersect().intersect(a, b);
-        }
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
-        inputList.addAll(aPair.first());
-        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(bPolygons, false);
-        inputList.addAll(bPair.first());
-
-        //Check the vertical intersections
-        checkVerticals(aPair.other(), bPair.first());
-        checkVerticals(bPair.other(), aPair.first());
-
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(bPolygons, false));
         return intersect(inputList, false);
     }
 
@@ -78,20 +65,14 @@ public class MCSweepLineIntersect extends Intersect {
         initialize();
         Polygon.SimplePolygon[] aPolygons = getSimplePolygons(polygon);
 
-        if (!validate(aPolygons) || !validate(polyline)) {
-            return new NaiveIntersect().doesIntersect(polygon, polyline);
-        }
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(polygon.toLineSegments()));
+        angleSet.addAll(computeAngles(polyline.toLineSegments()));
+        computeSweepDirection(angleSet);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
-        inputList.addAll(aPair.first());
-        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(polyline, false);
-        inputList.addAll(bPair.first());
-
-        //Check the vertical intersections
-        checkVerticals(aPair.other(), bPair.first());
-        checkVerticals(bPair.other(), aPair.first());
-
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(polyline, false));
         return intersect(inputList, true).length > 0;
     }
 
@@ -100,20 +81,14 @@ public class MCSweepLineIntersect extends Intersect {
         initialize();
         Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
 
-        if (!validate(aPolygons) || !validate(b)) {
-            return new NaiveIntersect().intersect(a, b);
-        }
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(aPolygons, true);
-        inputList.addAll(aPair.first());
-        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(b, false);
-        inputList.addAll(bPair.first());
-
-        //Check the vertical intersections
-        checkVerticals(aPair.other(), bPair.first());
-        checkVerticals(bPair.other(), aPair.first());
-
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(b, false));
         return intersect(inputList, false);
     }
 
@@ -121,20 +96,14 @@ public class MCSweepLineIntersect extends Intersect {
     public Point[] intersect(Polyline a, Polyline b) {
         initialize();
 
-        if (!validate(a) || !validate(b)) {
-            return new NaiveIntersect().intersect(a, b);
-        }
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(a, true);
-        inputList.addAll(aPair.first());
-        Pair<List<MonotoneChain>, List<LineSegment>> bPair = getMonotoneChains(b, false);
-        inputList.addAll(bPair.first());
-
-        //Check the vertical intersections
-        checkVerticals(aPair.other(), bPair.first());
-        checkVerticals(bPair.other(), aPair.first());
-
+        inputList.addAll(getMonotoneChains(a, true));
+        inputList.addAll(getMonotoneChains(b, false));
         return intersect(inputList, false);
     }
 
@@ -142,57 +111,18 @@ public class MCSweepLineIntersect extends Intersect {
     public Point[] intersect(Polyline a, LineSegment b) {
         initialize();
 
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(new LineSegment[]{b}));
+        computeSweepDirection(angleSet);
+
         List<MonotoneChain> inputList = new ArrayList<>();
-        Pair<List<MonotoneChain>, List<LineSegment>> aPair = getMonotoneChains(a, true);
-        inputList.addAll(aPair.first());
-
-        if (MonotoneChainPartitioner.getXDirection(b) == 0) {
-            ArrayList<LineSegment> verticals = new ArrayList<>();
-            verticals.add(b);
-            checkVerticals(verticals, aPair.first());
-            return outputList.toArray(new Point[0]);
-        }
-
+        inputList.addAll(getMonotoneChains(a, true));
         MonotoneChain bChain = new MonotoneChain();
-        bChain.add(b);
+        bChain.add(createRotatedLineSegment(b));
         bChain.initialize();
         inputList.add(bChain);
         return intersect(inputList, false);
-    }
-
-    /**
-     * Checks the validness of the polygons. A polygon is invalid if it is around a pole or crosses the Date line
-     * @param polygons
-     * @return True iff none of the polygons are invalid
-     */
-    private boolean validate(Polygon.SimplePolygon[] polygons) {
-        boolean outOfBounds = Arrays.stream(polygons).map(Polygon.SimplePolygon::getPoints).flatMap(Stream::of).anyMatch(p -> p.getCoordinate()[0] > 180 || p.getCoordinate()[0] < -180);
-        if (outOfBounds) {
-            //Polygon wraps around the Date line
-            return false;
-        }
-        for (Polygon.SimplePolygon polygon : polygons) {
-            double courseDelta = WGSUtil.courseDelta(polygon);
-            if (courseDelta < 270) {
-                //Polygon is around a Pole
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Checks the validness of the polyline. A polyline is invalid if it crosses the Date line
-     * @param polyline
-     * @return True iff the polyline is valid
-     */
-    private boolean validate(Polyline polyline) {
-        boolean outOfBounds = Arrays.stream(polyline.getPoints()).anyMatch(p -> p.getCoordinate()[0] > 180 || p.getCoordinate()[0] < -180);
-        if (outOfBounds) {
-            //Polygon wraps around the Date line
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -200,11 +130,11 @@ public class MCSweepLineIntersect extends Intersect {
      * @param first
      * @return The monotone chains that make up the polygons
      */
-    private Pair<List<MonotoneChain>, List<LineSegment>> getMonotoneChains(Polygon.SimplePolygon[] polygons, boolean first) {
+    private List<MonotoneChain> getMonotoneChains(Polygon.SimplePolygon[] polygons, boolean first) {
         List<MonotoneChain> result = new ArrayList<>();
-        MonotoneChainPartitioner partitioner = new MonotoneChainPartitioner();
         for (int i = 0; i < polygons.length; i++) {
-            List<MonotoneChain> partitioned = partitioner.partition(polygons[i]);
+            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(polygons[i]);
+            List<MonotoneChain> partitioned = CartesianMonotoneChainPartitioner.partition(rotatedPolygon);
             result.addAll(partitioned);
         }
 
@@ -212,7 +142,7 @@ public class MCSweepLineIntersect extends Intersect {
             splitId = result.get(result.size() - 1).getId() + 1;
         }
 
-        return Pair.of(result, partitioner.getVerticals());
+        return result;
     }
 
     /**
@@ -220,14 +150,14 @@ public class MCSweepLineIntersect extends Intersect {
      * @param first
      * @return The monotone chains that make up the polyline
      */
-    private Pair<List<MonotoneChain>, List<LineSegment>> getMonotoneChains(Polyline polyline, boolean first) {
-        MonotoneChainPartitioner partitioner = new MonotoneChainPartitioner();
-        List<MonotoneChain> result = partitioner.partition(polyline);
+    private List<MonotoneChain> getMonotoneChains(Polyline polyline, boolean first) {
+        Polyline rotatedPolyline = createRotatedPolyline(polyline);
+        List<MonotoneChain> result = CartesianMonotoneChainPartitioner.partition(rotatedPolyline);
         if (first) {
             splitId = result.get(result.size() - 1).getId() + 1;
         }
 
-        return Pair.of(result, partitioner.getVerticals());
+        return result;
     }
 
     /**
@@ -249,6 +179,7 @@ public class MCSweepLineIntersect extends Intersect {
      * In: Kimura F. (eds) Geometric Modelling. GEO 1998. IFIP — The International Federation for Information Processing, vol 75. Springer, Boston, MA
      *
      * @param inputList
+     * @param shortcut
      * @return An array of points at which the two input polygons intersect
      */
     public Point[] intersect(List<MonotoneChain> inputList, boolean shortcut) {
@@ -306,40 +237,95 @@ public class MCSweepLineIntersect extends Intersect {
         return outputList.toArray(new Point[0]);
     }
 
-    /**
-     * Check for intersections between the vertical line segments and the monotone chains
-     *
-     * @param verticals
-     * @param chains
-     */
-    private void checkVerticals(List<LineSegment> verticals, List<MonotoneChain> chains) {
-        List<LineSegment> segments = new ArrayList<>();
-        for (MonotoneChain chain : chains) {
-            segments.addAll(chain.getLineSegments());
+    private void addToOutput(Point rotatedPoint) {
+        Point point = Point.point(CRS.Cartesian, AlgoUtil.rotate(rotatedPoint, -this.sweepAngle));
+        for (Point inList : outputList) {
+            if (AlgoUtil.equal(point, inList)) {
+                return;
+            }
         }
+        this.outputList.add(point);
+    }
 
-        for (LineSegment vertical : verticals) {
-            for (LineSegment segment : segments) {
-                Point intersect = super.intersect(vertical, segment);
-                if (intersect != null) {
-                    addToOutput(intersect);
+    /**
+     * @param polygon The input polygon
+     * @return A new polygon which is the input polygon, but rotated to the sweep angle
+     */
+    private Polygon.SimplePolygon createRotatedPolygon(Polygon.SimplePolygon polygon) {
+        Point[] rotatedPoints = Arrays.stream(polygon.getPoints()).map(p -> new RotatedPoint(p, this.sweepAngle)).toArray(RotatedPoint[]::new);
+        return Polygon.simple(rotatedPoints);
+    }
+
+    /**
+     * @param polyline The input polyline
+     * @return A new polyline which is the input polyline, but rotated to the sweep angle
+     */
+    private Polyline createRotatedPolyline(Polyline polyline) {
+        Point[] rotatedPoints = Arrays.stream(polyline.getPoints()).map(p -> new RotatedPoint(p, this.sweepAngle)).toArray(RotatedPoint[]::new);
+        return Polyline.polyline(rotatedPoints);
+    }
+
+    /**
+     * @param lineSegment The input lineSegment
+     * @return A new lineSegment which is the input lineSegment, but rotated to the sweep angle
+     */
+    private LineSegment createRotatedLineSegment(LineSegment lineSegment) {
+        Point[] rotatedPoints = Arrays.stream(lineSegment.getPoints()).map(p -> new RotatedPoint(p, this.sweepAngle)).toArray(RotatedPoint[]::new);
+        return LineSegment.lineSegment(rotatedPoints[0], rotatedPoints[1]);
+    }
+
+    /**
+     * Compute an angle for which no vertical line segments exist
+     *
+     * @param angleSet
+     */
+    private void computeSweepDirection(Set<Double> angleSet) {
+        List<Double> angles = new ArrayList<>(angleSet);
+        Collections.sort(angles);
+
+        double maxDelta = Double.MIN_VALUE;
+        double maxAngle = 0;
+        for (int i = 0; i < angles.size() - 1; i++) {
+            double currentDelta = angles.get(i + 1) - angles.get(i);
+            double currentAngle = (angles.get(i + 1) + angles.get(i)) / 2d;
+
+            if (currentDelta > maxDelta) {
+                maxDelta = currentDelta;
+                maxAngle = currentAngle;
+
+                if (currentDelta > 1e-4 * Math.PI) {
+                    break;
                 }
             }
         }
+
+        this.sweepAngle = maxAngle;
     }
 
-    private void addToOutput(Point point) {
-        boolean flag = false;
-        for (Point intersection : this.outputList) {
-            if (AlgoUtil.equal(intersection, point)) {
-                flag = true;
-                break;
+    /**
+     * @param lineSegments All the line segments of the geometry
+     * @return Compute the angles of the line segments
+     */
+    private Set<Double> computeAngles(LineSegment[] lineSegments) {
+        Set<Double> angles = new HashSet<>();
+
+        for (LineSegment segment : lineSegments) {
+            Point p = segment.getPoints()[0];
+            Point q = segment.getPoints()[1];
+
+            double dx = q.getCoordinate()[0] - p.getCoordinate()[0];
+            double dy = q.getCoordinate()[1] - p.getCoordinate()[1];
+
+            double angle = Math.atan2(dy, dx);
+
+            if (angle < -0) {
+                angle += Math.PI;
             }
+
+            angles.add(angle);
         }
 
-        if (!flag) {
-            this.outputList.add(point);
-        }
+        return angles;
     }
 
     /**

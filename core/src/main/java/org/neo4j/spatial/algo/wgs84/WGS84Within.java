@@ -7,7 +7,7 @@ import org.neo4j.spatial.core.Polygon;
 
 import java.util.Arrays;
 
-public class Within {
+public class WGS84Within {
     public static boolean within(Polygon polygon, Point point) {
         return Arrays.stream(polygon.getShells()).filter(s -> within(s, point)).count() > Arrays.stream(polygon.getHoles()).filter(h -> within(h, point)).count();
     }

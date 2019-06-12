@@ -10,7 +10,7 @@ import org.neo4j.spatial.core.Polygon;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class WithinTest {
+public class WGS84WithinTest {
 
     @Rule
     public ExpectedException exceptionGrabber = ExpectedException.none();
@@ -60,7 +60,7 @@ public class WithinTest {
         };
 
         for (int i = 0; i < points.length; i++) {
-            assertThat("Iteration " + i + " failed; " + points[i], Within.within(polygon, points[i]), equalTo(expected[i]));
+            assertThat("Iteration " + i + " failed; " + points[i], WGS84Within.within(polygon, points[i]), equalTo(expected[i]));
         }
     }
 
@@ -75,7 +75,7 @@ public class WithinTest {
 
         Point point = Point.point(CRS.WGS84, 3, 2);
 
-        assertThat(Within.within(polygon, point), equalTo(true));
+        assertThat(WGS84Within.within(polygon, point), equalTo(true));
     }
 
     @Test
@@ -90,8 +90,8 @@ public class WithinTest {
         Point a = Point.point(CRS.WGS84, 3, 2);
         Point b = Point.point(CRS.WGS84, 179, 2);
 
-        assertThat(Within.within(polygon, a), equalTo(false));
-        assertThat(Within.within(polygon, b), equalTo(true));
+        assertThat(WGS84Within.within(polygon, a), equalTo(false));
+        assertThat(WGS84Within.within(polygon, b), equalTo(true));
     }
 
     @Test
@@ -107,7 +107,7 @@ public class WithinTest {
 
         exceptionGrabber.expect(IllegalArgumentException.class);
         exceptionGrabber.expectMessage("Polygon contains at least one pole");
-        Within.within(northPolygon, a);
+        WGS84Within.within(northPolygon, a);
     }
 
     @Test
@@ -123,6 +123,6 @@ public class WithinTest {
 
         exceptionGrabber.expect(IllegalArgumentException.class);
         exceptionGrabber.expectMessage("Polygon contains at least one pole");
-        Within.within(southPolygon, a);
+        WGS84Within.within(southPolygon, a);
     }
 }

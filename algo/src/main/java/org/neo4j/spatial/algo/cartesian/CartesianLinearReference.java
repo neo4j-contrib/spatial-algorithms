@@ -1,10 +1,11 @@
 package org.neo4j.spatial.algo.cartesian;
 
+import org.neo4j.spatial.algo.LinearReference;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 
-public class LinearReference extends org.neo4j.spatial.algo.LinearReference {
+public class CartesianLinearReference extends LinearReference {
     public Point reference(LineSegment lineSegment, double d) {
         if (d < 0) {
             return null;
@@ -12,7 +13,7 @@ public class LinearReference extends org.neo4j.spatial.algo.LinearReference {
 
         double[] p = lineSegment.getPoints()[0].getCoordinate();
         double[] q = lineSegment.getPoints()[1].getCoordinate();
-        double length = Distance.distance(p, q);
+        double length = CartesianDistance.distance(p, q);
 
         if (length < d) {
             return null;

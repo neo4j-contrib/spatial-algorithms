@@ -1,14 +1,10 @@
 package org.neo4j.spatial.algo.wgs84;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.algo.IntersectCalculator;
-import org.neo4j.spatial.algo.wgs84.intersect.Intersect;
-import org.neo4j.spatial.algo.wgs84.intersect.MCSweepLineIntersect;
-import org.neo4j.spatial.algo.wgs84.intersect.NaiveIntersect;
 import org.neo4j.spatial.core.*;
 
 import java.util.Arrays;
@@ -19,7 +15,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 @RunWith(value = Parameterized.class)
-public class IntersectTest {
+public class WGS84IntersectTest {
     private IntersectCalculator.AlgorithmVariant variant;
 
     @Parameterized.Parameters
@@ -28,7 +24,7 @@ public class IntersectTest {
         return Arrays.asList(variants);
     }
 
-    public IntersectTest(IntersectCalculator.AlgorithmVariant variant) {
+    public WGS84IntersectTest(IntersectCalculator.AlgorithmVariant variant) {
         this.variant = variant;
     }
 

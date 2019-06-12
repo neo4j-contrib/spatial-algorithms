@@ -10,7 +10,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.closeTo;
 import static org.junit.Assert.assertThat;
 
-public class LinearReferenceTest {
+public class WGS84LinearReferenceTest {
 
     @Test
     public void referenceLineSegment() {

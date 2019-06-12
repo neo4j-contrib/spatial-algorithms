@@ -1,4 +1,4 @@
-package org.neo4j.spatial.algo.cartesian.intersect;
+package org.neo4j.spatial.algo.wgs84.intersect;
 
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.LineSegment;
@@ -9,7 +9,7 @@ import org.neo4j.spatial.core.Polygon;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NaiveIntersect extends Intersect {
+public class WGS84NaiveIntersect extends WGS84Intersect {
     @Override
     public boolean doesIntersect(Polygon a, Polygon b) {
         LineSegment[] aLS = a.toLineSegments();
@@ -42,9 +42,9 @@ public class NaiveIntersect extends Intersect {
     }
 
     @Override
-    public Point[] intersect(Polyline a, LineSegment b) {
-        LineSegment[] aLS = a.toLineSegments();
-        LineSegment[] bLS = new LineSegment[]{b};
+    public Point[] intersect(Polyline polyline, LineSegment lineSegment) {
+        LineSegment[] aLS = new LineSegment[]{lineSegment};
+        LineSegment[] bLS = polyline.toLineSegments();
 
         return compareLineSegments(aLS, bLS, false);
     }
@@ -59,9 +59,9 @@ public class NaiveIntersect extends Intersect {
 
     private Point[] compareLineSegments(LineSegment[] aLS, LineSegment[] bLS, boolean shortcut) {
         List<Point> intersections = new ArrayList<>();
-        for (LineSegment aL : aLS) {
-            for (LineSegment bL : bLS) {
-                Point newIntersection = super.intersect(aL, bL);
+        for (int i = 0; i < aLS.length; i++) {
+            for (int j = 0; j < bLS.length; j++) {
+                Point newIntersection = super.intersect(aLS[i], bLS[j]);
                 if (newIntersection != null) {
                     addPoint(intersections, newIntersection);
                     if (shortcut) {

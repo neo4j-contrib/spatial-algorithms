@@ -1,10 +1,11 @@
 package org.neo4j.spatial.algo.cartesian.intersect;
 
 import org.neo4j.spatial.algo.AlgoUtil;
+import org.neo4j.spatial.algo.Intersect;
 import org.neo4j.spatial.algo.LinearReference;
 import org.neo4j.spatial.core.*;
 
-public abstract class Intersect implements org.neo4j.spatial.algo.Intersect {
+public abstract class CartesianIntersect implements Intersect {
     @Override
     public abstract Point[] intersect(Polygon a, Polygon b);
 

@@ -8,7 +8,7 @@ import org.neo4j.spatial.core.Polygon;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
-public class CCWTest {
+public class WGS84CCWTest {
 
     @Test
     public void isCCW() {
@@ -19,7 +19,7 @@ public class CCWTest {
                 Point.point(CRS.WGS84, -10, 10)
         );
 
-        boolean actual = new CCW().isCCW(simple);
+        boolean actual = new WGS84CCW().isCCW(simple);
         boolean expected = true;
         assertThat(actual, equalTo(expected));
 
@@ -29,7 +29,7 @@ public class CCWTest {
                 Point.point(CRS.WGS84, -10, 10)
         );
 
-        actual = new CCW().isCCW(simple);
+        actual = new WGS84CCW().isCCW(simple);
         expected = true;
         assertThat(actual, equalTo(expected));
 
@@ -40,7 +40,7 @@ public class CCWTest {
                 Point.point(CRS.WGS84, 10, -10)
         );
 
-        actual = new CCW().isCCW(simple);
+        actual = new WGS84CCW().isCCW(simple);
         expected = false;
         assertThat(actual, equalTo(expected));
     }
