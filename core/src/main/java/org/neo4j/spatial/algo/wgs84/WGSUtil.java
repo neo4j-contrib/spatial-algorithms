@@ -17,12 +17,16 @@ public class WGSUtil {
         Vector c1 = a.cross(b);
         Vector c2 = a.cross(NORTH_POLE);
 
-        double sign = Math.signum(c1.cross(c2).dot(a));
-        double sinTheta = c1.cross(c2).magnitude() * sign;
-        double cosTheta = c1.dot(c2);
-        double angle = Math.atan2(sinTheta, cosTheta);
+        double angle = angleTo(c1, a, c2);
 
         return (angle * 180) / Math.PI;
+    }
+
+    public static double angleTo(Vector c1, Vector p, Vector c2) {
+        double sign = Math.signum(c1.cross(c2).dot(p));
+        double sinTheta = c1.cross(c2).magnitude() * sign;
+        double cosTheta = c1.dot(c2);
+        return Math.atan2(sinTheta, cosTheta);
     }
 
     public static double finalBearing(Point start, Point end) {

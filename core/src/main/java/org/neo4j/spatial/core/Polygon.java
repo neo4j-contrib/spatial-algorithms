@@ -1,8 +1,8 @@
 package org.neo4j.spatial.core;
 
-import java.util.ArrayList;
+import org.neo4j.spatial.algo.CCWCalculator;
+
 import java.util.Arrays;
-import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
 
@@ -127,34 +127,11 @@ public interface Polygon {
             return new SimplePolygon[0];
         }
 
-        /**
-         * @return The area of the polygon using the shoelace algorithm
-         */
-        default double area() {
-            Point[] points = getPoints();
-            double sum = 0;
-
-            for (int i = 0; i < points.length; i++) {
-                double[] a = points[i].getCoordinate();
-                double[] b = points[(i + 1) % points.length].getCoordinate();
-
-                sum += (b[0] - a[0]) * (b[1] + a[0]);
-            }
-            return sum;
-        }
-
         Point getNextPoint();
 
         void startTraversal(Point point);
 
         boolean fullyTraversed();
-
-        /**
-         * @return True iff the points are in clockwise order
-         */
-        default boolean inClockwiseOrder() {
-            return area() > 0;
-        }
 
         @Override
         default String toWKT() {
@@ -169,7 +146,7 @@ public interface Polygon {
             Point[] points = getPoints();
             StringJoiner joiner = new StringJoiner(",", "(", ")");
             if (hole) {
-                if (inClockwiseOrder()) {
+                if (CCWCalculator.isCCW(this)) {
                     for (int i = 0; i < points.length; i++) {
                         joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
                     }
@@ -179,7 +156,7 @@ public interface Polygon {
                     }
                 }
             } else {
-                if (inClockwiseOrder()) {
+                if (CCWCalculator.isCCW(this)) {
                     for (int i = points.length - 1; i >= 0; i--) {
                         joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
                     }
