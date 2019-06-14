@@ -6,6 +6,7 @@ import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -45,5 +46,29 @@ public class CartesianLinearReferenceTest {
         assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], 25), equalTo(Point.point(CRS.Cartesian, -5, 10)));
         assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], 125), equalTo(Point.point(CRS.Cartesian, 10, 5)));
         assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], -1), is(nullValue()));
+    }
+
+    @Test
+    public void referencePolyline() {
+        Polyline p = Polyline.polyline(
+                Point.point(CRS.Cartesian, -10, -10),
+                Point.point(CRS.Cartesian, 10, -10),
+                Point.point(CRS.Cartesian, 10, 10),
+                Point.point(CRS.Cartesian, -10, 10)
+        );
+
+        //Forward
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 0), equalTo(Point.point(CRS.Cartesian, -10, -10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 10), equalTo(Point.point(CRS.Cartesian, 0, -10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 25), equalTo(Point.point(CRS.Cartesian, 10, -5)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 125), is(nullValue()));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], -1), is(nullValue()));
+
+        //Backward
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[3], p.getPoints()[2], 0), equalTo(Point.point(CRS.Cartesian, -10, 10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[3], p.getPoints()[2], 10), equalTo(Point.point(CRS.Cartesian, 0, 10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[3], p.getPoints()[2], 25), equalTo(Point.point(CRS.Cartesian, 10, 5)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[3], p.getPoints()[2], 125), is(nullValue()));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[3], p.getPoints()[2], -1), is(nullValue()));
     }
 }

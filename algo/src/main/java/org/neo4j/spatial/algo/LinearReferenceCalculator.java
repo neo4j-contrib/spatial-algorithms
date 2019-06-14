@@ -6,6 +6,7 @@ import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
 
 public class LinearReferenceCalculator {
     private static CartesianLinearReference cartesian;
@@ -52,6 +53,21 @@ public class LinearReferenceCalculator {
             return getCartesian().reference(lineSegment, d);
         } else {
             return getWGS84().reference(lineSegment, d);
+        }
+    }
+
+    /**
+     * Finds the point on the polyline which is distance d from the start point of the polyline.
+     *
+     * @param polyline
+     * @param d
+     * @return The new point, and null if the distance is negative or is greater than the length of the polyline
+     */
+    public static Point reference(Polyline polyline, Point start, Point direction, double d) {
+        if (CRSChecker.check(polyline) == CRS.Cartesian) {
+            return getCartesian().reference(polyline, start, direction, d);
+        } else {
+            return getWGS84().reference(polyline, start, direction, d);
         }
     }
 }

@@ -49,19 +49,20 @@ public abstract class LinearReference {
             return null;
         }
 
-        LineSegment[] lineSegments = polyline.toLineSegments();
+        polyline.startTraversal(start, direction);
+        Point previous = polyline.getNextPoint();
         Point point = null;
-        for (LineSegment lineSegment : lineSegments) {
-            Point p = lineSegment.getPoints()[0];
-            Point q = lineSegment.getPoints()[1];
-            double length = DistanceCalculator.distance(p, q);
+        while (!polyline.fullyTraversed()) {
+            Point current = polyline.getNextPoint();
+            double length = DistanceCalculator.distance(previous, current);
 
             if (length < d) {
                 d -= length;
             } else {
-                point = reference(lineSegment, d);
+                point = reference(previous, current, d);
                 break;
             }
+            previous = current;
         }
 
         return point;
