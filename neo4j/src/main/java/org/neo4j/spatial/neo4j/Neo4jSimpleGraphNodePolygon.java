@@ -2,7 +2,8 @@ package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.helpers.ArrayUtil;
+import org.neo4j.spatial.algo.CCWCalculator;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.PolygonUtil;
 
@@ -10,14 +11,21 @@ public class Neo4jSimpleGraphNodePolygon extends Neo4jSimpleGraphPolygon {
 
     public Neo4jSimpleGraphNodePolygon(Node main, long osmRelationId) {
         super(main, osmRelationId);
-        Node[] wayNodes = traverseGraph(main);
+    }
+
+    @Override
+    public Point[] getPoints() {
+        Node[] wayNodes = traverseWholePolygon(main);
         Point[] unclosed = extractPoints(wayNodes);
-        this.points = PolygonUtil.closeRing(unclosed);
+        Point[] points = PolygonUtil.closeRing(unclosed);
 
         if (points.length < 4) {
             throw new IllegalArgumentException("Polygon cannot have less than 4 points");
         }
-        assertAllSameDimension(this.points);
+        if (!CCWCalculator.isCCW(points)) {
+            ArrayUtil.reverse(points);
+        }
+        return points;
     }
 
     private Point[] extractPoints(Node[] wayNodes) {
@@ -37,8 +45,8 @@ public class Neo4jSimpleGraphNodePolygon extends Neo4jSimpleGraphPolygon {
     @Override
     public Point getNextPoint() {
         super.traversing = true;
-        Point point = extractPoint(pointer);
         pointer = getNextNode(pointer);
+        Point point = extractPoint(pointer);
         return point;
     }
 }

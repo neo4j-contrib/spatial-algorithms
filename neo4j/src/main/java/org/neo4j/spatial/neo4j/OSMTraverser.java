@@ -7,9 +7,16 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
-import org.neo4j.spatial.algo.cartesian.CartesianDistance;
+import org.neo4j.spatial.algo.wgs84.WGSUtil;
+import org.neo4j.spatial.core.Vector;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Stack;
 import java.util.stream.Collectors;
 
 public class OSMTraverser {
@@ -138,7 +145,7 @@ public class OSMTraverser {
             for (int i = 0; i < wayNodeList.size() - 1; i++) {
                 Node a = wayNodeList.get(i);
                 Node b = wayNodeList.get(i+1);
-                totalDistance += CartesianDistance.distance(getCoordinates(a), getCoordinates(b));
+                totalDistance += WGSUtil.distance(getCoordinates(a), getCoordinates(b));
             }
         }
 
@@ -151,9 +158,9 @@ public class OSMTraverser {
         while (wayNodes.size() > 0) {
             List<Node> wayToAdd = wayNodes.pop();
 
-            double[] first = getCoordinates(wayToAdd.get(0));
-            double[] last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
-            double distance = CartesianDistance.distance(first, last);
+            Vector first = getCoordinates(wayToAdd.get(0));
+            Vector last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
+            double distance = WGSUtil.distance(first, last);
 
             // TODO: Confirm that we actually need this
             //The polystring closes itself
@@ -168,10 +175,10 @@ public class OSMTraverser {
 
             for (int i = 0; i < polygonsToComplete.size(); i++) {
                 List<Node> candidateWayToAddTo = polygonsToComplete.get(i);
-                double[] lastCoordinates = getCoordinates(candidateWayToAddTo.get(candidateWayToAddTo.size() - 1));
+                Vector lastCoordinates = getCoordinates(candidateWayToAddTo.get(candidateWayToAddTo.size() - 1));
 
-                double distanceFirst = CartesianDistance.distance(first, lastCoordinates);
-                double distanceLast = CartesianDistance.distance(last, lastCoordinates);
+                double distanceFirst = WGSUtil.distance(first, lastCoordinates);
+                double distanceLast = WGSUtil.distance(last, lastCoordinates);
 
                 if (distanceFirst < minDistance) {
                     minDistance = distanceFirst;
@@ -204,7 +211,7 @@ public class OSMTraverser {
 
             first = getCoordinates(wayToAddTo.get(0));
             last = getCoordinates(wayToAddTo.get(wayToAddTo.size() - 1));
-            distance = CartesianDistance.distance(first, last);
+            distance = WGSUtil.distance(first, last);
 
             //The polystring closes itself
             if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
@@ -236,11 +243,11 @@ public class OSMTraverser {
      * @param wayNode
      * @return The coordinate belonging to the OSMWayNode
      */
-    private static double[] getCoordinates(Node wayNode) {
+    private static Vector getCoordinates(Node wayNode) {
         Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
 
         Point point = (Point) node.getProperty("location");
 
-        return point.getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray();
+        return new Vector(true, point.getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray());
     }
 }

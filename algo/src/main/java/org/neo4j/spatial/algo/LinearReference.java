@@ -13,26 +13,25 @@ public abstract class LinearReference {
      * @param d
      * @return The new point, and null if the distance is negative
      */
-    public Point reference(Polygon.SimplePolygon polygon, double d) {
+    public Point reference(Polygon.SimplePolygon polygon, Point start, Point direction, double d) {
         if (d < 0) {
             return null;
         }
 
-        LineSegment[] lineSegments = polygon.toLineSegments();
+        polygon.startTraversal(start, direction);
+        Point previous = polygon.getNextPoint();
         Point point = null;
-        int index = 0;
         while (d >= 0) {
-            Point p = lineSegments[index].getPoints()[0];
-            Point q = lineSegments[index].getPoints()[1];
-            double length = DistanceCalculator.distance(p, q);
+            Point current = polygon.getNextPoint();
+            double length = DistanceCalculator.distance(previous, current);
 
             if (length < d) {
                 d -= length;
             } else {
-                point = reference(lineSegments[index], d);
+                point = reference(previous, current, d);
                 break;
             }
-            index = (index + 1) % lineSegments.length;
+            previous = current;
         }
 
         return point;
@@ -45,7 +44,7 @@ public abstract class LinearReference {
      * @param d
      * @return The new point, and null if the distance is negative or is greater than the length of the polyline
      */
-    public Point reference(Polyline polyline, double d) {
+    public Point reference(Polyline polyline, Point start, Point direction, double d) {
         if (d < 0) {
             return null;
         }
@@ -76,4 +75,14 @@ public abstract class LinearReference {
      * @return The new point, and null if the distance is not in the range of the line segment
      */
     public abstract Point reference(LineSegment lineSegment, double d);
+
+    /**
+     * Finds the point on the line segment between the given points which is distance d from a
+     *
+     * @param a
+     * @param b
+     * @param d
+     * @return The new point, and null if the distance is not in the range of the line segment
+     */
+    protected abstract Point reference(Point a, Point b, double d);
 }

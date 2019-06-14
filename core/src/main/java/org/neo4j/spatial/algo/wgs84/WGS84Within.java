@@ -15,7 +15,7 @@ public class WGS84Within {
     public static boolean within(Polygon.SimplePolygon polygon, Point point) {
         Point[] points = polygon.getPoints();
 
-        double courseDelta = WGSUtil.courseDelta(polygon);
+        double courseDelta = WGSUtil.courseDelta(polygon.getPoints());
 
         if (courseDelta > 270) {
             //The polygon does not contain a pole

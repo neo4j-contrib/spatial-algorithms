@@ -172,7 +172,7 @@ public class WGS84MCSweepLineIntersect extends WGS84Intersect {
             return false;
         }
         for (Polygon.SimplePolygon polygon : polygons) {
-            double courseDelta = WGSUtil.courseDelta(polygon);
+            double courseDelta = WGSUtil.courseDelta(polygon.getPoints());
             if (courseDelta < 270) {
                 //Polygon is around a Pole
                 return false;

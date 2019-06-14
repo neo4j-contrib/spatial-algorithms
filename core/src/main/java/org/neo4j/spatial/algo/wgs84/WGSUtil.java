@@ -33,9 +33,7 @@ public class WGSUtil {
         return (WGSUtil.initialBearing(end, start) + 180) % 360;
     }
 
-    public static double courseDelta(Polygon.SimplePolygon polygon) {
-        Point[] points = polygon.getPoints();
-
+    public static double courseDelta(Point[] points) {
         double sum = 0;
         double previous = 0;
         boolean first = true;

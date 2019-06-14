@@ -9,13 +9,16 @@ import org.neo4j.spatial.core.Vector;
 public class WGS84LinearReference extends LinearReference {
     @Override
     public Point reference(LineSegment lineSegment, double d) {
+        return reference(lineSegment.getPoints()[0], lineSegment.getPoints()[1], d);
+    }
+
+    @Override
+    protected Point reference(Point a, Point b, double d) {
         if (d < 0) {
             return null;
         }
 
-        Point p = lineSegment.getPoints()[0];
-        Point q = lineSegment.getPoints()[1];
-        double length = DistanceCalculator.distance(p, q);
+        double length = DistanceCalculator.distance(a, b);
 
         if (length < d) {
             return null;
@@ -23,8 +26,8 @@ public class WGS84LinearReference extends LinearReference {
 
         double fraction = d / length;
 
-        Vector u = new Vector(p);
-        Vector v = new Vector(q);
+        Vector u = new Vector(a);
+        Vector v = new Vector(b);
 
         return u.add(v.subtract(u).multiply(fraction)).toPoint();
     }

@@ -32,11 +32,11 @@ public class LinearReferenceCalculator {
      * @param d
      * @return The new point, and null if the distance is negative
      */
-    public static Point reference(Polygon.SimplePolygon polygon, double d) {
+    public static Point reference(Polygon.SimplePolygon polygon, Point start, Point direction, double d) {
         if (CRSChecker.check(polygon) == CRS.Cartesian) {
-            return getCartesian().reference(polygon, d);
+            return getCartesian().reference(polygon, start, direction, d);
         } else {
-            return getWGS84().reference(polygon, d);
+            return getWGS84().reference(polygon, start, direction, d);
         }
     }
 

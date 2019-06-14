@@ -32,10 +32,18 @@ public class CartesianLinearReferenceTest {
                 Point.point(CRS.Cartesian, -10, 10)
         );
 
-        assertThat(LinearReferenceCalculator.reference(p, 0), equalTo(Point.point(CRS.Cartesian, -10, -10)));
-        assertThat(LinearReferenceCalculator.reference(p, 10), equalTo(Point.point(CRS.Cartesian, 0, -10)));
-        assertThat(LinearReferenceCalculator.reference(p, 25), equalTo(Point.point(CRS.Cartesian, 10, -5)));
-        assertThat(LinearReferenceCalculator.reference(p, 125), equalTo(Point.point(CRS.Cartesian, 5, 10)));
-        assertThat(LinearReferenceCalculator.reference(p, -1), is(nullValue()));
+        //Forward
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 0), equalTo(Point.point(CRS.Cartesian, -10, -10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 10), equalTo(Point.point(CRS.Cartesian, 0, -10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 25), equalTo(Point.point(CRS.Cartesian, 10, -5)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], 125), equalTo(Point.point(CRS.Cartesian, 5, 10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[1], -1), is(nullValue()));
+
+        //Backward
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], 0), equalTo(Point.point(CRS.Cartesian, -10, -10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], 10), equalTo(Point.point(CRS.Cartesian, -10, 0)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], 25), equalTo(Point.point(CRS.Cartesian, -5, 10)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], 125), equalTo(Point.point(CRS.Cartesian, 10, 5)));
+        assertThat(LinearReferenceCalculator.reference(p, p.getPoints()[0], p.getPoints()[3], -1), is(nullValue()));
     }
 }
