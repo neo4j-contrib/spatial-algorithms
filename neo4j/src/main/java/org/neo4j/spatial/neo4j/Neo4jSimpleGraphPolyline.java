@@ -1,19 +1,27 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.traversal.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Traverser;
+import org.neo4j.graphdb.traversal.Uniqueness;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
 
 import java.util.Arrays;
 import java.util.Iterator;
 
 import static java.lang.String.format;
 
-public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
+public abstract class Neo4jSimpleGraphPolyline implements Polyline {
     private long osmRelationId;
     private ResourceIterator<Node> nodeIterator;
     boolean traversing;
@@ -22,7 +30,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     Node main;
     Point startPoint;
 
-    public Neo4jSimpleGraphPolygon(Node main, long osmRelationId) {
+    public Neo4jSimpleGraphPolyline(Node main, long osmRelationId) {
         this.osmRelationId = osmRelationId;
         this.traversing = false;
         this.pointer = null;
@@ -89,6 +97,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                 this.startPoint = extracted;
             }
         }
+
         Pair<Direction, Direction> directions = getClosestNeighborToDirection(directionPoint);
         this.nodeIterator = getNewTraverser(this.start, directions.first(), directions.other()).nodes().iterator();
     }

@@ -1,6 +1,7 @@
 package org.neo4j.spatial.neo4j;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.graphdb.*;
@@ -8,6 +9,7 @@ import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.internal.kernel.api.exceptions.KernelException;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.PointValue;
@@ -73,7 +75,7 @@ public class Neo4jDataTest {
                     Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 20),
                     Values.pointValue(CoordinateReferenceSystem.Cartesian, -10, 10)
             });
-            simplePolygon = Neo4jArrayToInMemoryConverter.convertToInMemory(node);
+            simplePolygon = Neo4jArrayToInMemoryConverter.convertToInMemoryPolygon(node);
             tx.success();
         }
 
@@ -186,7 +188,7 @@ public class Neo4jDataTest {
             wayNodes[n] = db.createNode();
             wayNodes[n+1] = db.createNode();
 
-            for (int i = 0; i < n/2; i++) {
+            for (int i = 0; i < n/2-1; i++) {
                 wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (n)], Relation.NEXT);
             }
 
@@ -242,6 +244,163 @@ public class Neo4jDataTest {
                 idx = ((idx-1) % (n) + (n)) % (n);
             }
             assertThat(idx, equalTo(4)); //n+1 iterations
+
+            tx.success();
+        }
+    }
+
+    @Test
+    public void shouldTraverseSingleWayPolyline() {
+        Polyline polyline;
+        long osmRelationId = 1;
+
+        int n = 10;
+        Node[] wayNodes = new Node[n];
+        Node[] nodes = new Node[n];
+        double[][] points = getPoints(n);
+
+        try (Transaction tx = db.beginTx()) {
+            for (int i = 0; i < n; i++) {
+                wayNodes[i] = db.createNode();
+                nodes[i] = db.createNode();
+
+                PointValue point;
+                int half = n / 2;
+                if (i < half) {
+                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
+                } else {
+                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
+                }
+
+                nodes[i].setProperty("location", point);
+                wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
+            }
+
+            for (int i = 0; i < n-1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+
+            polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
+
+            org.neo4j.spatial.core.Point[] polylinePoints = polyline.getPoints();
+            for (int i = 0; i < polylinePoints.length; i++) {
+                assertThat(polylinePoints[i].getCoordinate()[0], equalTo(points[i % n][0]));
+                assertThat(polylinePoints[i].getCoordinate()[1], equalTo(points[i % n][1]));
+            }
+
+            polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 2));
+            int i = 0;
+            while (!polyline.fullyTraversed()) {
+                org.neo4j.spatial.core.Point point = polyline.getNextPoint();
+                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
+                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                i++;
+            }
+
+            polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 2));
+            i = n-1;
+            while (!polyline.fullyTraversed()) {
+                org.neo4j.spatial.core.Point point = polyline.getNextPoint();
+                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
+                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                i--;
+            }
+
+            polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 8), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 8));
+            i = 5;
+            while (!polyline.fullyTraversed()) {
+                org.neo4j.spatial.core.Point point = polyline.getNextPoint();
+                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
+                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                i--;
+            }
+
+            tx.success();
+        }
+    }
+
+    @Test
+    public void shouldTraverseTwoWayPolyline() {
+        Polyline polyline;
+        long osmRelationId = 1;
+
+        int n = 10;
+        Node[] wayNodes = new Node[n+1];
+        Node[] nodes = new Node[n];
+        double[][] points = getPoints(n);
+
+        try (Transaction tx = db.beginTx()) {
+            for (int i = 0; i < n; i++) {
+                wayNodes[i] = db.createNode();
+                nodes[i] = db.createNode();
+
+                PointValue point;
+                int half = n / 2;
+                if (i < half) {
+                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
+                } else {
+                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
+                }
+
+                nodes[i].setProperty("location", point);
+                wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
+            }
+
+            wayNodes[n] = db.createNode();
+
+            for (int i = 0; i < n/2-1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+
+            for (int i = n/2+1; i < n-1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+
+            wayNodes[n].createRelationshipTo(nodes[n/2], Relation.NODE);
+            wayNodes[n/2-1].createRelationshipTo(wayNodes[n], Relation.NEXT);
+            wayNodes[n].createRelationshipTo(wayNodes[n/2+1], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
+
+            polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
+            int idx;
+
+            org.neo4j.spatial.core.Point[] polylinePoints = polyline.getPoints();
+            for (int i = 0; i < polylinePoints.length; i++) {
+                assertThat(polylinePoints[i].getCoordinate()[0], equalTo(points[i][0]));
+                assertThat(polylinePoints[i].getCoordinate()[1], equalTo(points[i][1]));
+            }
+            assertThat(polylinePoints.length, equalTo(n)); //n iterations
+
+            polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 2));
+            idx = 0;
+            while (!polyline.fullyTraversed()) {
+                org.neo4j.spatial.core.Point point = polyline.getNextPoint();
+                assertThat(point.getCoordinate()[0], equalTo(points[idx][0]));
+                assertThat(point.getCoordinate()[1], equalTo(points[idx][1]));
+                idx++;
+            }
+            assertThat(idx, equalTo(n)); //n iterations
+
+
+            polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 2));
+            idx = n-1;
+            while (!polyline.fullyTraversed()) {
+                org.neo4j.spatial.core.Point point = polyline.getNextPoint();
+                assertThat(point.getCoordinate()[0], equalTo(points[idx][0]));
+                assertThat(point.getCoordinate()[1], equalTo(points[idx][1]));
+                idx--;
+            }
+            assertThat(idx, equalTo(-1)); //n iterations
+
+
+            polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 8), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 8));
+            idx = 5;
+            while (!polyline.fullyTraversed()) {
+                org.neo4j.spatial.core.Point point = polyline.getNextPoint();
+                assertThat(point.getCoordinate()[0], equalTo(points[idx][0]));
+                assertThat(point.getCoordinate()[1], equalTo(points[idx][1]));
+                idx--;
+            }
+            assertThat(idx, equalTo(-1)); //6 iterations
 
             tx.success();
         }

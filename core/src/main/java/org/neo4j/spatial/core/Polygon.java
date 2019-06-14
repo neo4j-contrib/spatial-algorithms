@@ -196,10 +196,15 @@ public interface Polygon {
 
         @Override
         public Point getNextPoint() {
-            this.traversing = true;
-            Point point = points[pointer];
-            pointer = ((pointer + direction) % (points.length - 1) + (points.length - 1)) % (points.length - 1);
-            return point;
+            if (pointer == start ) {
+                this.traversing = true;
+            }
+            pointer = nextIndex(pointer, direction);
+            return points[pointer];
+        }
+
+        private int nextIndex(int idx, int direction) {
+            return ((idx + direction) % (points.length - 1) + (points.length - 1)) % (points.length - 1);
         }
 
         @Override
@@ -216,16 +221,16 @@ public interface Polygon {
             }
 
             this.start = minIdx;
-            this.pointer = minIdx;
 
             double forwardDistance = distance(directionPoint, points[(minIdx + 1) % (points.length - 1)]);
-            int backwardsIdx = ((minIdx - 1) % (points.length - 1) + (points.length - 1)) % (points.length - 1);
+            int backwardsIdx = nextIndex(minIdx, -1);
             double backwardDistance = distance(directionPoint, points[backwardsIdx]);
             if (forwardDistance < backwardDistance) {
                 this.direction = 1;
             } else {
                 this.direction = -1;
             }
+            this.pointer = nextIndex(minIdx, -direction);
         }
 
         private double distance(Point start, Point point) {
@@ -242,7 +247,7 @@ public interface Polygon {
         public void startTraversal() {
             this.traversing = false;
             this.start = 0;
-            this.pointer = 0;
+            this.pointer = -1;
             this.direction = 1;
         }
 

@@ -167,7 +167,7 @@ public class UserDefinedFunctions {
         for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
             Node child = polygonStructure.getEndNode();
 
-            Polygon.SimplePolygon polygon = Neo4jArrayToInMemoryConverter.convertToInMemory(child);
+            Polygon.SimplePolygon polygon = Neo4jArrayToInMemoryConverter.convertToInMemoryPolygon(child);
             MultiPolygon.MultiPolygonNode childNode = new MultiPolygon.MultiPolygonNode(polygon);
             multiPolygon.addChild(childNode);
 

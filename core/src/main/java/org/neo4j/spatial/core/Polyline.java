@@ -1,5 +1,9 @@
 package org.neo4j.spatial.core;
 
+import org.neo4j.spatial.algo.CRSChecker;
+import org.neo4j.spatial.algo.cartesian.CartesianUtil;
+import org.neo4j.spatial.algo.wgs84.WGSUtil;
+
 import java.util.Arrays;
 import java.util.StringJoiner;
 
@@ -42,6 +46,14 @@ public interface Polyline {
 
     Point[] getPoints();
 
+    Point getNextPoint();
+
+    void startTraversal(Point startPoint, Point directionPoint);
+
+    void startTraversal();
+
+    boolean fullyTraversed();
+
     /**
      * Outputs the WKT string of the polygon
      *
@@ -66,6 +78,9 @@ public interface Polyline {
     }
     class InMemoryPolyline implements Polyline {
         private Point[] points;
+        private int pointer;
+        private int direction;
+        private boolean traversing;
 
         private InMemoryPolyline(Point... points) {
             this.points = points;
@@ -83,6 +98,70 @@ public interface Polyline {
         @Override
         public Point[] getPoints() {
             return this.points;
+        }
+
+        @Override
+        public Point getNextPoint() {
+            this.traversing = true;
+            Point point = points[pointer];
+            pointer = pointer + direction;
+            return point;
+        }
+
+        @Override
+        public void startTraversal(Point startPoint, Point directionPoint) {
+            this.traversing = false;
+            double minDistance = Double.MAX_VALUE;
+            int minIdx = 0;
+            for (int i = 0; i < this.points.length; i++) {
+                double currentDistance = distance(startPoint, points[i]);
+                if (currentDistance < minDistance) {
+                    minDistance = currentDistance;
+                    minIdx = i;
+                }
+            }
+
+            this.pointer = minIdx;
+
+            int forwardIdx = minIdx + 1;
+            int backwardsIdx = minIdx - 1;
+            double forwardDistance = Double.MAX_VALUE;
+            double backwardDistance = Double.MAX_VALUE;
+
+            if (forwardIdx < points.length) {
+                forwardDistance = distance(directionPoint, points[forwardIdx]);
+            }
+
+            if (backwardsIdx >= 0) {
+                backwardDistance = distance(directionPoint, points[backwardsIdx]);
+            }
+            if (forwardDistance < backwardDistance) {
+                this.direction = 1;
+            } else {
+                this.direction = -1;
+            }
+        }
+
+        private double distance(Point start, Point point) {
+            if (CRSChecker.check(start, point) == CRS.Cartesian) {
+                return CartesianUtil.distance(start.getCoordinate(), point.getCoordinate());
+            } else {
+                Vector u = new Vector(start);
+                Vector v = new Vector(point);
+                return WGSUtil.distance(u, v);
+            }
+        }
+
+        @Override
+        public void startTraversal() {
+            this.traversing = false;
+            this.pointer = 0;
+            this.direction = 1;
+        }
+
+        @Override
+        public boolean fullyTraversed() {
+            return (pointer < 0 || pointer >= points.length) && this.traversing;
         }
 
         @Override
