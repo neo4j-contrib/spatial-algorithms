@@ -7,7 +7,7 @@ import org.neo4j.spatial.core.Polygon;
 public class CartesianCCW implements CCW {
     @Override
     public boolean isCCW(Polygon.SimplePolygon polygon) {
-        return shoelace(polygon.getPoints()) < 0;
+        return shoelace(polygon) < 0;
     }
 
     @Override
@@ -18,7 +18,7 @@ public class CartesianCCW implements CCW {
     /**
      * @return Twice the area of the polygon using the shoelace algorithm
      */
-    public static double shoelace(Point[] points) {
+    private static double shoelace(Point[] points) {
         double sum = 0;
 
         for (int i = 0; i < points.length-1; i++) {
@@ -26,6 +26,23 @@ public class CartesianCCW implements CCW {
             double[] b = points[i + 1].getCoordinate();
 
             sum += (b[0] - a[0]) * (b[1] + a[0]);
+        }
+        return sum;
+    }
+
+    /**
+     * @return Twice the area of the polygon using the shoelace algorithm
+     */
+    public static double shoelace(Polygon.SimplePolygon polygon) {
+        double sum = 0;
+
+        polygon.startTraversal();
+        double[] previous = polygon.getNextPoint().getCoordinate();
+        while (!polygon.fullyTraversed()) {
+            double[] current = polygon.getNextPoint().getCoordinate();
+
+            sum += (current[0] - previous[0]) * (current[1] + previous[0]);
+            previous = current;
         }
         return sum;
     }

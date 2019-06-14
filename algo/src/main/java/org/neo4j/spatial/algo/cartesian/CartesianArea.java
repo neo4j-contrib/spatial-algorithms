@@ -6,6 +6,6 @@ import org.neo4j.spatial.core.Polygon;
 public class CartesianArea extends Area {
     @Override
     public double area(Polygon.SimplePolygon polygon) {
-        return Math.abs(CartesianCCW.shoelace(polygon.getPoints())/2);
+        return Math.abs(CartesianCCW.shoelace(polygon)/2);
     }
 }

@@ -17,10 +17,18 @@ public class WGS84Area extends Area {
         int n = points.length - 1;
         Vector[] greatCircles = new Vector[n];
 
-        for (int i = 0; i < n; i++) {
-            Vector u = new Vector(points[i]);
-            Vector v = new Vector(points[i+1]);
-            greatCircles[i] = u.cross(v);
+        polygon.startTraversal();
+        Point previous = polygon.getNextPoint();
+        int idx = 0;
+        while (!polygon.fullyTraversed()) {
+            Point current = polygon.getNextPoint();
+            Vector u = new Vector(previous);
+            Vector v = new Vector(current);
+
+            greatCircles[idx] = u.cross(v);
+
+            previous = current;
+            idx++;
         }
 
         Vector n1 = new Vector(points[0]);
