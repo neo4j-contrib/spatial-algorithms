@@ -7,7 +7,7 @@ import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
-import org.neo4j.spatial.algo.cartesian.ConvexHull;
+import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianNaiveIntersect;
 import org.neo4j.spatial.algo.cartesian.CartesianWithin;
@@ -236,7 +236,7 @@ public class UserDefinedFunctions {
 
     @UserFunction("neo4j.convexHullPoints")
     public List<Point> convexHullPoints(@Name("points") List<Point> points) {
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(asPoints(points));
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(asPoints(points));
 
         return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
@@ -244,7 +244,7 @@ public class UserDefinedFunctions {
     @UserFunction("neo4j.convexHullArray")
     public List<Point> convexHullArray(@Name("main") Node main) {
         MultiPolygon multiPolygon = getArrayPolygon(main);
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(multiPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
         return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
@@ -252,7 +252,7 @@ public class UserDefinedFunctions {
     @UserFunction("neo4j.convexHullGraphNode")
     public List<Point> convexHullGraphNode(@Name("main") Node main) {
         MultiPolygon multiPolygon = getGraphNodePolygon(main);
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(multiPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
         return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
@@ -260,7 +260,7 @@ public class UserDefinedFunctions {
     @UserFunction("neo4j.convexHullGraphID")
     public List<Point> convexHullGraphID(@Name("main") Node main) {
         MultiPolygon multiPolygon = getGraphIDPolygon(main);
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(multiPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
         return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }

@@ -8,6 +8,7 @@ import org.neo4j.spatial.core.Vector;
 
 public class WGSUtil {
     public final static Vector NORTH_POLE = new Vector(0, 0, 1);
+    public final static Vector SOUTH_POLE = new Vector(0, 0, -1);
     public final static double RADIUS = 6371e3;;
 
     public static double initialBearing(Point start, Point end) {

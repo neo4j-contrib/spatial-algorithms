@@ -2,7 +2,7 @@ package org.neo4j.spatial.algo;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.neo4j.spatial.algo.cartesian.ConvexHull;
+import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
@@ -11,12 +11,12 @@ import org.neo4j.spatial.core.Polygon;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class ConvexHullTest {
+public class CartesianConvexHullTest {
 
     @Test
     public void convexHull() {
         Polygon.SimplePolygon testPolygon = makeSimpleTestPolygon();
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(testPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(testPolygon);
 
         System.out.println(testPolygon.toWKT());
         System.out.println(convexHull.toWKT());
@@ -34,7 +34,7 @@ public class ConvexHullTest {
     @Test
     public void convexHullCollinear() {
         Polygon.SimplePolygon testPolygon = makeCollinearPolygon();
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(testPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(testPolygon);
 
         System.out.println(testPolygon.toWKT());
         System.out.println(convexHull.toWKT());
@@ -51,7 +51,7 @@ public class ConvexHullTest {
     @Test
     public void convexHullCollinearFromReference() {
         Polygon.SimplePolygon testPolygon = makeCollinearPolygonFromReference();
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(testPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(testPolygon);
 
         System.out.println(testPolygon.toWKT());
         System.out.println(convexHull.toWKT());
@@ -68,7 +68,7 @@ public class ConvexHullTest {
     @Test
     public void convexHullStar() {
         Polygon.SimplePolygon testPolygon = makeStar();
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(testPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(testPolygon);
 
         System.out.println(testPolygon.toWKT());
         System.out.println(convexHull.toWKT());
@@ -86,7 +86,7 @@ public class ConvexHullTest {
     @Test
     public void convexHullHard() {
         Polygon.SimplePolygon testPolygon = makeHardTestPolygon();
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(testPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(testPolygon);
 
         System.out.println(testPolygon.toWKT());
         System.out.println(convexHull.toWKT());
@@ -110,7 +110,7 @@ public class ConvexHullTest {
     public void convexHullPrecision() {
         //TODO Is this precision high enough?
         Polygon.SimplePolygon testPolygon = makeHighPrecisionPolygon();
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(testPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(testPolygon);
 
         System.out.println(testPolygon.toWKT());
         System.out.println(convexHull.toWKT());
@@ -127,7 +127,7 @@ public class ConvexHullTest {
     @Test
     public void shouldMakeConvexHullFromMultiPolygon() {
         MultiPolygon multiPolygon = makeMultiPolygon();
-        Polygon.SimplePolygon convexHull = ConvexHull.convexHull(multiPolygon);
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
         System.out.println(multiPolygon.toWKT());
         System.out.println(convexHull.toWKT());

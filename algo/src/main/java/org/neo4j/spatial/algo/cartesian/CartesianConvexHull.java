@@ -2,6 +2,7 @@ package org.neo4j.spatial.algo.cartesian;
 
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.algo.DistanceCalculator;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -10,9 +11,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class ConvexHull {
+public class CartesianConvexHull {
     /**
      * Computes the convex hull of a multipolygon using Graham's scan
      *
@@ -62,6 +65,30 @@ public class ConvexHull {
     }
 
     /**
+     * Computes the convex hull of a set of points using Graham's scan
+     *
+     * @param points
+     * @return Ordered list of indices of the input which together form the convex hull
+     */
+    public static int[] convexHullByIndex(Point[] points) {
+        Point reference = getLowestPoint(points);
+        List<Integer> sortedPoints = sortIndices(points, reference);
+
+        Stack<Integer> stack = new Stack<>();
+
+        for (int current : sortedPoints) {
+            //Remove last point from the stack if we make a clockwise turn (that point makes the hull concave)
+            while (stack.size() > 1 && AlgoUtil.ccw(points[stack.get(stack.size()-2)], points[stack.peek()], points[current]) <= 0) {
+                stack.pop();
+
+            }
+            stack.push(current);
+        }
+
+        return stack.stream().mapToInt(i -> i).toArray();
+    }
+
+    /**
      * Sorts the points based on their polar angle with respect to the reference point.
      * Ties are broken based on the distance to the reference point
      *
@@ -92,9 +119,39 @@ public class ConvexHull {
     }
 
     /**
+     * Sorts the points based on their polar angle with respect to the reference point.
+     * Ties are broken based on the distance to the reference point
+     *
+     * @param points
+     * @param reference
+     * @return Sorted list of points
+     */
+    private static List<Integer> sortIndices(Point[] points, Point reference) {
+        List<Integer> sortedIndices = IntStream.range(0, points.length).boxed().collect(Collectors.toList());;
+        sortedIndices.sort((a, b) -> comparePoints(reference, points[a], points[b]));
+
+        //Remove points with same polar angle but shorter distance to reference
+        List<Integer> toDelete = new ArrayList<>();
+        for (int i = 1; i < sortedIndices.size() - 1; i++) {
+            int a = sortedIndices.get(i);
+            int b = sortedIndices.get(i+1);
+
+            double angleA = getPolarAngle(reference, points[a]);
+            double angleB = getPolarAngle(reference, points[b]);
+            if (AlgoUtil.equal(angleA, angleB)) {
+                toDelete.add(i - toDelete.size());
+            }
+        }
+        for (Integer index: toDelete) {
+            sortedIndices.remove((int) index);
+        }
+        return sortedIndices;
+    }
+
+    /**
      * Returns the point with lowest y-value. If multiple points have the same y-value, return the one of those points with the lowest x-value
      *
-     * @param inputPoints the array of points from which we will pick the lowest poin
+     * @param inputPoints the array of points from which we will pick the lowest point
      * @return Point with lowest y-value (and lowest x-value of the points with the same y-value)
      */
     private static Point getLowestPoint(Point[] inputPoints) {
