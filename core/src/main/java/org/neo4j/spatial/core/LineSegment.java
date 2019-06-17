@@ -43,6 +43,8 @@ public interface LineSegment {
         return segment.getPoints()[1].getCoordinate()[0] - segment.getPoints()[0].getCoordinate()[0];
     }
 
+    CRS getCRS();
+
     int dimension();
 
     String toWKT();
@@ -59,10 +61,17 @@ class InMemoryLineSegment implements LineSegment {
         if (a.dimension() != b.dimension()) {
             throw new IllegalArgumentException("Cannot create line segment from points with different dimensions");
         }
+        if (a.getCRS() != b.getCRS()) {
+            throw new IllegalArgumentException("Cannot create line segment from points with different coordinate reference systems");
+        }
         this.points = new Point[]{a,b};
     }
 
     public boolean equals(LineSegment other) {
+        if (this.points[0].getCRS() != other.getPoints()[0].getCRS()) {
+            return false;
+        }
+
         int a, b;
         a = b = -1;
         for (int i = 0; i < 2; i++) {
@@ -79,6 +88,11 @@ class InMemoryLineSegment implements LineSegment {
 
     public boolean equals(Object other) {
         return other instanceof LineSegment && this.equals((LineSegment) other);
+    }
+
+    @Override
+    public CRS getCRS() {
+        return points[0].getCRS();
     }
 
     @Override

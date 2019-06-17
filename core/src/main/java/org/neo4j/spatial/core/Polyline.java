@@ -14,12 +14,22 @@ public interface Polyline {
         return new InMemoryPolyline(points);
     }
 
-    static void assertAllSameDimension(Point... points) {
+    static int assertAllSameDimension(Point... points) {
         for (int i = 1; i < points.length; i++) {
             if (points[0].dimension() != points[i].dimension()) {
                 throw new IllegalArgumentException(format("Point[%d] has different dimension to Point[%d]: %d != %d", i, 0, points[i].dimension(), points[0].dimension()));
             }
         }
+        return points[0].dimension();
+    }
+
+    static CRS assertAllSameCRS(Point... points) {
+        for (int i = 1; i < points.length; i++) {
+            if (points[0].getCRS() != points[i].getCRS()) {
+                throw new IllegalArgumentException(format("Point[%d] has different coordinate reference system to Point[%d]: %d != %d", i, 0, points[i].dimension(), points[0].dimension()));
+            }
+        }
+        return points[0].getCRS();
     }
 
     /**
@@ -39,6 +49,8 @@ public interface Polyline {
 
         return output;
     }
+
+    CRS getCRS();
 
     int dimension();
 
@@ -81,6 +93,7 @@ public interface Polyline {
         private int pointer;
         private int direction;
         private boolean traversing;
+        private CRS crs;
 
         private InMemoryPolyline(Point... points) {
             this.points = points;
@@ -88,6 +101,12 @@ public interface Polyline {
                 throw new IllegalArgumentException("Polyline cannot have less than 2 points");
             }
             Polyline.assertAllSameDimension(this.points);
+            crs = Polyline.assertAllSameCRS(this.points);
+        }
+
+        @Override
+        public CRS getCRS() {
+            return crs;
         }
 
         @Override

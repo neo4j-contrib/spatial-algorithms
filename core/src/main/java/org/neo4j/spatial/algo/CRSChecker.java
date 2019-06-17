@@ -4,87 +4,87 @@ import org.neo4j.spatial.core.*;
 
 public class CRSChecker {
     public static CRS check(Point point) {
-        return getCRS(point);
+        return point.getCRS();
     }
 
     public static CRS check(Polyline polyline) {
-        return getCRS(polyline);
+        return polyline.getCRS();
     }
 
     public static CRS check(Polygon polygon) {
-        return getCRS(polygon);
+        return polygon.getCRS();
     }
 
     public static CRS check(LineSegment lineSegment) {
-        return getCRS(lineSegment);
+        return lineSegment.getCRS();
     }
 
     public static CRS check(Polygon a, Polygon b) throws IllegalArgumentException {
-        CRS x = getCRS(a);
-        CRS y = getCRS(b);
+        CRS x = a.getCRS();
+        CRS y = b.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(Polygon polygon, LineSegment lineSegment) throws IllegalArgumentException {
-        CRS x = getCRS(polygon);
-        CRS y = getCRS(lineSegment);
+        CRS x = polygon.getCRS();
+        CRS y = lineSegment.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(Polygon polygon, Point point) throws IllegalArgumentException {
-        CRS x = getCRS(polygon);
-        CRS y = getCRS(point);
+        CRS x = polygon.getCRS();
+        CRS y = point.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(Polygon polygon, Polyline polyline) throws IllegalArgumentException {
-        CRS x = getCRS(polygon);
-        CRS y = getCRS(polyline);
+        CRS x = polygon.getCRS();
+        CRS y = polyline.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(Polyline a, Polyline b) throws IllegalArgumentException {
-        CRS x = getCRS(a);
-        CRS y = getCRS(b);
+        CRS x = a.getCRS();
+        CRS y = b.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(Polyline polyline, LineSegment lineSegment) throws IllegalArgumentException {
-        CRS x = getCRS(polyline);
-        CRS y = getCRS(lineSegment);
+        CRS x = polyline.getCRS();
+        CRS y = lineSegment.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(Polyline polyline, Point point) throws IllegalArgumentException {
-        CRS x = getCRS(polyline);
-        CRS y = getCRS(point);
+        CRS x = polyline.getCRS();
+        CRS y = point.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(LineSegment lineSegment, Point point) throws IllegalArgumentException {
-        CRS x = getCRS(lineSegment);
-        CRS y = getCRS(point);
+        CRS x = lineSegment.getCRS();
+        CRS y = point.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(LineSegment a, LineSegment b) throws IllegalArgumentException {
-        CRS x = getCRS(a);
-        CRS y = getCRS(b);
+        CRS x = a.getCRS();
+        CRS y = b.getCRS();
 
         return check(x, y);
     }
 
     public static CRS check(Point p1, Point p2) throws IllegalArgumentException {
-        CRS x = getCRS(p1);
-        CRS y = getCRS(p2);
+        CRS x = p1.getCRS();
+        CRS y = p2.getCRS();
 
         return check(x, y);
     }
@@ -94,21 +94,5 @@ public class CRSChecker {
             throw new IllegalArgumentException("Incompatible Cooordinate Reference Systems");
         }
         return x;
-    }
-
-    private static CRS getCRS(Point point) {
-        return point.getCRS();
-    }
-
-    private static CRS getCRS(Polyline polyline) {
-        return polyline.getPoints()[0].getCRS();
-    }
-
-    private static CRS getCRS(Polygon polygon) {
-        return polygon.getShells()[0].getPoints()[0].getCRS();
-    }
-
-    private static CRS getCRS(LineSegment lineSegment) {
-        return lineSegment.getPoints()[0].getCRS();
     }
 }

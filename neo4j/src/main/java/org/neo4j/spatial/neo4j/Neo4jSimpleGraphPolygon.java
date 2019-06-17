@@ -5,6 +5,7 @@ import org.neo4j.graphdb.traversal.*;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.algo.DistanceCalculator;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
@@ -15,6 +16,7 @@ import static java.lang.String.format;
 
 public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     private long osmRelationId;
+    private CRS crs;
     private ResourceIterator<Node> nodeIterator;
     boolean traversing;
     Node pointer;
@@ -28,6 +30,12 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         this.pointer = null;
         this.main = main;
         this.start = main;
+        crs = extractPoint(main).getCRS();
+    }
+
+    @Override
+    public CRS getCRS() {
+        return crs;
     }
 
     @Override

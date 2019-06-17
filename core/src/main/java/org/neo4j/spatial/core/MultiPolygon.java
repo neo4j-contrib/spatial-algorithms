@@ -11,7 +11,18 @@ public class MultiPolygon implements Polygon {
         this.children = new ArrayList<>();
     }
 
+    @Override
+    public CRS getCRS() {
+        if (children.isEmpty()) {
+            return null;
+        }
+        return children.get(0).getCRS();
+    }
+
     public boolean insertPolygon(SimplePolygon polygon) {
+        if (!children.isEmpty() && children.get(0).getCRS() != polygon.getCRS()) {
+            return false;
+        }
         return insertMultiPolygonNode(new MultiPolygonNode(polygon));
     }
 
@@ -22,6 +33,9 @@ public class MultiPolygon implements Polygon {
      * @return
      */
     public boolean insertMultiPolygonNode(MultiPolygonNode other) {
+        if (!children.isEmpty() && children.get(0).getCRS() != other.getCRS()) {
+            return false;
+        }
         for (MultiPolygonNode child : children) {
             boolean inserted = child.insertMultiPolygonNode(other);
             if (inserted) {
@@ -105,6 +119,11 @@ public class MultiPolygon implements Polygon {
             super();
             this.polygon = polygon;
             this.parent = null;
+        }
+
+        @Override
+        public CRS getCRS() {
+            return polygon.getCRS();
         }
 
         /**
