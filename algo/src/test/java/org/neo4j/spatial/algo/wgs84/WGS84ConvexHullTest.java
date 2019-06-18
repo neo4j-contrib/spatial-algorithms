@@ -1,6 +1,8 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
@@ -11,9 +13,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 public class WGS84ConvexHullTest {
+    @Rule
+    public ExpectedException exceptionGrabber = ExpectedException.none();
 
     @Test
-    public void convexHull() {
+    public void convexHullNorthAmerica() {
         Point[] points = new Point[]{
                 Point.point(CRS.WGS84, -123.652078353, 34.4631422394),
                 Point.point(CRS.WGS84, -112.901188304, 27.9167652027),
@@ -135,5 +139,52 @@ public class WGS84ConvexHullTest {
         Polygon.SimplePolygon actual = WGS84ConvexHull.convexHull(points);
 
         assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void convexHullNorthPole() {
+        Point[] points = new Point[]{
+                Point.point(CRS.WGS84, 0, 85),
+                Point.point(CRS.WGS84, 90, 85),
+                Point.point(CRS.WGS84, 90, 90),
+                Point.point(CRS.WGS84, 0, 87),
+                Point.point(CRS.WGS84, -90, 88),
+                Point.point(CRS.WGS84, 180, 85),
+                Point.point(CRS.WGS84, -90, 85),
+        };
+        Polygon.SimplePolygon expected = Polygon.simple(
+                Point.point(CRS.WGS84, 0, 85),
+                Point.point(CRS.WGS84, 90, 85),
+                Point.point(CRS.WGS84, 180, 85),
+                Point.point(CRS.WGS84, -90, 85)
+        );
+
+        Polygon.SimplePolygon actual = WGS84ConvexHull.convexHull(points);
+
+        assertThat(actual, equalTo(expected));
+    }
+
+    @Test
+    public void noConvexHullBothPoles() {
+        Point[] points = new Point[]{
+                Point.point(CRS.WGS84, 0, 85),
+                Point.point(CRS.WGS84, 90, 85),
+                Point.point(CRS.WGS84, 90, 90),
+                Point.point(CRS.WGS84, 0, 87),
+                Point.point(CRS.WGS84, -90, 88),
+                Point.point(CRS.WGS84, 180, 85),
+                Point.point(CRS.WGS84, -90, 85),
+                Point.point(CRS.WGS84, 0, -85),
+                Point.point(CRS.WGS84, 90, -85),
+                Point.point(CRS.WGS84, 90, -90),
+                Point.point(CRS.WGS84, 0, -87),
+                Point.point(CRS.WGS84, -90, -88),
+                Point.point(CRS.WGS84, 180, -85),
+                Point.point(CRS.WGS84, -90, -85),
+        };
+
+        exceptionGrabber.expect(IllegalArgumentException.class);
+        exceptionGrabber.expectMessage("Points do not lie all on the same hemisphere");
+        WGS84ConvexHull.convexHull(points);
     }
 }
