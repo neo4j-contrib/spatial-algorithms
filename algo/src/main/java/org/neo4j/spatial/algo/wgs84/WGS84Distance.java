@@ -124,6 +124,14 @@ public class WGS84Distance extends Distance {
     }
 
     @Override
+    public double distance(LineSegment lineSegment) {
+        Point u = lineSegment.getPoints()[0];
+        Point v = lineSegment.getPoints()[1];
+
+        return distance(u, v);
+    }
+
+    @Override
     public double distance(LineSegment lineSegment, Point point) {
         Vector u1 = new Vector(lineSegment.getPoints()[0]);
         Vector u2 = new Vector(lineSegment.getPoints()[1]);

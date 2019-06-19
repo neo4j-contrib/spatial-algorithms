@@ -130,6 +130,14 @@ public class CartesianDistance extends Distance {
     }
 
     @Override
+    public double distance(LineSegment lineSegment) {
+        Point u = lineSegment.getPoints()[0];
+        Point v = lineSegment.getPoints()[1];
+
+        return distance(u, v);
+    }
+
+    @Override
     public double distance(LineSegment lineSegment, Point point) {
         Point u = lineSegment.getPoints()[0];
         Point v = lineSegment.getPoints()[1];

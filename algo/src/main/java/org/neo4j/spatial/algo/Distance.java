@@ -57,6 +57,12 @@ public abstract class Distance {
 
     /**
      * @param lineSegment
+     * @return The distance between the two end points of a line segment
+     */
+    public abstract double distance(LineSegment lineSegment);
+
+    /**
+     * @param lineSegment
      * @param point
      * @return The minimum distance between a line segment and a point
      */

@@ -29,6 +29,7 @@ public class WGS84LinearReference extends LinearReference {
         Vector u = new Vector(a);
         Vector v = new Vector(b);
 
+        // Angular distance between the two points
         double sinTheta = u.cross(v).magnitude();
         double cosTheta = u.dot(v);
         double delta = Math.atan2(sinTheta, cosTheta);
@@ -39,10 +40,10 @@ public class WGS84LinearReference extends LinearReference {
         double cosDeltaInter = Math.cos(deltaInter);
 
         // The direction vector (perpendicular to u in plane of v)
-        Vector direction = u.cross(v).normalize().cross(u); // unit(u×v) × u
+        Vector direction = u.cross(v).normalize().cross(u); // unit(u x v) x u
 
         // The interpolated position
-        Vector inter = u.multiply(cosDeltaInter).add(direction.multiply(sinDeltaInter)); // u⋅cosDeltaInter + d⋅sinDeltaInter
+        Vector inter = u.multiply(cosDeltaInter).add(direction.multiply(sinDeltaInter)); // u * cosDeltaInter + d * sinDeltaInter
 
         return inter.toPoint();
     }

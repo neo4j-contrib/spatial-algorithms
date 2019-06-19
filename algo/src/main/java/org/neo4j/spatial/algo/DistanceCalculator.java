@@ -113,6 +113,17 @@ public class DistanceCalculator {
         }
     }
 
+    /**
+     * @param lineSegment
+     * @return The distance between the two end points of a line segment
+     */
+    public static double distance(LineSegment lineSegment) {
+        if (CRSChecker.check(lineSegment) == CRS.Cartesian) {
+            return getCartesian().distance(lineSegment);
+        } else {
+            return getWGS84().distance(lineSegment);
+        }
+    }
 
     /**
      * @param lineSegment
