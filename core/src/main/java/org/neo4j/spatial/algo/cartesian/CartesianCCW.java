@@ -7,12 +7,12 @@ import org.neo4j.spatial.core.Polygon;
 public class CartesianCCW implements CCW {
     @Override
     public boolean isCCW(Polygon.SimplePolygon polygon) {
-        return shoelace(polygon) < 0;
+        return shoelace(polygon) > 0;
     }
 
     @Override
     public boolean isCCW(Point[] points) {
-        return shoelace(points) < 0;
+        return shoelace(points) > 0;
     }
 
     /**
@@ -25,7 +25,7 @@ public class CartesianCCW implements CCW {
             double[] a = points[i].getCoordinate();
             double[] b = points[i + 1].getCoordinate();
 
-            sum += (b[0] - a[0]) * (b[1] + a[0]);
+            sum += (a[0] * b[1]) - (b[0] * a[1]);
         }
         return sum;
     }
@@ -41,7 +41,7 @@ public class CartesianCCW implements CCW {
         while (!polygon.fullyTraversed()) {
             double[] current = polygon.getNextPoint().getCoordinate();
 
-            sum += (current[0] - previous[0]) * (current[1] + previous[0]);
+            sum += (previous[0] * current[1]) - (current[0] * previous[1]);
             previous = current;
         }
         return sum;

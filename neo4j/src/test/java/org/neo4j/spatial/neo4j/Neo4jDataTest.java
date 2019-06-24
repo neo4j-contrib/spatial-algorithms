@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.internal.kernel.api.exceptions.KernelException;
+import org.neo4j.spatial.algo.cartesian.CartesianCCW;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Polyline;
@@ -258,6 +259,9 @@ public class Neo4jDataTest {
         Node[] wayNodes = new Node[n];
         Node[] nodes = new Node[n];
         double[][] points = getPoints(n);
+        for (double[] point : points) {
+            System.out.println(Arrays.toString(point));
+        }
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < n; i++) {
