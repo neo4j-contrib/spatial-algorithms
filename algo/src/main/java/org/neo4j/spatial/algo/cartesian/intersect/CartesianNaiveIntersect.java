@@ -2,6 +2,7 @@ package org.neo4j.spatial.algo.cartesian.intersect;
 
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.core.LineSegment;
+import org.neo4j.spatial.core.MultiPolyline;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polyline;
 import org.neo4j.spatial.core.Polygon;
@@ -17,8 +18,25 @@ public class CartesianNaiveIntersect extends CartesianIntersect {
 
         return compareLineSegments(aLS, bLS, true).length > 0;
     }
+
     @Override
     public Point[] intersect(Polygon a, Polyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
+    }
+
+    @Override
+    public boolean doesIntersect(Polygon a, MultiPolyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(Polygon a, MultiPolyline b) {
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
@@ -31,6 +49,30 @@ public class CartesianNaiveIntersect extends CartesianIntersect {
         LineSegment[] bLS = polyline.toLineSegments();
 
         return compareLineSegments(aLS, bLS, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(MultiPolyline a, MultiPolyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
+    }
+
+    @Override
+    public Point[] intersect(MultiPolyline a, Polyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return compareLineSegments(aLS, bLS, false);
+    }
+
+    @Override
+    public Point[] intersect(MultiPolyline a, LineSegment b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = new LineSegment[]{b};
+
+        return compareLineSegments(aLS, bLS, false);
     }
 
     @Override

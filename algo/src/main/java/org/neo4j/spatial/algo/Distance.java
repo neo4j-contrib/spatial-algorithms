@@ -1,6 +1,7 @@
 package org.neo4j.spatial.algo;
 
 import org.neo4j.spatial.core.LineSegment;
+import org.neo4j.spatial.core.MultiPolyline;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Polyline;
@@ -12,6 +13,21 @@ public abstract class Distance {
      * @return The minimum distance between two polygons. Returns 0 if one polygon is (partially) contained by the other
      */
     public abstract double distance(Polygon a, Polygon b);
+
+    /**
+     *
+     * @param polygon
+     * @param multiPolyline
+     * @return The minimum distance between a polygon and multi polyline. Returns 0 if the multi polyline intersects with or is (partially) containted by the polygon
+     */
+    public abstract double distance(Polygon polygon, MultiPolyline multiPolyline);
+
+    /**
+     * @param polygon
+     * @param polyline
+     * @return The minimum distance between a polygon and polyline. Returns 0 if the polyline intersects with or is (partially) containted by the polygon
+     */
+    public abstract double distance(Polygon polygon, Polyline polyline);
 
     /**
      * @param polygon
@@ -28,23 +44,37 @@ public abstract class Distance {
     public abstract double distance(Polygon polygon, Point point);
 
     /**
-     * @param polygon
-     * @param polyline
-     * @return The minimum distance between a polygon and polyline. Returns 0 if the polyline intersects with or is (partially) containted by the polygon
-     */
-    public abstract double distance(Polygon polygon, Polyline polyline);
-
-    /**
      * @param a
      * @param b
-     * @return The minimum distance between two polylines. Returns 0 if they intersect
+     * @return The minimum distance between two polylines. Returns 0 if they distance
      */
     public abstract double distance(Polyline a, Polyline b);
 
     /**
+     * @param a
+     * @param b
+     * @return The minimum distance between two multipolylines. Returns 0 if they distance
+     */
+    public abstract double distance(MultiPolyline a, MultiPolyline b);
+
+    /**
+     * @param a
+     * @param b
+     * @return The minimum distance between a multipolyline and an polyline. Returns 0 if they distance
+     */
+    public abstract double distance(MultiPolyline a, Polyline b);
+
+    /**
+     * @param a
+     * @param b
+     * @return The minimum distance between a multipolyline and a line segment. Returns 0 if they distance
+     */
+    public abstract double distance(MultiPolyline a, LineSegment b);
+
+    /**
      * @param polyline
      * @param lineSegment
-     * @return The minimum distance between a polyline and line segment. Returns 0 if they intersect
+     * @return The minimum distance between a polyline and line segment. Returns 0 if they distance
      */
     public abstract double distance(Polyline polyline, LineSegment lineSegment);
 

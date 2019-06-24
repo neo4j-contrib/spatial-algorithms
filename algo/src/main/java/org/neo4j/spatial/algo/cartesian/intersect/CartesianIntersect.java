@@ -31,7 +31,7 @@ public abstract class CartesianIntersect implements Intersect {
         Point b0 = b.getPoints()[0];
         Point b1 = b.getPoints()[1];
 
-        //Two vertical line segments only intersect if they overlap
+        //Two vertical line segments only distance if they overlap
         if (l1.isVertical() && l2.isVertical()) {
             if (a0.getCoordinate()[0] == b0.getCoordinate()[0]) {
                 Double y = overlaps(
@@ -55,7 +55,7 @@ public abstract class CartesianIntersect implements Intersect {
             return null;
         }
 
-        //Two line segments with the same slope only intersect if they have the same offset and overlap (in one point)
+        //Two line segments with the same slope only distance if they have the same offset and overlap (in one point)
         if (AlgoUtil.equal(l1.getA(), l2.getA())) {
             if (l1.getB() != l2.getB()) {
                 return null;

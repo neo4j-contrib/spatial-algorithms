@@ -43,6 +43,7 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
         inputList.addAll(getMonotoneChains(bPolygons, false));
         return intersect(inputList, true).length > 0;
     }
+
     @Override
     public Point[] intersect(Polygon a, Polygon b) {
         initialize();
@@ -61,6 +62,40 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
     }
 
     @Override
+    public boolean doesIntersect(Polygon a, MultiPolyline b) {
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(a);
+        Polyline[] bPolylines = b.getChildren();
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(bPolylines, false));
+        return intersect(inputList, true).length > 0;
+    }
+
+    @Override
+    public Point[] intersect(Polygon polygon, MultiPolyline multiPolyline) {
+        initialize();
+        Polygon.SimplePolygon[] aPolygons = getSimplePolygons(polygon);
+        Polyline[] bPolylines = multiPolyline.getChildren();
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(polygon.toLineSegments()));
+        angleSet.addAll(computeAngles(multiPolyline.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolygons, true));
+        inputList.addAll(getMonotoneChains(bPolylines, false));
+        return intersect(inputList, false);
+    }
+
+    @Override
     public boolean doesIntersect(Polygon polygon, Polyline polyline) {
         initialize();
         Polygon.SimplePolygon[] aPolygons = getSimplePolygons(polygon);
@@ -72,7 +107,7 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
 
         List<MonotoneChain> inputList = new ArrayList<>();
         inputList.addAll(getMonotoneChains(aPolygons, true));
-        inputList.addAll(getMonotoneChains(polyline, false));
+        inputList.addAll(getMonotoneChains(new Polyline[]{polyline}, false));
         return intersect(inputList, true).length > 0;
     }
 
@@ -88,7 +123,61 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
 
         List<MonotoneChain> inputList = new ArrayList<>();
         inputList.addAll(getMonotoneChains(aPolygons, true));
-        inputList.addAll(getMonotoneChains(b, false));
+        inputList.addAll(getMonotoneChains(new Polyline[]{b}, false));
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public Point[] intersect(MultiPolyline a, MultiPolyline b) {
+        initialize();
+        Polyline[] aPolylines = a.getChildren();
+        Polyline[] bPolylines = b.getChildren();
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolylines, true));
+        inputList.addAll(getMonotoneChains(bPolylines, false));
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public Point[] intersect(MultiPolyline a, Polyline b) {
+        initialize();
+        Polyline[] aPolylines = a.getChildren();
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(b.toLineSegments()));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolylines, true));
+        inputList.addAll(getMonotoneChains(new Polyline[]{b}, false));
+        return intersect(inputList, false);
+    }
+
+    @Override
+    public Point[] intersect(MultiPolyline a, LineSegment b) {
+        initialize();
+        Polyline[] aPolylines = a.getChildren();
+
+        Set<Double> angleSet = new HashSet<>();
+        angleSet.addAll(computeAngles(a.toLineSegments()));
+        angleSet.addAll(computeAngles(new LineSegment[]{b}));
+        computeSweepDirection(angleSet);
+
+        List<MonotoneChain> inputList = new ArrayList<>();
+        inputList.addAll(getMonotoneChains(aPolylines, true));
+
+        MonotoneChain bChain = new MonotoneChain();
+        bChain.add(createRotatedLineSegment(b));
+        bChain.initialize();
+        inputList.add(bChain);
+
         return intersect(inputList, false);
     }
 
@@ -102,8 +191,8 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
         computeSweepDirection(angleSet);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        inputList.addAll(getMonotoneChains(a, true));
-        inputList.addAll(getMonotoneChains(b, false));
+        inputList.addAll(getMonotoneChains(new Polyline[]{a}, true));
+        inputList.addAll(getMonotoneChains(new Polyline[]{b}, false));
         return intersect(inputList, false);
     }
 
@@ -117,11 +206,13 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
         computeSweepDirection(angleSet);
 
         List<MonotoneChain> inputList = new ArrayList<>();
-        inputList.addAll(getMonotoneChains(a, true));
+        inputList.addAll(getMonotoneChains(new Polyline[]{a}, true));
+
         MonotoneChain bChain = new MonotoneChain();
         bChain.add(createRotatedLineSegment(b));
         bChain.initialize();
         inputList.add(bChain);
+
         return intersect(inputList, false);
     }
 
@@ -132,8 +223,8 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
      */
     private List<MonotoneChain> getMonotoneChains(Polygon.SimplePolygon[] polygons, boolean first) {
         List<MonotoneChain> result = new ArrayList<>();
-        for (int i = 0; i < polygons.length; i++) {
-            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(polygons[i]);
+        for (Polygon.SimplePolygon polygon : polygons) {
+            Polygon.SimplePolygon rotatedPolygon = createRotatedPolygon(polygon);
             List<MonotoneChain> partitioned = CartesianMonotoneChainPartitioner.partition(rotatedPolygon);
             result.addAll(partitioned);
         }
@@ -146,13 +237,17 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
     }
 
     /**
-     * @param polyline
+     * @param polylines
      * @param first
-     * @return The monotone chains that make up the polyline
+     * @return The monotone chains that make up the polylines
      */
-    private List<MonotoneChain> getMonotoneChains(Polyline polyline, boolean first) {
-        Polyline rotatedPolyline = createRotatedPolyline(polyline);
-        List<MonotoneChain> result = CartesianMonotoneChainPartitioner.partition(rotatedPolyline);
+    private List<MonotoneChain> getMonotoneChains(Polyline[] polylines, boolean first) {
+        List<MonotoneChain> result = new ArrayList<>();
+        for (Polyline polyline : polylines) {
+            Polyline rotatedPolyline = createRotatedPolyline(polyline);
+            List<MonotoneChain> partitioned = CartesianMonotoneChainPartitioner.partition(rotatedPolyline);
+            result.addAll(partitioned);
+        }
         if (first) {
             splitId = result.get(result.size() - 1).getId() + 1;
         }
@@ -180,7 +275,7 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
      *
      * @param inputList
      * @param shortcut
-     * @return An array of points at which the two input polygons intersect
+     * @return An array of points at which the two input polygons distance
      */
     public Point[] intersect(List<MonotoneChain> inputList, boolean shortcut) {
         for (MonotoneChain monotoneChain : inputList) {
@@ -425,7 +520,7 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
     }
 
     /**
-     * For all the elements in the input list, which currently intersect the sweep line,
+     * For all the elements in the input list, which currently distance the sweep line,
      * sort them in the sweeping chain list based on their angle at the sweep line.
      *
      * @param toSort The list of chains which will be re-sorted in the sweeping chain list

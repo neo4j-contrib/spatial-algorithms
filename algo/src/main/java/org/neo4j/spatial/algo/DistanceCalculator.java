@@ -77,7 +77,46 @@ public class DistanceCalculator {
     /**
      * @param a
      * @param b
-     * @return The minimum distance between two polylines. Returns 0 if they intersect
+     * @return The minimum distance between two multipolylines. Returns 0 if they distance
+     */
+    public double distance(MultiPolyline a, MultiPolyline b) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            return getCartesian().distance(a, b);
+        } else {
+            return getWGS84().distance(a, b);
+        }
+    }
+
+    /**
+     * @param a
+     * @param b
+     * @return The minimum distance between a multipolyline and an polyline. Returns 0 if they distance
+     */
+    public double distance(MultiPolyline a, Polyline b) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            return getCartesian().distance(a, b);
+        } else {
+            return getWGS84().distance(a, b);
+        }
+    }
+
+    /**
+     * @param a
+     * @param b
+     * @return The minimum distance between a multipolyline and a line segment. Returns 0 if they distance
+     */
+    public double distance(MultiPolyline a, LineSegment b) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            return getCartesian().distance(a, b);
+        } else {
+            return getWGS84().distance(a, b);
+        }
+    }
+
+    /**
+     * @param a
+     * @param b
+     * @return The minimum distance between two polylines. Returns 0 if they distance
      */
     double distance(Polyline a, Polyline b) {
         if (CRSChecker.check(a, b) == CRS.Cartesian) {
@@ -90,7 +129,7 @@ public class DistanceCalculator {
     /**
      * @param polyline
      * @param lineSegment
-     * @return The minimum distance between a polyline and line segment. Returns 0 if they intersect
+     * @return The minimum distance between a polyline and line segment. Returns 0 if they distance
      */
     double distance(Polyline polyline, LineSegment lineSegment) {
         if (CRSChecker.check(polyline, lineSegment) == CRS.Cartesian) {

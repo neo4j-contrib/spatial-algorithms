@@ -54,8 +54,6 @@ public interface Polyline {
 
     int dimension();
 
-    boolean isSimple();
-
     Point[] getPoints();
 
     Point getNextPoint();
@@ -72,14 +70,13 @@ public interface Polyline {
      * @return The WKT string describing the polygon
      */
     default String toWKT() {
-        return "LINESTRING(" + toWKTPointString(false) + ")";
+        return "LINESTRING(" + toWKTPointString() + ")";
     }
 
     /**
-     * @param hole True if the polygon represents a hole
      * @return Produces a WKT-representation of the polygon without the suffix and in the correct order
      */
-    default String toWKTPointString(boolean hole) {
+    default String toWKTPointString() {
         Point[] points = getPoints();
         StringJoiner joiner = new StringJoiner(",", "(", ")");
         for (int i = 0; i < points.length; i++) {
@@ -183,10 +180,6 @@ public interface Polyline {
             return (pointer < 0 || pointer >= points.length) && this.traversing;
         }
 
-        @Override
-        public boolean isSimple() {
-            return true;
-        }
 
         @Override
         public String toString() {

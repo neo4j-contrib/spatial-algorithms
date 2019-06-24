@@ -44,11 +44,6 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
     }
 
     @Override
-    public boolean isSimple() {
-        return true;
-    }
-
-    @Override
     public String toString() {
         return format("Neo4jSimpleGraphNodePolygon%s", Arrays.toString(getPoints()));
     }

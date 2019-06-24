@@ -11,6 +11,10 @@ public class CRSChecker {
         return polyline.getCRS();
     }
 
+    public static CRS check(MultiPolyline multiPolyline) {
+        return multiPolyline.getCRS();
+    }
+
     public static CRS check(Polygon polygon) {
         return polygon.getCRS();
     }
@@ -19,9 +23,26 @@ public class CRSChecker {
         return lineSegment.getCRS();
     }
 
+
+
+
     public static CRS check(Polygon a, Polygon b) throws IllegalArgumentException {
         CRS x = a.getCRS();
         CRS y = b.getCRS();
+
+        return check(x, y);
+    }
+
+    public static CRS check(Polygon a, MultiPolyline b) throws IllegalArgumentException {
+        CRS x = a.getCRS();
+        CRS y = b.getCRS();
+
+        return check(x, y);
+    }
+
+    public static CRS check(Polygon polygon, Polyline polyline) throws IllegalArgumentException {
+        CRS x = polygon.getCRS();
+        CRS y = polyline.getCRS();
 
         return check(x, y);
     }
@@ -40,9 +61,23 @@ public class CRSChecker {
         return check(x, y);
     }
 
-    public static CRS check(Polygon polygon, Polyline polyline) throws IllegalArgumentException {
-        CRS x = polygon.getCRS();
-        CRS y = polyline.getCRS();
+    public static CRS check(MultiPolyline a, MultiPolyline b) throws IllegalArgumentException {
+        CRS x = a.getCRS();
+        CRS y = b.getCRS();
+
+        return check(x, y);
+    }
+
+    public static CRS check(MultiPolyline a, Polyline b) throws IllegalArgumentException {
+        CRS x = a.getCRS();
+        CRS y = b.getCRS();
+
+        return check(x, y);
+    }
+
+    public static CRS check(MultiPolyline a, LineSegment b) throws IllegalArgumentException {
+        CRS x = a.getCRS();
+        CRS y = b.getCRS();
 
         return check(x, y);
     }

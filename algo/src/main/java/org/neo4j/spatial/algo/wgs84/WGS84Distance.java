@@ -3,7 +3,12 @@ package org.neo4j.spatial.algo.wgs84;
 import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.wgs84.intersect.WGS84Intersect;
 import org.neo4j.spatial.algo.wgs84.intersect.WGS84MCSweepLineIntersect;
-import org.neo4j.spatial.core.*;
+import org.neo4j.spatial.core.LineSegment;
+import org.neo4j.spatial.core.MultiPolyline;
+import org.neo4j.spatial.core.Point;
+import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
+import org.neo4j.spatial.core.Vector;
 
 public class WGS84Distance extends Distance {
     @Override
@@ -20,9 +25,41 @@ public class WGS84Distance extends Distance {
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
-        double minDistance = getMinDistance(aLS, bLS);
+        return getMinDistance(aLS, bLS);
+    }
 
-        return minDistance;
+    @Override
+    public double distance(Polygon polygon, MultiPolyline multiPolyline) {
+        boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(polygon, multiPolyline);
+
+        //Check if the multi polyline is (partially) contained by the polygon
+        if (intersects) {
+            return 0;
+        } else  if (WGS84Within.within(polygon, multiPolyline.getChildren()[0].getPoints()[0])) {
+            return 0;
+        }
+
+        LineSegment[] aLS = polygon.toLineSegments();
+        LineSegment[] bLS = multiPolyline.toLineSegments();
+
+        return getMinDistance(aLS, bLS);
+    }
+
+    @Override
+    public double distance(Polygon polygon, Polyline polyline) {
+        boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(polygon, polyline);
+
+        //Check if the polyline is (partially) contained by the polygon
+        if (intersects) {
+            return 0;
+        } else  if (WGS84Within.within(polygon, polyline.getPoints()[0])) {
+            return 0;
+        }
+
+        LineSegment[] aLS = polygon.toLineSegments();
+        LineSegment[] bLS = polyline.toLineSegments();
+
+        return getMinDistance(aLS, bLS);
     }
 
     @Override
@@ -63,20 +100,33 @@ public class WGS84Distance extends Distance {
     }
 
     @Override
-    public double distance(Polygon polygon, Polyline polyline) {
-        boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(polygon, polyline);
+    public double distance(MultiPolyline a, MultiPolyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
 
-        //Check if one polygon is (partially) contained by the other
-        if (intersects) {
-            return 0;
-        } else  if (WGS84Within.within(polygon, polyline.getPoints()[0])) {
-            return 0;
+        return getMinDistance(aLS, bLS);
+    }
+
+    @Override
+    public double distance(MultiPolyline a, Polyline b) {
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        return getMinDistance(aLS, bLS);
+    }
+
+    @Override
+    public double distance(MultiPolyline a, LineSegment b) {
+        double minDistance = Double.MAX_VALUE;
+
+        LineSegment[] aLS = a.toLineSegments();
+
+        for (LineSegment aLineSegment : aLS) {
+            double current = distance(aLineSegment, b);
+            if (current < minDistance) {
+                minDistance = current;
+            }
         }
-
-        LineSegment[] aLS = polygon.toLineSegments();
-        LineSegment[] bLS = polyline.toLineSegments();
-
-        double minDistance = getMinDistance(aLS, bLS);
 
         return minDistance;
     }
@@ -86,9 +136,7 @@ public class WGS84Distance extends Distance {
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
-        double minDistance = getMinDistance(aLS, bLS);
-
-        return minDistance;
+        return getMinDistance(aLS, bLS);
     }
 
     @Override

@@ -44,7 +44,7 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given two polygons, returns all points for which the two polygons intersect.
+     * Given two polygons, returns all points for which the two polygons distance.
      *
      * @param a
      * @param b
@@ -55,10 +55,11 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given two polygons, returns all points for which the two polygons intersect.
+     * Given two polygons, returns all points for which the two polygons distance.
      *
      * @param a
      * @param b
+     * @param variant The intersection algorithm variant
      * @return Array of intersections
      */
     public static Point[] intersect(Polygon a, Polygon b, AlgorithmVariant variant) {
@@ -80,7 +81,7 @@ public class IntersectCalculator {
     /**
      * @param a
      * @param b
-     * @return True iff the polygons a and b intersect in at least 1 point.
+     * @return True iff the polygons a and b distance in at least 1 point.
      */
     public static boolean doesIntersect(Polygon a, Polygon b) {
         return doesIntersect(a, b, AlgorithmVariant.Naive);
@@ -89,7 +90,8 @@ public class IntersectCalculator {
     /**
      * @param a
      * @param b
-     * @return True iff the polygons a and b intersect in at least 1 point.
+     * @param variant The intersection algorithm variant
+     * @return True iff the polygons a and b distance in at least 1 point.
      */
     public static boolean doesIntersect(Polygon a, Polygon b, AlgorithmVariant variant) {
         if (CRSChecker.check(a, b) == CRS.Cartesian) {
@@ -108,7 +110,7 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given a polygon and a polyline, returns all points for which the two intersect.
+     * Given a polygon and a polyline, returns all points for which the two distance.
      *
      * @param a
      * @param b
@@ -119,10 +121,11 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given a polygon and a polyline, returns all points for which the two intersect.
+     * Given a polygon and a polyline, returns all points for which the two distance.
      *
      * @param a
      * @param b
+     * @param variant The intersection algorithm variant
      * @return Array of intersections
      */
     public static Point[] intersect(Polygon a, Polyline b, AlgorithmVariant variant) {
@@ -142,7 +145,113 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given two polylines, returns all points for which the two intersect.
+     * Given two multipolylines, returns all points for which the two distance.
+     *
+     * @param a
+     * @param b
+     * @param variant The intersection algorithm variant
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(MultiPolyline a, MultiPolyline b) {
+        return intersect(a, b, AlgorithmVariant.Naive);
+    }
+
+    /**
+     * Given two multipolylines, returns all points for which the two distance.
+     *
+     * @param a
+     * @param b
+     * @param variant The intersection algorithm variant
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(MultiPolyline a, MultiPolyline b, AlgorithmVariant variant) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            if (variant == AlgorithmVariant.Naive) {
+                return getCartesianNaive().intersect(a, b);
+            } else {
+                return getCartesianSweep().intersect(a, b);
+            }
+        } else {
+            if (variant == AlgorithmVariant.Naive) {
+                return getWGS84Naive().intersect(a, b);
+            } else {
+                return getWGS84Sweep().intersect(a, b);
+            }
+        }
+    }
+
+    /**
+     * Given a multipolyline and a polyline, returns all points for which the two distance.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(MultiPolyline a, Polyline b) {
+        return intersect(a, b, AlgorithmVariant.Naive);
+    }
+
+    /**
+     * Given a multipolyline and a polyline, returns all points for which the two distance.
+     *
+     * @param a
+     * @param b
+     * @param variant The intersection algorithm variant
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(MultiPolyline a, Polyline b, AlgorithmVariant variant) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            if (variant == AlgorithmVariant.Naive) {
+                return getCartesianNaive().intersect(a, b);
+            } else {
+                return getCartesianSweep().intersect(a, b);
+            }
+        } else {
+            if (variant == AlgorithmVariant.Naive) {
+                return getWGS84Naive().intersect(a, b);
+            } else {
+                return getWGS84Sweep().intersect(a, b);
+            }
+        }
+    }
+
+    /**
+     * Given a multipolyline and a line segment, returns all points for which the two distance.
+     *
+     * @param a
+     * @param b
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(MultiPolyline a, LineSegment b) {
+        return intersect(a, b, AlgorithmVariant.Naive);
+    }
+
+    /**
+     * Given a multipolyline and a line segment, returns all points for which the two distance.
+     *
+     * @param a
+     * @param b
+     * @param variant The intersection algorithm variant
+     * @return Point of intersection if it exists, else null
+     */
+    Point[] intersect(MultiPolyline a, LineSegment b, AlgorithmVariant variant) {
+        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+            if (variant == AlgorithmVariant.Naive) {
+                return getCartesianNaive().intersect(a, b);
+            } else {
+                return getCartesianSweep().intersect(a, b);
+            }
+        } else {
+            if (variant == AlgorithmVariant.Naive) {
+                return getWGS84Naive().intersect(a, b);
+            } else {
+                return getWGS84Sweep().intersect(a, b);
+            }
+        }
+    }
+
+    /**
+     * Given two polylines, returns all points for which the two distance.
      *
      * @param a
      * @param b
@@ -153,10 +262,11 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given two polylines, returns all points for which the two intersect.
+     * Given two polylines, returns all points for which the two distance.
      *
      * @param a
      * @param b
+     * @param variant The intersection algorithm variant
      * @return Point of intersection if it exists, else null
      */
     public static Point[] intersect(Polyline a, Polyline b, AlgorithmVariant variant) {
@@ -176,7 +286,7 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given a polyline and a line segment, returns all points for which the two intersect.
+     * Given a polyline and a line segment, returns all points for which the two distance.
      *
      * @param a
      * @param b
@@ -187,10 +297,11 @@ public class IntersectCalculator {
     }
 
     /**
-     * Given a polyline and a line segment, returns all points for which the two intersect.
+     * Given a polyline and a line segment, returns all points for which the two distance.
      *
      * @param a
      * @param b
+     * @param variant The intersection algorithm variant
      * @return Point of intersection if it exists, else null
      */
     public static Point[] intersect(Polyline a, LineSegment b, AlgorithmVariant variant) {
