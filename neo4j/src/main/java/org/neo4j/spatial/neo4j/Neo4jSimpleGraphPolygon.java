@@ -148,7 +148,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
 
     Node getNextNode(Node node) {
         if (this.nodeIterator == null) {
-            throw new TraversalException("No traversal is currently ");
+            throw new TraversalException("No traversal is currently ongoing");
         }
 
         return this.nodeIterator.next();

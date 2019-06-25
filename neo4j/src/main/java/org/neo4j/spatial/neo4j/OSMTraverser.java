@@ -11,18 +11,36 @@ import org.neo4j.spatial.algo.wgs84.WGSUtil;
 import org.neo4j.spatial.core.Vector;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Stack;
 import java.util.stream.Collectors;
 
 public class OSMTraverser {
-    public static List<List<Node>> traverseOSMGraph(Node main) {
-        Stack<List<Node>> wayNodes = collectWays(main);
-        return connectWays(wayNodes);
+    public static Pair<List<List<Node>>, List<List<Node>>> traverseOSMGraph(Node main) {
+        List<List<Node>> wayNodes = collectWays(main);
+        List<EnrichedWay> candidates = wayNodes.stream().map(EnrichedWay::new).collect(Collectors.toList());
+
+        Pair<List<EnrichedWay>, List<EnrichedWay>> enrichedWays = connectWaysByCommonNode(candidates);
+
+        List<EnrichedWay> polygons = new ArrayList<>(enrichedWays.first());
+        List<EnrichedWay> polylines = new ArrayList<>(enrichedWays.other());
+
+        if (enrichedWays.other().size() > 0) {
+            enrichedWays = connectWaysByProximity(polylines);
+
+            polygons.addAll(enrichedWays.first());
+            polylines = enrichedWays.other();
+        }
+
+        List<List<Node>> polygonNodes = polygons.stream().map(p -> p.wayNodes).collect(Collectors.toList());
+        List<List<Node>> polylineNodes = polylines.stream().map(p -> p.wayNodes).collect(Collectors.toList());
+
+        return Pair.of(polygonNodes, polylineNodes);
     }
 
     /**
@@ -31,9 +49,9 @@ public class OSMTraverser {
      * @param main The node representing the OSMRelation
      * @return List of ways where each way is connected by a common node
      */
-    private static Stack<List<Node>> collectWays(Node main) {
+    private static List<List<Node>> collectWays(Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
-        Stack<List<Node>> wayNodes = new Stack<>();
+        List<List<Node>> wayNodes = new ArrayList<>();
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
@@ -50,32 +68,32 @@ public class OSMTraverser {
     }
 
     /**
-     * Connect neighboring ways to create polygons.
+     * Connect neighboring ways to create polygons by common nodes.
      *
-     * @param wayNodes List of ways
-     * @return Nest list of nodes where each inner list describes a polygon
+     * @param candidates List of candidate ways
+     * @return First list contains enriched ways which describe full polygons
+     * and the second list contains enriched ways which are not complete polygons
      */
-    private static List<List<Node>> connectWaysX(Stack<List<Node>> wayNodes) {
+    private static Pair<List<EnrichedWay>, List<EnrichedWay>> connectWaysByCommonNode(List<EnrichedWay> candidates) {
         List<EnrichedWay> polygons = new ArrayList<>();
         List<EnrichedWay> notPolygons = new ArrayList<>();
-        List<EnrichedWay> candidates = wayNodes.stream().map(EnrichedWay::new).collect(Collectors.toList());
 
         while (!candidates.isEmpty()) {
-            boolean mergedSome;
+            boolean joinedSome;
             EnrichedWay way = candidates.get(0);
             candidates.remove(0);
 
             do {
-                mergedSome = false;
+                joinedSome = false;
                 ListIterator<EnrichedWay> wayIter = candidates.listIterator();
                 while (wayIter.hasNext()) {
                     EnrichedWay candidate = wayIter.next();
-                    if (way.join(candidate)) {
+                    if (way.joinByCommonNode(candidate)) {
                         wayIter.remove();
-                        mergedSome = true;
+                        joinedSome = true;
                     }
                 }
-            } while (mergedSome);
+            } while (joinedSome);
 
             if (way.isClosed()) {
                 polygons.add(way);
@@ -84,13 +102,86 @@ public class OSMTraverser {
             }
         }
 
-        return polygons.stream().map(p -> p.wayNodes).collect(Collectors.toList());
+        return Pair.of(polygons, notPolygons);
+    }
+
+    /**
+     * Connect neighboring ways to create polygons by proximity of the end nodes.
+     *
+     * @param candidates List of candidate ways
+     * @return List of enriched ways where each enriched way describes a polygon
+     */
+    private static Pair<List<EnrichedWay>, List<EnrichedWay>> connectWaysByProximity(List<EnrichedWay> candidates) {
+        List<EnrichedWay> polygons = new ArrayList<>();
+        List<EnrichedWay> polylines = new ArrayList<>();
+
+        polylines.add(candidates.get(0));
+        candidates.remove(0);
+
+        while (candidates.size() > 0) {
+            EnrichedWay wayToAdd = candidates.get(0);
+            candidates.remove(0);
+
+            double minDistance = Double.MAX_VALUE;
+            int bestIndex = -1;
+            EnrichedWay.JoinDirection joinDirection = null;
+
+            for (int i = 0; i < polylines.size(); i++) {
+                EnrichedWay candidateWayToAddTo = polylines.get(i);
+
+                Pair<Double, EnrichedWay.JoinDirection> distanceDirection = candidateWayToAddTo.distanceTo(wayToAdd);
+
+                if (distanceDirection.first() < minDistance) {
+                    minDistance = distanceDirection.first();
+                    joinDirection = distanceDirection.other();
+                    bestIndex = i;
+                }
+            }
+
+            //No other polyline is close
+            if (minDistance > EnrichedWay.PROXIMITY_THRESHOLD) {
+                Vector first = new Vector(true, wayToAdd.first.other());
+                Vector last = new Vector(true, wayToAdd.last.other());
+                double distance = WGSUtil.distance(first, last);
+
+                //The polyline closes itself
+                if (AlgoUtil.lessOrEqual(distance, EnrichedWay.PROXIMITY_THRESHOLD)) {
+                    polygons.add(wayToAdd);
+                    polylines.remove(wayToAdd);
+                } else {
+                    polylines.add(wayToAdd);
+                }
+
+                continue;
+            }
+
+            EnrichedWay wayToAddTo = polylines.get(bestIndex);
+            wayToAddTo.join(wayToAdd, joinDirection, false);
+
+            Vector first = new Vector(true, wayToAddTo.first.other());
+            Vector last = new Vector(true, wayToAddTo.last.other());
+            double distance = WGSUtil.distance(first, last);
+
+            //The polyline closes itself
+            if (AlgoUtil.lessOrEqual(distance, EnrichedWay.PROXIMITY_THRESHOLD)) {
+                polygons.add(wayToAddTo);
+                polylines.remove(wayToAddTo);
+            }
+        }
+
+        return Pair.of(polygons, polylines);
     }
 
     private static class EnrichedWay {
+        static final double PROXIMITY_THRESHOLD = 250; //in meters
+
         Pair<Node, double[]> first;
         Pair<Node, double[]> last;
         private List<Node> wayNodes;
+
+        enum JoinDirection {
+            FF, FL, LF, LL
+        }
 
         EnrichedWay (List<Node> wayNodes) {
             this.wayNodes = wayNodes;
@@ -98,156 +189,100 @@ public class OSMTraverser {
             this.last = getOSMNode(wayNodes.get(wayNodes.size() - 1));
         }
 
-        boolean join(EnrichedWay other) {
+        boolean joinByCommonNode(EnrichedWay other) {
             if (first.first().equals(other.last.first())) {
-                this.wayNodes.remove(0);
-                other.wayNodes.addAll(wayNodes);
-                wayNodes = other.wayNodes;
-                this.first = other.first;
+                join(other, JoinDirection.FL, true);
                 return true;
             } else if (last.first().equals(other.first.first())) {
-                other.wayNodes.remove(0);
-                wayNodes.addAll(other.wayNodes);
-                this.last = other.last;
+                join(other, JoinDirection.LF, true);
                 return true;
             } else if (first.first().equals(other.first.first())) {
-                this.wayNodes.remove(0);
-                Collections.reverse(other.wayNodes);
-                other.wayNodes.addAll(wayNodes);
-                wayNodes = other.wayNodes;
-                this.first = other.last;
+                join(other, JoinDirection.FF, true);
                 return true;
             } else if (last.first().equals(other.last.first())) {
-                Collections.reverse(other.wayNodes);
-                other.wayNodes.remove(0);
-                this.wayNodes.addAll(other.wayNodes);
-                this.last = other.first;
+                join(other, JoinDirection.LL, true);
                 return true;
             }
             return false;
         }
 
+        void join(EnrichedWay other, JoinDirection direction, boolean deletion) {
+            switch (direction) {
+                case FF:
+                    if (deletion) {
+                        this.wayNodes.remove(0);
+                    }
+                    Collections.reverse(other.wayNodes);
+                    other.wayNodes.addAll(wayNodes);
+                    wayNodes = other.wayNodes;
+                    this.first = other.last;
+                    break;
+                case FL:
+                    if (deletion) {
+                        this.wayNodes.remove(0);
+                    }
+                    other.wayNodes.addAll(wayNodes);
+                    wayNodes = other.wayNodes;
+                    this.first = other.first;
+                    break;
+                case LF:
+                    if (deletion) {
+                        other.wayNodes.remove(0);
+                    }
+                    wayNodes.addAll(other.wayNodes);
+                    this.last = other.last;
+                    break;
+                case LL:
+                    Collections.reverse(other.wayNodes);
+                    if (deletion) {
+                        other.wayNodes.remove(0);
+                    }
+                    this.wayNodes.addAll(other.wayNodes);
+                    this.last = other.first;
+                    break;
+            }
+        }
+
+        Pair<Double, JoinDirection> distanceTo(EnrichedWay other) {
+            double[] tf = this.first.other();
+            double[] tl = this.last.other();
+            double[] of = other.first.other();
+            double[] ol = other.last.other();
+
+            List<Pair<Double, JoinDirection>> options = new ArrayList<>();
+            options.add(Pair.of(distance(tf, of), JoinDirection.FF));
+            options.add(Pair.of(distance(tf, ol), JoinDirection.FL));
+            options.add(Pair.of(distance(tl, of), JoinDirection.LF));
+            options.add(Pair.of(distance(tl, ol), JoinDirection.LL));
+
+            return options.stream().min(Comparator.comparingDouble(Pair::first)).get();
+        }
+
+        private double distance(double[] a, double[] b) {
+            Vector u = new Vector(true, a);
+            Vector v = new Vector(true, b);
+            return WGSUtil.distance(u, v);
+        }
+
         boolean isClosed() {
             return first.first().equals(last.first());
         }
-    }
-    /**
-     * Connect neighboring ways to create polygons.
-     *
-     * @param wayNodes List of ways
-     * @return Nest list of nodes where each inner list describes a polygon
-     */
-    private static List<List<Node>> connectWays(Stack<List<Node>> wayNodes) {
-        int totalSteps = 0;
-        double totalDistance = 0;
-        for (List<Node> wayNodeList : wayNodes) {
-            totalSteps += wayNodeList.size() - 1;
-            for (int i = 0; i < wayNodeList.size() - 1; i++) {
-                Node a = wayNodeList.get(i);
-                Node b = wayNodeList.get(i+1);
-                totalDistance += WGSUtil.distance(getCoordinates(a), getCoordinates(b));
-            }
+
+        @Override
+        public String toString() {
+            return "EW[" + Arrays.toString(first.other()) + ", " + Arrays.toString(last.other()) + "]";
         }
 
-        double meanStepSize = totalDistance/totalSteps;
+        /**
+         * @param wayNode
+         * @return The coordinate belonging to the OSMWayNode
+         */
+        static Pair<Node, double[]> getOSMNode(Node wayNode) {
+            Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
 
-        List<List<Node>> polygons= new ArrayList<>();
+            Point point = (Point) node.getProperty("location");
 
-        List<List<Node>> polygonsToComplete = new ArrayList<>();
-        polygonsToComplete.add(new ArrayList<>(wayNodes.pop()));
-        while (wayNodes.size() > 0) {
-            List<Node> wayToAdd = wayNodes.pop();
-
-            Vector first = getCoordinates(wayToAdd.get(0));
-            Vector last = getCoordinates(wayToAdd.get(wayToAdd.size() - 1));
-            double distance = WGSUtil.distance(first, last);
-
-            // TODO: Confirm that we actually need this
-            //The polystring closes itself
-            if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
-                polygons.add(wayToAdd);
-                continue;
-            }
-
-            double minDistance = Double.MAX_VALUE;
-            int bestIndex = -1;
-            boolean forward = true;
-
-            for (int i = 0; i < polygonsToComplete.size(); i++) {
-                List<Node> candidateWayToAddTo = polygonsToComplete.get(i);
-                Vector lastCoordinates = getCoordinates(candidateWayToAddTo.get(candidateWayToAddTo.size() - 1));
-
-                double distanceFirst = WGSUtil.distance(first, lastCoordinates);
-                double distanceLast = WGSUtil.distance(last, lastCoordinates);
-
-                if (distanceFirst < minDistance) {
-                    minDistance = distanceFirst;
-                    bestIndex = i;
-                    forward = true;
-                }
-
-                if (distanceLast < minDistance) {
-                    minDistance = distanceLast;
-                    bestIndex = i;
-                    forward = false;
-                }
-            }
-
-            //No polystring is close, just close the polystring
-            if (minDistance > meanStepSize) {
-                polygonsToComplete.add(wayToAdd);
-                continue;
-            }
-
-            List<Node> wayToAddTo = polygonsToComplete.get(bestIndex);
-
-            if (forward) {
-                wayToAddTo.addAll(wayToAdd);
-            } else {
-                List<Node> reversed = new ArrayList<>(wayToAdd);
-                Collections.reverse(reversed);
-                wayToAddTo.addAll(reversed);
-            }
-
-            first = getCoordinates(wayToAddTo.get(0));
-            last = getCoordinates(wayToAddTo.get(wayToAddTo.size() - 1));
-            distance = WGSUtil.distance(first, last);
-
-            //The polystring closes itself
-            if (AlgoUtil.lessOrEqual(distance, meanStepSize)) {
-                polygons.add(wayToAddTo);
-                polygonsToComplete.remove(wayToAddTo);
-            }
+            return Pair.of(node, point.getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray());
         }
-
-        while (!polygonsToComplete.isEmpty()) {
-            polygons.add(polygonsToComplete.get(0));
-            polygonsToComplete.remove(0);
-        }
-        return polygons;
-    }
-
-    /**
-     * @param wayNode
-     * @return The coordinate belonging to the OSMWayNode
-     */
-    private static Pair<Node, double[]> getOSMNode(Node wayNode) {
-        Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
-
-        Point point = (Point) node.getProperty("location");
-
-        return Pair.of(node, point.getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray());
-    }
-
-    /**
-     * @param wayNode
-     * @return The coordinate belonging to the OSMWayNode
-     */
-    private static Vector getCoordinates(Node wayNode) {
-        Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
-
-        Point point = (Point) node.getProperty("location");
-
-        return new Vector(true, point.getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray());
     }
 }

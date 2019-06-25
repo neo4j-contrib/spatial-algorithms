@@ -8,21 +8,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GraphPolygonBuilder {
+public class GraphPolygonBuilder extends GraphBuilder {
     private static Label POLYGON_LABEL = Label.label("Polygon");
     private static Label SHELL_LABEL = Label.label("Shell");
     private static Label HOLE_LABEL = Label.label("Hole");
 
-    private GraphDatabaseService db;
-
-    private Node main;
-    private List<List<Node>> polystrings;
-
-    public GraphPolygonBuilder(Node main, List<List<Node>> polystrings) {
-        this.main = main;
-        this.polystrings = polystrings;
-
-        this.db = main.getGraphDatabase();
+    public GraphPolygonBuilder(Node main, List<List<Node>> polylines) {
+        super(main, polylines);
     }
 
     public void build() {
@@ -40,12 +32,16 @@ public class GraphPolygonBuilder {
     private void connectPolystrings() {
         long relationOsmId = (long) main.getProperty("relation_osm_id");
 
-        for (List<Node> polystring : polystrings) {
+        for (List<Node> polystring : polylines) {
 
             pairwise:
             for (int i = 0; i < polystring.size(); i++) {
                 Node a = polystring.get(i);
                 Node b = polystring.get((i + 1) % polystring.size());
+
+                if (a.getId() == b.getId()) {
+                    continue;
+                }
 
                 for (Relationship relationship : a.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
                     if (b.getId() != relationship.getOtherNodeId(a.getId())) {
@@ -83,7 +79,7 @@ public class GraphPolygonBuilder {
     }
 
     /**
-     * Build a multipolygon from the closed polystrings
+     * Build a multipolygon from the closed polylines
      *
      * @return The root of the multipolygon
      */
@@ -92,15 +88,15 @@ public class GraphPolygonBuilder {
         long relationOsmId = (long) main.getProperty("relation_osm_id");
         MultiPolygon root = new MultiPolygon();
 
-        Polygon.SimplePolygon[] polygons = new Polygon.SimplePolygon[polystrings.size()];
+        Polygon.SimplePolygon[] polygons = new Polygon.SimplePolygon[polylines.size()];
 
-        for (int i = 0; i < polystrings.size(); i++) {
-            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphNodePolygon(polystrings.get(i).get(0), relationOsmId);
+        for (int i = 0; i < polylines.size(); i++) {
+            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphNodePolygon(polylines.get(i).get(0), relationOsmId);
             polygons[i] = polygon;
         }
 
         for (int i = 0; i < polygons.length; i++) {
-            root.insertMultiPolygonNode(new Neo4jMultiPolygonNode(polygons[i], getWay(polystrings.get(i))));
+            root.insertMultiPolygonNode(new Neo4jMultiPolygonNode(polygons[i], getWay(polylines.get(i))));
         }
 
         return root;

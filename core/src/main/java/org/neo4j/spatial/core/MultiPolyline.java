@@ -5,30 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.StringJoiner;
 
-public interface MultiPolyline {
-    CRS getCRS();
-
-    int dimension();
-
-    Polyline[] getChildren();
-
-    LineSegment[] toLineSegments();
-
-    default String toWKT() {
-        StringJoiner joiner = new StringJoiner(",", "MULTILINESTRING(", ")");
-
-        for (Polyline child : getChildren()) {
-            joiner.add(child.toWKTPointString());
-        }
-
-        return joiner.toString();
-    }
-}
-
-class InMemoryMultiPolyline implements MultiPolyline {
+public class MultiPolyline {
     private List<Polyline> children;
 
-    public InMemoryMultiPolyline() {
+    public MultiPolyline() {
         this.children = new ArrayList<>();
     }
 
@@ -41,12 +21,10 @@ class InMemoryMultiPolyline implements MultiPolyline {
         return true;
     }
 
-    @Override
     public Polyline[] getChildren() {
         return children.toArray(new Polyline[0]);
     }
 
-    @Override
     public LineSegment[] toLineSegments() {
         List<LineSegment> lineSegments = new ArrayList<>();
 

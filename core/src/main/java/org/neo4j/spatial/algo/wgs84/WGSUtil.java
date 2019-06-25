@@ -39,7 +39,7 @@ public class WGSUtil {
         double previous = 0;
         boolean first = true;
         for (int i = 0; i < points.length - 1; i++) {
-            int j = (i + 1) % (points.length - 1);
+            int j = i + 1;
 
             double initialBearing = WGSUtil.initialBearing(points[i], points[j]);
             double finalBearing = WGSUtil.finalBearing(points[i], points[j]);

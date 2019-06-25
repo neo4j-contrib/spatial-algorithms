@@ -259,22 +259,15 @@ public class Neo4jDataTest {
         Node[] wayNodes = new Node[n];
         Node[] nodes = new Node[n];
         double[][] points = getPoints(n);
-        for (double[] point : points) {
-            System.out.println(Arrays.toString(point));
-        }
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < n; i++) {
                 wayNodes[i] = db.createNode();
                 nodes[i] = db.createNode();
 
-                PointValue point;
-                int half = n / 2;
-                if (i < half) {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                } else {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                }
+                PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
+
+                System.out.printf("%s: %s\n", wayNodes[i], Arrays.toString(points[i]));
 
                 nodes[i].setProperty("location", point);
                 wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
@@ -283,6 +276,12 @@ public class Neo4jDataTest {
             for (int i = 0; i < n-1; i++) {
                 wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
             }
+
+            Relationship rel;
+            rel = wayNodes[0].createRelationshipTo(wayNodes[1], Relation.END_OF_POLYLINE);
+            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
+            rel = wayNodes[n-2].createRelationshipTo(wayNodes[n-1], Relation.END_OF_POLYLINE);
+            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
 
             polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
 
@@ -338,13 +337,7 @@ public class Neo4jDataTest {
                 wayNodes[i] = db.createNode();
                 nodes[i] = db.createNode();
 
-                PointValue point;
-                int half = n / 2;
-                if (i < half) {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                } else {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                }
+                PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
 
                 nodes[i].setProperty("location", point);
                 wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
@@ -362,7 +355,13 @@ public class Neo4jDataTest {
 
             wayNodes[n].createRelationshipTo(nodes[n/2], Relation.NODE);
             wayNodes[n/2-1].createRelationshipTo(wayNodes[n], Relation.NEXT);
-            wayNodes[n].createRelationshipTo(wayNodes[n/2+1], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
+            wayNodes[n].createRelationshipTo(wayNodes[n/2+1], Relation.NEXT_IN_POLYLINE).setProperty("relation_osm_ids", new long[]{osmRelationId});
+
+            Relationship rel;
+            rel = wayNodes[0].createRelationshipTo(wayNodes[1], Relation.END_OF_POLYLINE);
+            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
+            rel = wayNodes[n-2].createRelationshipTo(wayNodes[n-1], Relation.END_OF_POLYLINE);
+            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
 
             polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
             int idx;

@@ -11,8 +11,8 @@ public class Vector {
     }
 
     public Vector(boolean asPoint, double... coordinates) {
-        this.coordinates = coordinates;
-        this.coordinates = new double[]{Math.cos(coordinates[1]) * Math.cos(coordinates[0]), Math.cos(coordinates[1]) * Math.sin(coordinates[0]), Math.sin(coordinates[1])};
+        double[] p = Arrays.stream(coordinates).map(q -> q * Math.PI/180).toArray();
+        this.coordinates = new double[]{Math.cos(p[1]) * Math.cos(p[0]), Math.cos(p[1]) * Math.sin(p[0]), Math.sin(p[1])};
     }
 
     /**

@@ -3,6 +3,7 @@ package org.neo4j.spatial.neo4j;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.traversal.Evaluation;
@@ -13,7 +14,6 @@ import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Polyline;
 
 import java.util.Arrays;
@@ -52,18 +52,20 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         return new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
-                .relationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)
+                .relationships(Relation.NEXT_IN_POLYLINE, Direction.OUTGOING)
+                .relationships(Relation.END_OF_POLYLINE)
                 .uniqueness(Uniqueness.NONE)
                 .evaluator(new WayEvaluator(osmRelationId)).traverse(start);
     }
 
-    private Traverser getNewTraverser(Node start, Direction nextDirection, Direction nextInPolygonDirection) {
+    private Traverser getNewTraverser(Node start, Relation relation, Direction direction) {
         return new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
-                .relationships(Relation.NEXT_IN_POLYGON)
+                .relationships(Relation.NEXT_IN_POLYLINE)
+                .relationships(Relation.END_OF_POLYLINE)
                 .uniqueness(Uniqueness.NONE)
-                .evaluator(new WayEvaluator(osmRelationId, nextDirection, nextInPolygonDirection)).traverse(start);
+                .evaluator(new WayEvaluator(osmRelationId, relation, direction)).traverse(start);
     }
 
     @Override
@@ -93,22 +95,36 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
             }
         }
 
-        Pair<Direction, Direction> directions = getClosestNeighborToDirection(directionPoint);
-        this.nodeIterator = getNewTraverser(this.start, directions.first(), directions.other()).nodes().iterator();
+        Pair<Relation, Direction> relationDirection = getClosestNeighborToDirection(directionPoint);
+        this.nodeIterator = getNewTraverser(this.start, relationDirection.first(), relationDirection.other()).nodes().iterator();
     }
 
-    private Pair<Direction, Direction> getClosestNeighborToDirection(Point directionPoint) {
+    private Pair<Relation, Direction> getClosestNeighborToDirection(Point directionPoint) {
         double minDistance = Double.MAX_VALUE;
         Direction minDirection = null;
-        boolean nextInPolygon = true;
+        Relation minRelation = null;
 
-        for (Relationship relationship : this.start.getRelationships(Relation.NEXT_IN_POLYGON)) {
-            if (WayEvaluator.nextInPolygon(relationship, osmRelationId)) {
+        for (Relationship relationship : this.start.getRelationships(Relation.NEXT_IN_POLYLINE)) {
+            if (WayEvaluator.partOfPolyline(relationship, osmRelationId)) {
                 Node other = relationship.getOtherNode(this.start);
 
                 double currentDistance = DistanceCalculator.distance(directionPoint, extractPoint(other));
                 if (currentDistance < minDistance) {
                     minDistance = currentDistance;
+                    minRelation = Relation.NEXT_IN_POLYGON;
+                    minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;
+                }
+            }
+        }
+
+        for (Relationship relationship : this.start.getRelationships(Relation.END_OF_POLYLINE)) {
+            if (WayEvaluator.partOfPolyline(relationship, osmRelationId)) {
+                Node other = relationship.getOtherNode(this.start);
+
+                double currentDistance = DistanceCalculator.distance(directionPoint, extractPoint(other));
+                if (currentDistance < minDistance) {
+                    minDistance = currentDistance;
+                    minRelation = Relation.END_OF_POLYLINE;
                     minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;
                 }
             }
@@ -121,15 +137,11 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
             if (currentDistance < minDistance) {
                 minDistance = currentDistance;
                 minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;
-                nextInPolygon = false;
+                minRelation = Relation.NEXT;
             }
         }
 
-        if (nextInPolygon) {
-            return Pair.of(null, minDirection);
-        } else {
-            return Pair.of(minDirection, null);
-        }
+        return Pair.of(minRelation, minDirection);
     }
 
     @Override
@@ -144,7 +156,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
 
     Node getNextNode(Node node) {
         if (this.nodeIterator == null) {
-            throw new TraversalException("No traversal is currently ");
+            throw new TraversalException("No traversal is currently ongoing");
         }
 
         return this.nodeIterator.next();
@@ -156,29 +168,24 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
 
     private static class WayEvaluator implements Evaluator {
         private long relationId;
-        private Direction nextDirection;
-        private Direction nextInPolygonDirection;
+        private Relation relation;
+        private Direction direction;
         private boolean withDirection;
         private boolean firstWay;
 
-        private Node firstNode;
-        private Node secondNode;
-        private boolean finished;
         private Direction lastNextDirection;
 
         public WayEvaluator(long relationId) {
             this.relationId = relationId;
             this.withDirection = false;
-            this.finished = false;
         }
 
-        public WayEvaluator(long relationId, Direction nextDirection, Direction nextInPolygonDirection) {
+        public WayEvaluator(long relationId, Relation relation, Direction direction) {
             this.relationId = relationId;
-            this.nextDirection = nextDirection;
-            this.nextInPolygonDirection = nextInPolygonDirection;
+            this.relation = relation;
+            this.direction = direction;
             this.withDirection = true;
             this.firstWay = true;
-            this.finished = false;
         }
 
         @Override
@@ -191,38 +198,21 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         }
 
         private Evaluation withDirection(Path path) {
-            if (finished) {
-                return Evaluation.EXCLUDE_AND_PRUNE;
-            }
-
             Relationship rel = path.lastRelationship();
             Node endNode = path.endNode();
 
             if (path.length() == 1) {
-                if (rel.isType(Relation.NEXT) && nextInPolygonDirection != null) {
-                    return Evaluation.EXCLUDE_AND_PRUNE;
-                } else if (rel.isType(Relation.NEXT_IN_POLYGON) && nextDirection != null) {
+                if (!(rel.isType(this.relation) && validDirection(rel, endNode, this.direction))) {
                     return Evaluation.EXCLUDE_AND_PRUNE;
                 }
-            }
-
-            if (endNode.equals(firstNode) || endNode.equals(secondNode)) {
-                finished = true;
-                return Evaluation.INCLUDE_AND_PRUNE;
-            }
-
-            if (firstNode == null) {
-                firstNode = endNode;
-            } else if (secondNode == null) {
-                secondNode = endNode;
             }
 
             if (rel == null) {
                 return Evaluation.INCLUDE_AND_CONTINUE;
             }
 
-            if (rel.isType(Relation.NEXT_IN_POLYGON)) {
-                if (!validDirection(rel, endNode, nextInPolygonDirection)) {
+            if (rel.isType(Relation.NEXT_IN_POLYLINE)) {
+                if (!validDirection(rel, endNode, direction)) {
                     return Evaluation.EXCLUDE_AND_PRUNE;
                 }
 
@@ -230,7 +220,25 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
                     return Evaluation.EXCLUDE_AND_PRUNE;
                 }
 
-                if (nextInPolygon(rel)) {
+                if (partOfPolyline(rel)) {
+                    firstWay = false;
+                    lastNextDirection = null;
+                    return Evaluation.INCLUDE_AND_CONTINUE;
+                } else {
+                    return Evaluation.EXCLUDE_AND_PRUNE;
+                }
+            }
+
+            if (rel.isType(Relation.END_OF_POLYLINE)) {
+                if (!validDirection(rel, endNode, direction)) {
+                    return Evaluation.EXCLUDE_AND_PRUNE;
+                }
+
+                if (!onlyOption(rel.getOtherNode(endNode))) {
+                    return Evaluation.EXCLUDE_AND_PRUNE;
+                }
+
+                if (partOfPolyline(rel)) {
                     firstWay = false;
                     lastNextDirection = null;
                     return Evaluation.INCLUDE_AND_CONTINUE;
@@ -240,28 +248,34 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
             }
 
             if (rel.isType(Relation.NEXT) && validDirection(rel, endNode, lastNextDirection)) {
-                if (!validDirection(rel, endNode, nextDirection) && firstWay) {
+                if (!validDirection(rel, endNode, direction) && firstWay) {
                     return Evaluation.EXCLUDE_AND_PRUNE;
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT)) {
-                    if (!relationship.equals(rel)) {
-                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;;
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
-                    if (nextInPolygon(relationship)) {
-                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;;
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
                 }
 
                 Node oneButLast = path.lastRelationship().getOtherNode(endNode);
 
-                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYGON, Direction.INCOMING)) {
-                    if (nextInPolygon(relationship)) {
+                for (Relationship relationship : endNode.getRelationships(Relation.END_OF_POLYLINE)) {
+                    if (relationship.getOtherNodeId(endNode.getId()) == oneButLast.getId()) {
+                        return Evaluation.EXCLUDE_AND_PRUNE;
+                    }
+                }
+
+                for (Relationship relationship : endNode.getRelationships(Relation.NEXT)) {
+                    if (!relationship.equals(rel)) {
+                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;
+                        return Evaluation.INCLUDE_AND_CONTINUE;
+                    }
+                }
+
+                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.OUTGOING)) {
+                    if (partOfPolyline(relationship)) {
+                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;
+                        return Evaluation.INCLUDE_AND_CONTINUE;
+                    }
+                }
+
+                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.INCOMING)) {
+                    if (partOfPolyline(relationship)) {
                         return Evaluation.EXCLUDE_AND_PRUNE;
                     }
                 }
@@ -272,11 +286,11 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         }
 
         private boolean onlyOption(Node node) {
-            if (nextDirection != null) {
-                Iterator<Relationship> firstStep = node.getRelationships(Relation.NEXT, nextDirection).iterator();
+            if (this.relation == Relation.NEXT) {
+                Iterator<Relationship> firstStep = node.getRelationships(Relation.NEXT, direction).iterator();
                 if (firstStep.hasNext()) {
                     Node oneStep = firstStep.next().getOtherNode(node);
-                    Iterator<Relationship> secondStep = oneStep.getRelationships(Relation.NEXT, nextDirection).iterator();
+                    Iterator<Relationship> secondStep = oneStep.getRelationships(Relation.NEXT, direction).iterator();
                     if (secondStep.hasNext()) {
                         return false;
                     }
@@ -286,49 +300,40 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         }
 
         private Evaluation withoutDirection(Path path) {
-            if (finished) {
-                return Evaluation.EXCLUDE_AND_PRUNE;
-            }
-
             Relationship rel = path.lastRelationship();
             Node endNode = path.endNode();
-
-            if (endNode.equals(firstNode) || endNode.equals(secondNode)) {
-                finished = true;
-                return Evaluation.EXCLUDE_AND_PRUNE;
-            }
-
-            if (firstNode == null) {
-                firstNode = endNode;
-            } else if (secondNode == null) {
-                secondNode = endNode;
-            }
 
             if (rel == null) {
                 return Evaluation.INCLUDE_AND_CONTINUE;
             }
 
-            if (rel.isType(Relation.NEXT_IN_POLYGON)) {
-                return nextInPolygon(rel) ? Evaluation.INCLUDE_AND_CONTINUE : Evaluation.EXCLUDE_AND_PRUNE;
+            if (rel.isType(Relation.NEXT_IN_POLYLINE) || rel.isType(Relation.END_OF_POLYLINE)) {
+                return partOfPolyline(rel) ? Evaluation.INCLUDE_AND_CONTINUE : Evaluation.EXCLUDE_AND_PRUNE;
             }
 
             if (rel.isType(Relation.NEXT)) {
+                Node oneButLast = path.lastRelationship().getOtherNode(endNode);
+
+                for (Relationship relationship : endNode.getRelationships(Relation.END_OF_POLYLINE)) {
+                    if (relationship.getOtherNodeId(endNode.getId()) == oneButLast.getId()) {
+                        return Evaluation.EXCLUDE_AND_PRUNE;
+                    }
+                }
+
                 for (Relationship relationship : endNode.getRelationships(Relation.NEXT)) {
                     if (!relationship.equals(rel)) {
                         return Evaluation.INCLUDE_AND_CONTINUE;
                     }
                 }
 
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
-                    if (nextInPolygon(relationship)) {
+                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.OUTGOING)) {
+                    if (partOfPolyline(relationship)) {
                         return Evaluation.INCLUDE_AND_CONTINUE;
                     }
                 }
 
-                Node oneButLast = path.lastRelationship().getOtherNode(endNode);
-
-                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYGON, Direction.INCOMING)) {
-                    if (nextInPolygon(relationship)) {
+                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.INCOMING)) {
+                    if (partOfPolyline(relationship)) {
                         return Evaluation.EXCLUDE_AND_PRUNE;
                     }
                 }
@@ -348,11 +353,11 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
             return true;
         }
 
-        private boolean nextInPolygon(Relationship rel) {
-            return nextInPolygon(rel, relationId);
+        private boolean partOfPolyline(Relationship rel) {
+            return partOfPolyline(rel, relationId);
         }
 
-        static boolean nextInPolygon(Relationship rel, long relationId) {
+        static boolean partOfPolyline(Relationship rel, long relationId) {
             long[] ids = (long[]) rel.getProperty("relation_osm_ids");
 
             for (int i = 0; i < ids.length; i++) {

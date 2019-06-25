@@ -4,6 +4,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
+import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
@@ -12,7 +13,9 @@ import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianNaiveIntersect;
 import org.neo4j.spatial.algo.cartesian.CartesianWithin;
 import org.neo4j.spatial.core.MultiPolygon;
+import org.neo4j.spatial.core.MultiPolyline;
 import org.neo4j.spatial.core.Polygon;
+import org.neo4j.spatial.core.Polyline;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Values;
 
@@ -36,31 +39,6 @@ public class UserDefinedFunctions {
             polygon.add(points.get(0));
             return Stream.of(new PolygonResult(polygon));
         }
-    }
-
-    @Procedure(name = "neo4j.createOSMArrayPolygon", mode = Mode.WRITE)
-    public void createOSMArrayPolygon(@Name("main") Node main) {
-        List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
-
-        List<Point> points = new ArrayList<>();
-        for (Node wayNode : polystrings.get(0)) {
-            Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
-
-            Point point = (Point) node.getProperty("location");
-            points.add(point);
-        }
-
-        for (List<Node> polystring : polystrings) {
-            StringJoiner joiner = new StringJoiner(",", "LINESTRING(", ")");
-            for (Node wayNode : polystring) {
-                Node node = wayNode.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNode();
-
-                Point point = (Point) node.getProperty("location");
-                joiner.add(point.getCoordinate().getCoordinate().get(0) + " " + point.getCoordinate().getCoordinate().get(1));
-            }
-        }
-
-        main.setProperty("polygon", points.toArray(new Point[0]));
     }
 
     @Procedure(name = "neo4j.createArrayCache", mode = Mode.WRITE)
@@ -92,21 +70,32 @@ public class UserDefinedFunctions {
         }
     }
 
-    @Procedure(name = "neo4j.createOSMGraphPolygon", mode = Mode.WRITE)
-    public void createOSMPolygon(@Name("main") Node main) {
+    @Procedure(name = "neo4j.createOSMGraphGeometries", mode = Mode.WRITE)
+    public void createOSMGraphGeometries(@Name("main") Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
         long id = (long) main.getProperty("relation_osm_id");
 
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("id", id);
         db.execute("MATCH (m:OSMRelation)-[:POLYGON_STRUCTURE*]->(p:Polygon) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
-        //TODO fix this by deleting id from array
-//        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON]->(:OSMWayNode)  DELETE n");
+        db.execute("MATCH (m:OSMRelation)-[:POLYLINE_STRUCTURE*]->(p:Polyline) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
+        //TODO fix this by deleting id from array (NEXT_IN_... & END_OF_POLYLINE)
+//        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON]->(:OSMWayNode) DELETE n");
+//        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYLINE]->(:OSMWayNode) DELETE n");
+//        db.execute("MATCH (:OSMWayNode)-[n:END_OF_POLYLINE]->(:OSMWayNode) DELETE n");
 
-        List<List<Node>> polystrings = OSMTraverser.traverseOSMGraph(main);
+        Pair<List<List<Node>>, List<List<Node>>> geometries = OSMTraverser.traverseOSMGraph(main);
+        List<List<Node>> polygons = geometries.first();
+        List<List<Node>> polylines = geometries.other();
 
-        GraphPolygonBuilder graphPolygonBuilder = new GraphPolygonBuilder(main, polystrings);
-        graphPolygonBuilder.build();
+        GraphBuilder builder;
+        if (polylines.isEmpty()) {
+            builder = new GraphPolygonBuilder(main, polygons);
+        } else {
+            polylines.addAll(polygons);
+            builder = new GraphPolylineBuilder(main, polylines);
+        }
+        builder.build();
     }
 
     private MultiPolygon getGraphNodePolygon(Node main) {
@@ -132,6 +121,24 @@ public class UserDefinedFunctions {
     @UserFunction(name = "neo4j.getArrayPolygonWKT")
     public String getArrayPolygonWKT(@Name("main") Node main) {
         return getArrayPolygon(main).toWKT();
+    }
+
+    private MultiPolyline getGraphNodePolyline(Node main) {
+        long relationId = (long) main.getProperty("relation_osm_id");
+        MultiPolyline multiPolyline = new MultiPolyline();
+
+        for (Relationship relationship : main.getRelationships(Relation.POLYLINE_STRUCTURE, Direction.OUTGOING)) {
+            Node start = relationship.getEndNode().getSingleRelationship(Relation.POLYLINE_START, Direction.OUTGOING).getEndNode();
+            Polyline polyline = new Neo4jSimpleGraphNodePolyline(start, relationId);
+            multiPolyline.insertPolyline(polyline);
+        }
+
+        return multiPolyline;
+    }
+
+    @UserFunction(name = "neo4j.getGraphPolylineWKT")
+    public String getGraphPolylineWKT(@Name("main") Node main) {
+        return getGraphNodePolyline(main).toWKT();
     }
 
     private void insertChildrenGraphNode(Node node, MultiPolygon multiPolygon, long relationId) {
