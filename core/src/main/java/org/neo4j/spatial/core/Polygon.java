@@ -5,9 +5,11 @@ import org.neo4j.spatial.algo.CRSChecker;
 import org.neo4j.spatial.algo.cartesian.CartesianUtil;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.StringJoiner;
-import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -40,29 +42,15 @@ public interface Polygon {
      * @return Array of line segments describing the polygon
      */
     default LineSegment[] toLineSegments() {
-        Point[][] polygonPoints = Stream.concat(Arrays.stream(this.getShells()), Arrays.stream(this.getHoles()))
-                .map(SimplePolygon::getPoints).toArray(Point[][]::new);
-
-        int amount = Arrays.stream(polygonPoints).mapToInt(p -> p.length - 1).sum();
-
-        LineSegment[] output = new LineSegment[amount];
-        int index = 0;
-
-        for (int i = 0; i < polygonPoints.length; i++) {
-            for (int j = 0; j < polygonPoints[i].length - 1; j++) {
-                Point a = polygonPoints[i][j];
-                Point b = polygonPoints[i][j + 1];
-                output[index + j] = LineSegment.lineSegment(a, b);
-            }
-
-            Point a = polygonPoints[i][polygonPoints[i].length - 2];
-            Point b = polygonPoints[i][0];
-            output[index + polygonPoints[i].length - 2] = LineSegment.lineSegment(a, b);
-
-            index += polygonPoints[i].length - 1;
+        List<LineSegment> lineSegments = new ArrayList<>();
+        for (SimplePolygon shell : this.getShells()) {
+            Collections.addAll(lineSegments, shell.toLineSegments());
+        }
+        for (SimplePolygon hole : this.getHoles()) {
+            Collections.addAll(lineSegments, hole.toLineSegments());
         }
 
-        return output;
+        return lineSegments.toArray(new LineSegment[0]);
     }
 
     SimplePolygon[] getShells();
@@ -131,6 +119,21 @@ public interface Polygon {
         }
 
         Point[] getPoints();
+
+        @Override
+        default LineSegment[] toLineSegments() {
+            List<LineSegment> lineSegments = new ArrayList<>();
+
+            startTraversal();
+            Point previous = getNextPoint();
+            while (!fullyTraversed()) {
+                Point current = getNextPoint();
+
+                lineSegments.add(LineSegment.lineSegment(previous, current));
+                previous = current;
+            }
+            return lineSegments.toArray(new LineSegment[0]);
+        }
 
         @Override
         default SimplePolygon[] getShells() {

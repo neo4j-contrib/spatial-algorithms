@@ -4,7 +4,9 @@ import org.neo4j.spatial.algo.CRSChecker;
 import org.neo4j.spatial.algo.cartesian.CartesianUtil;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.StringJoiner;
 
 import static java.lang.String.format;
@@ -38,16 +40,17 @@ public interface Polyline {
      * @return Array of line segments describing the polygon
      */
     default LineSegment[] toLineSegments() {
-        Point[] points = getPoints();
-        LineSegment[] output = new LineSegment[points.length - 1];
+        List<LineSegment> lineSegments = new ArrayList<>();
 
-        for (int i = 0; i < output.length; i++) {
-            Point a = points[i];
-            Point b = points[i+1];
-            output[i] = LineSegment.lineSegment(a, b);
+        startTraversal();
+        Point previous = getNextPoint();
+        while (!fullyTraversed()) {
+            Point current = getNextPoint();
+
+            lineSegments.add(LineSegment.lineSegment(previous, current));
+            previous = current;
         }
-
-        return output;
+        return lineSegments.toArray(new LineSegment[0]);
     }
 
     CRS getCRS();
