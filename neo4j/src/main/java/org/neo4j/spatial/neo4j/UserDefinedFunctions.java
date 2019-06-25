@@ -24,9 +24,6 @@ public class UserDefinedFunctions {
     @Context
     public Log log;
 
-    @Context
-    public KernelTransaction ktx;
-
     @Procedure("neo4j.polygon")
     public Stream<PolygonResult> makePolygon(@Name("points") List<Point> points) {
         if (points == null || points.size() < 3) {
@@ -137,19 +134,6 @@ public class UserDefinedFunctions {
         return getArrayPolygon(main).toWKT();
     }
 
-    private MultiPolygon getGraphIDPolygon(Node main) {
-        long relationId = (long) main.getProperty("relation_osm_id");
-        MultiPolygon multiPolygon = new MultiPolygon();
-        insertChildrenGraphID(main, multiPolygon, relationId);
-
-        return multiPolygon;
-    }
-
-    @UserFunction(name = "neo4j.getIDPolygonWKT")
-    public String getIDPolygonWKT(@Name("main") Node main) {
-        return getGraphIDPolygon(main).toWKT();
-    }
-
     private void insertChildrenGraphNode(Node node, MultiPolygon multiPolygon, long relationId) {
         for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
             Node child = polygonStructure.getEndNode();
@@ -172,19 +156,6 @@ public class UserDefinedFunctions {
             multiPolygon.addChild(childNode);
 
             insertChildrenArray(child, childNode);
-        }
-    }
-
-    private void insertChildrenGraphID(Node node, MultiPolygon multiPolygon, long relationId) {
-        for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
-            Node child = polygonStructure.getEndNode();
-            Node start = child.getSingleRelationship(Relation.POLYGON_START, Direction.OUTGOING).getEndNode().getSingleRelationship(Relation.FIRST_NODE, Direction.OUTGOING).getEndNode();
-
-            Polygon.SimplePolygon polygon = new Neo4jSimpleGraphIDPolygon(start, relationId, ktx);
-            MultiPolygon.MultiPolygonNode childNode = new MultiPolygon.MultiPolygonNode(polygon);
-            multiPolygon.addChild(childNode);
-
-            insertChildrenGraphID(child, childNode, relationId);
         }
     }
 
@@ -252,14 +223,6 @@ public class UserDefinedFunctions {
     @UserFunction("neo4j.convexHullGraphNode")
     public List<Point> convexHullGraphNode(@Name("main") Node main) {
         MultiPolygon multiPolygon = getGraphNodePolygon(main);
-        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
-
-        return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
-    }
-
-    @UserFunction("neo4j.convexHullGraphID")
-    public List<Point> convexHullGraphID(@Name("main") Node main) {
-        MultiPolygon multiPolygon = getGraphIDPolygon(main);
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
         return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
