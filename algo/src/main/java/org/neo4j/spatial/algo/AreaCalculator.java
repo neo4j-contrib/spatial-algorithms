@@ -3,7 +3,6 @@ package org.neo4j.spatial.algo;
 import org.neo4j.spatial.algo.cartesian.CartesianArea;
 import org.neo4j.spatial.algo.wgs84.WGS84Area;
 import org.neo4j.spatial.core.CRS;
-import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Polygon;
 
 public class AreaCalculator {
@@ -24,27 +23,19 @@ public class AreaCalculator {
         return wgs84;
     }
 
-    /**
-     * @param polygon
-     * @return The area of the polygon
-     */
-    public static double area(MultiPolygon polygon) {
-        if (CRSChecker.check(polygon) == CRS.Cartesian) {
-            return getCartesian().area(polygon);
+    public static Area getCalculator(Polygon polygon) {
+        if (polygon.getCRS() == CRS.Cartesian) {
+            return getCartesian();
         } else {
-            return getWGS84().area(polygon);
+            return getWGS84();
         }
     }
 
-    /**
-     * @param polygon
-     * @return The area of the simple polygon
-     */
-    public static double area(Polygon.SimplePolygon polygon) {
-        if (CRSChecker.check(polygon) == CRS.Cartesian) {
-            return getCartesian().area(polygon);
+    public static Area getCalculator(CRS crs) {
+        if (crs == CRS.Cartesian) {
+            return getCartesian();
         } else {
-            return getWGS84().area(polygon);
+            return getWGS84();
         }
     }
 }

@@ -24,27 +24,27 @@ public class CCWCalculator {
         return wgs84;
     }
 
-    /**
-     * @param polygon
-     * @return True iff the points of the given polygon are in CCW order
-     */
-    public static boolean isCCW(Polygon.SimplePolygon polygon) {
-        if (CRSChecker.check(polygon) == CRS.Cartesian) {
-            return getCartesian().isCCW(polygon);
+    public static CCW getCalculator(CRS crs) {
+        if (crs == CRS.Cartesian) {
+            return getCartesian();
         } else {
-            return getWGS84().isCCW(polygon);
+            return getWGS84();
         }
     }
 
-    /**
-     * @param points
-     * @return True iff the points are in CCW order
-     */
-    public static boolean isCCW(Point[] points) {
-        if (CRSChecker.check(points[0]) == CRS.Cartesian) {
-            return getCartesian().isCCW(points);
+    public static CCW getCalculator(Polygon.SimplePolygon polygon) {
+        if (polygon.getCRS() == CRS.Cartesian) {
+            return getCartesian();
         } else {
-            return getWGS84().isCCW(points);
+            return getWGS84();
+        }
+    }
+
+    public static CCW getCalculator(Point[] points) {
+        if (points[0].getCRS() == CRS.Cartesian) {
+            return getCartesian();
+        } else {
+            return getWGS84();
         }
     }
 }

@@ -1,6 +1,5 @@
 package org.neo4j.spatial.core;
 
-import org.neo4j.spatial.algo.CRSChecker;
 import org.neo4j.spatial.algo.cartesian.CartesianUtil;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 
@@ -162,7 +161,7 @@ public interface Polyline {
         }
 
         private double distance(Point start, Point point) {
-            if (CRSChecker.check(start, point) == CRS.Cartesian) {
+            if (start.getCRS() == CRS.Cartesian) {
                 return CartesianUtil.distance(start.getCoordinate(), point.getCoordinate());
             } else {
                 Vector u = new Vector(start);

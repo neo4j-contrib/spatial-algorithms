@@ -43,313 +43,82 @@ public class IntersectCalculator {
         return wgs84Sweep;
     }
 
-    /**
-     * Given two polygons, returns all points for which the two polygons distance.
-     *
-     * @param a
-     * @param b
-     * @return Array of intersections
-     */
-    public static Point[] intersect(Polygon a, Polygon b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
+    public static Intersect getCalculator(CRS crs) {
+        return getCalculator(crs, AlgorithmVariant.Naive);
     }
 
-    /**
-     * Given two polygons, returns all points for which the two polygons distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Array of intersections
-     */
-    public static Point[] intersect(Polygon a, Polygon b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+    public static Intersect getCalculator(CRS crs, AlgorithmVariant variant) {
+        if (crs == CRS.Cartesian) {
             if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
+                return getCartesianNaive();
             } else {
-                return getCartesianSweep().intersect(a, b);
+                return getCartesianSweep();
             }
         } else {
             if (variant == AlgorithmVariant.MCSweepLine) {
-                return getWGS84Naive().intersect(a, b);
+                return getWGS84Naive();
             } else {
-                return getWGS84Sweep().intersect(a, b);
+                return getWGS84Sweep();
             }
         }
     }
 
-    /**
-     * @param a
-     * @param b
-     * @return True iff the polygons a and b distance in at least 1 point.
-     */
-    public static boolean doesIntersect(Polygon a, Polygon b) {
-        return doesIntersect(a, b, AlgorithmVariant.Naive);
+    public static Intersect getCalculator(Polygon a) {
+        return getCalculator(a, AlgorithmVariant.Naive);
     }
 
-    /**
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return True iff the polygons a and b distance in at least 1 point.
-     */
-    public static boolean doesIntersect(Polygon a, Polygon b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+    public static Intersect getCalculator(Polygon a, AlgorithmVariant variant) {
+        if (a.getCRS() == CRS.Cartesian) {
             if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().doesIntersect(a, b);
+                return getCartesianNaive();
             } else {
-                return getCartesianSweep().doesIntersect(a, b);
+                return getCartesianSweep();
             }
         } else {
             if (variant == AlgorithmVariant.MCSweepLine) {
-                return getWGS84Naive().doesIntersect(a, b);
+                return getWGS84Naive();
             } else {
-                return getWGS84Sweep().doesIntersect(a, b);
+                return getWGS84Sweep();
             }
         }
     }
 
-    /**
-     * Given a polygon and a polyline, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @return Array of intersections
-     */
-    public static Point[] intersect(Polygon a, Polyline b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
+    public static Intersect getCalculator(MultiPolyline a) {
+        return getCalculator(a, AlgorithmVariant.Naive);
     }
 
-    /**
-     * Given a polygon and a polyline, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Array of intersections
-     */
-    public static Point[] intersect(Polygon a, Polyline b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+    public static Intersect getCalculator(MultiPolyline a, AlgorithmVariant variant) {
+        if (a.getCRS() == CRS.Cartesian) {
             if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
+                return getCartesianNaive();
             } else {
-                return getCartesianSweep().intersect(a, b);
+                return getCartesianSweep();
             }
         } else {
             if (variant == AlgorithmVariant.MCSweepLine) {
-                return getWGS84Naive().intersect(a, b);
+                return getWGS84Naive();
             } else {
-                return getWGS84Sweep().intersect(a, b);
+                return getWGS84Sweep();
             }
         }
     }
 
-    /**
-     * Given two multipolylines, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Point of intersection if it exists, else null
-     */
-    Point[] intersect(MultiPolyline a, MultiPolyline b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
+    public static Intersect getCalculator(Polyline a) {
+        return getCalculator(a, AlgorithmVariant.Naive);
     }
 
-    /**
-     * Given two multipolylines, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Point of intersection if it exists, else null
-     */
-    Point[] intersect(MultiPolyline a, MultiPolyline b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
+    public static Intersect getCalculator(Polyline a, AlgorithmVariant variant) {
+        if (a.getCRS() == CRS.Cartesian) {
             if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
+                return getCartesianNaive();
             } else {
-                return getCartesianSweep().intersect(a, b);
-            }
-        } else {
-            if (variant == AlgorithmVariant.Naive) {
-                return getWGS84Naive().intersect(a, b);
-            } else {
-                return getWGS84Sweep().intersect(a, b);
-            }
-        }
-    }
-
-    /**
-     * Given a multipolyline and a polyline, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @return Point of intersection if it exists, else null
-     */
-    Point[] intersect(MultiPolyline a, Polyline b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
-    }
-
-    /**
-     * Given a multipolyline and a polyline, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Point of intersection if it exists, else null
-     */
-    Point[] intersect(MultiPolyline a, Polyline b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
-            if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
-            } else {
-                return getCartesianSweep().intersect(a, b);
-            }
-        } else {
-            if (variant == AlgorithmVariant.Naive) {
-                return getWGS84Naive().intersect(a, b);
-            } else {
-                return getWGS84Sweep().intersect(a, b);
-            }
-        }
-    }
-
-    /**
-     * Given a multipolyline and a line segment, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @return Point of intersection if it exists, else null
-     */
-    Point[] intersect(MultiPolyline a, LineSegment b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
-    }
-
-    /**
-     * Given a multipolyline and a line segment, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Point of intersection if it exists, else null
-     */
-    Point[] intersect(MultiPolyline a, LineSegment b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
-            if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
-            } else {
-                return getCartesianSweep().intersect(a, b);
-            }
-        } else {
-            if (variant == AlgorithmVariant.Naive) {
-                return getWGS84Naive().intersect(a, b);
-            } else {
-                return getWGS84Sweep().intersect(a, b);
-            }
-        }
-    }
-
-    /**
-     * Given two polylines, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @return Point of intersection if it exists, else null
-     */
-    public static Point[] intersect(Polyline a, Polyline b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
-    }
-
-    /**
-     * Given two polylines, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Point of intersection if it exists, else null
-     */
-    public static Point[] intersect(Polyline a, Polyline b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
-            if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
-            } else {
-                return getCartesianSweep().intersect(a, b);
+                return getCartesianSweep();
             }
         } else {
             if (variant == AlgorithmVariant.MCSweepLine) {
-                return getWGS84Naive().intersect(a, b);
+                return getWGS84Naive();
             } else {
-                return getWGS84Sweep().intersect(a, b);
-            }
-        }
-    }
-
-    /**
-     * Given a polyline and a line segment, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @return Point of intersection if it exists, else null
-     */
-    public static Point[] intersect(Polyline a, LineSegment b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
-    }
-
-    /**
-     * Given a polyline and a line segment, returns all points for which the two distance.
-     *
-     * @param a
-     * @param b
-     * @param variant The intersection algorithm variant
-     * @return Point of intersection if it exists, else null
-     */
-    public static Point[] intersect(Polyline a, LineSegment b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
-            if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
-            } else {
-                return getCartesianSweep().intersect(a, b);
-            }
-        } else {
-            if (variant == AlgorithmVariant.MCSweepLine) {
-                return getWGS84Naive().intersect(a, b);
-            } else {
-                return getWGS84Sweep().intersect(a, b);
-            }
-        }
-    }
-
-    /**
-     * Given two line segment returns the point of intersection if and only if it exists, else it will return null.
-     *
-     * @param a
-     * @param b
-     * @return Point of intersection if it exists, else null
-     */
-    public static Point intersect(LineSegment a, LineSegment b) {
-        return intersect(a, b, AlgorithmVariant.Naive);
-    }
-
-    /**
-     * Given two line segment returns the point of intersection if and only if it exists, else it will return null.
-     *
-     * @param a
-     * @param b
-     * @return Point of intersection if it exists, else null
-     */
-    public static Point intersect(LineSegment a, LineSegment b, AlgorithmVariant variant) {
-        if (CRSChecker.check(a, b) == CRS.Cartesian) {
-            if (variant == AlgorithmVariant.Naive) {
-                return getCartesianNaive().intersect(a, b);
-            } else {
-                return getCartesianSweep().intersect(a, b);
-            }
-        } else {
-            if (variant == AlgorithmVariant.MCSweepLine) {
-                return getWGS84Naive().intersect(a, b);
-            } else {
-                return getWGS84Sweep().intersect(a, b);
+                return getWGS84Sweep();
             }
         }
     }

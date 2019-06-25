@@ -1,7 +1,7 @@
 package org.neo4j.spatial.core;
 
+import org.neo4j.spatial.algo.CCW;
 import org.neo4j.spatial.algo.CCWCalculator;
-import org.neo4j.spatial.algo.CRSChecker;
 import org.neo4j.spatial.algo.cartesian.CartesianUtil;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 
@@ -164,9 +164,10 @@ public interface Polygon {
          */
         default String toWKTPointString(boolean hole) {
             Point[] points = getPoints();
+            CCW calculator = CCWCalculator.getCalculator(points);
             StringJoiner joiner = new StringJoiner(",", "(", ")");
             if (hole) {
-                if (CCWCalculator.isCCW(this)) {
+                if (calculator.isCCW(this)) {
                     for (int i = 0; i < points.length; i++) {
                         joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
                     }
@@ -176,7 +177,7 @@ public interface Polygon {
                     }
                 }
             } else {
-                if (CCWCalculator.isCCW(this)) {
+                if (calculator.isCCW(this)) {
                     for (int i = points.length - 1; i >= 0; i--) {
                         joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
                     }
@@ -252,7 +253,7 @@ public interface Polygon {
         }
 
         private double distance(Point start, Point point) {
-            if (CRSChecker.check(start, point) == CRS.Cartesian) {
+            if (start.getCRS() == CRS.Cartesian) {
                 return CartesianUtil.distance(start.getCoordinate(), point.getCoordinate());
             } else {
                 Vector u = new Vector(start);
