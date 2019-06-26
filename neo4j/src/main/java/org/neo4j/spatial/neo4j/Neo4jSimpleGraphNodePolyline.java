@@ -3,6 +3,7 @@ package org.neo4j.spatial.neo4j;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.helpers.ArrayUtil;
+import org.neo4j.spatial.algo.CCW;
 import org.neo4j.spatial.algo.CCWCalculator;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
@@ -26,10 +27,12 @@ public class Neo4jSimpleGraphNodePolyline extends Neo4jSimpleGraphPolyline {
         Node[] wayNodes = traverseWholePolygon(main);
         Point[] points = extractPoints(wayNodes);
 
+        CCW calculator = CCWCalculator.getCalculator(points);
+
         if (points.length < 4) {
             throw new IllegalArgumentException("Polygon cannot have less than 4 points");
         }
-        if (!CCWCalculator.isCCW(points)) {
+        if (!calculator.isCCW(points)) {
             ArrayUtil.reverse(points);
         }
         return points;

@@ -12,6 +12,7 @@ import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.graphdb.traversal.Uniqueness;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polyline;
@@ -81,12 +82,14 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         ResourceIterator<Node> iterator = getNewTraverser(this.main).nodes().iterator();
         this.traversing = false;
 
+        Distance calculator = DistanceCalculator.getCalculator(startPoint);
+
         double minDistance = Double.MAX_VALUE;
         while (iterator.hasNext()) {
             Node next = iterator.next();
             Point extracted = extractPoint(next);
 
-            double currentDistance = DistanceCalculator.distance(extracted, startPoint);
+            double currentDistance = calculator.distance(extracted, startPoint);
             if (currentDistance <= minDistance) {
                 minDistance = currentDistance;
                 this.start = next;
@@ -104,11 +107,13 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         Direction minDirection = null;
         Relation minRelation = null;
 
+        Distance calculator = DistanceCalculator.getCalculator(directionPoint);
+
         for (Relationship relationship : this.start.getRelationships(Relation.NEXT_IN_POLYLINE)) {
             if (WayEvaluator.partOfPolyline(relationship, osmRelationId)) {
                 Node other = relationship.getOtherNode(this.start);
 
-                double currentDistance = DistanceCalculator.distance(directionPoint, extractPoint(other));
+                double currentDistance = calculator.distance(directionPoint, extractPoint(other));
                 if (currentDistance < minDistance) {
                     minDistance = currentDistance;
                     minRelation = Relation.NEXT_IN_POLYGON;
@@ -121,7 +126,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
             if (WayEvaluator.partOfPolyline(relationship, osmRelationId)) {
                 Node other = relationship.getOtherNode(this.start);
 
-                double currentDistance = DistanceCalculator.distance(directionPoint, extractPoint(other));
+                double currentDistance = calculator.distance(directionPoint, extractPoint(other));
                 if (currentDistance < minDistance) {
                     minDistance = currentDistance;
                     minRelation = Relation.END_OF_POLYLINE;
@@ -133,7 +138,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         for (Relationship relationship : this.start.getRelationships(Relation.NEXT)) {
             Node other = relationship.getOtherNode(this.start);
 
-            double currentDistance = DistanceCalculator.distance(directionPoint, extractPoint(other));
+            double currentDistance = calculator.distance(directionPoint, extractPoint(other));
             if (currentDistance < minDistance) {
                 minDistance = currentDistance;
                 minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;

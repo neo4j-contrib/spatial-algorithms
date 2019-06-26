@@ -4,6 +4,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.*;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
@@ -84,12 +85,14 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         ResourceIterator<Node> iterator = getNewTraverser(this.main).nodes().iterator();
         this.traversing = false;
 
+        Distance calculator = DistanceCalculator.getCalculator(startPoint);
+
         double minDistance = Double.MAX_VALUE;
         while (iterator.hasNext()) {
             Node next = iterator.next();
             Point extracted = extractPoint(next);
 
-            double currentDistance = DistanceCalculator.distance(extracted, startPoint);
+            double currentDistance = calculator.distance(extracted, startPoint);
             if (currentDistance <= minDistance) {
                 minDistance = currentDistance;
                 this.start = next;
@@ -106,11 +109,13 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         Direction minDirection = null;
         boolean nextInPolygon = true;
 
+        Distance calculator = DistanceCalculator.getCalculator(directionPoint);
+
         for (Relationship relationship : this.start.getRelationships(Relation.NEXT_IN_POLYGON)) {
             if (WayEvaluator.nextInPolygon(relationship, osmRelationId)) {
                 Node other = relationship.getOtherNode(this.start);
 
-                double currentDistance = DistanceCalculator.distance(directionPoint, extractPoint(other));
+                double currentDistance = calculator.distance(directionPoint, extractPoint(other));
                 if (currentDistance < minDistance) {
                     minDistance = currentDistance;
                     minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;
@@ -121,7 +126,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         for (Relationship relationship : this.start.getRelationships(Relation.NEXT)) {
             Node other = relationship.getOtherNode(this.start);
 
-            double currentDistance = DistanceCalculator.distance(directionPoint, extractPoint(other));
+            double currentDistance = calculator.distance(directionPoint, extractPoint(other));
             if (currentDistance < minDistance) {
                 minDistance = currentDistance;
                 minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;

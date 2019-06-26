@@ -18,12 +18,14 @@ public abstract class LinearReference {
             return null;
         }
 
+        Distance calculator = DistanceCalculator.getCalculator(start);
+
         polygon.startTraversal(start, direction);
         Point previous = polygon.getNextPoint();
         Point point = null;
         while (d >= 0) {
             Point current = polygon.getNextPoint();
-            double length = DistanceCalculator.distance(previous, current);
+            double length = calculator.distance(previous, current);
 
             if (length < d) {
                 d -= length;
@@ -49,12 +51,14 @@ public abstract class LinearReference {
             return null;
         }
 
+        Distance calculator = DistanceCalculator.getCalculator(start);
+
         polyline.startTraversal(start, direction);
         Point previous = polyline.getNextPoint();
         Point point = null;
         while (!polyline.fullyTraversed()) {
             Point current = polyline.getNextPoint();
-            double length = DistanceCalculator.distance(previous, current);
+            double length = calculator.distance(previous, current);
 
             if (length < d) {
                 d -= length;

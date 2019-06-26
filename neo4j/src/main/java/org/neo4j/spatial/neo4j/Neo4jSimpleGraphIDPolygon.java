@@ -4,6 +4,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.helpers.ArrayUtil;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.spatial.algo.CCW;
 import org.neo4j.spatial.algo.CCWCalculator;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.PolygonUtil;
@@ -22,10 +23,12 @@ public class Neo4jSimpleGraphIDPolygon extends Neo4jSimpleGraphPolygon {
         Point[] unclosed = extractPoints(wayNodes);
         Point[] points = PolygonUtil.closeRing(unclosed);
 
+        CCW calculator = CCWCalculator.getCalculator(points);
+
         if (points.length < 4) {
             throw new IllegalArgumentException("Polygon cannot have less than 4 points");
         }
-        if (!CCWCalculator.isCCW(points)) {
+        if (!calculator.isCCW(points)) {
             ArrayUtil.reverse(points);
         }
         return points;

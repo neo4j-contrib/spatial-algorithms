@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.neo4j.spatial.algo.AlgoUtil;
+import org.neo4j.spatial.algo.Intersect;
 import org.neo4j.spatial.algo.IntersectCalculator;
 import org.neo4j.spatial.core.*;
 
@@ -16,7 +17,7 @@ import static org.junit.Assert.*;
 
 @RunWith(value = Parameterized.class)
 public class WGS84IntersectTest {
-    private IntersectCalculator.AlgorithmVariant variant;
+    private Intersect calculator;
 
     @Parameterized.Parameters
     public static Collection data() {
@@ -25,7 +26,7 @@ public class WGS84IntersectTest {
     }
 
     public WGS84IntersectTest(IntersectCalculator.AlgorithmVariant variant) {
-        this.variant = variant;
+        this.calculator = IntersectCalculator.getCalculator(CRS.WGS84, variant);
     }
 
     @Test
@@ -38,7 +39,7 @@ public class WGS84IntersectTest {
         LineSegment a = LineSegment.lineSegment(p, q);
         LineSegment b = LineSegment.lineSegment(r, s);
 
-        Point actual = IntersectCalculator.intersect(a, b);
+        Point actual = calculator.intersect(a, b);
         Point expected = Point.point(CRS.WGS84, -40, 0);
         matchPoints(new Point[]{actual}, new Point[]{expected});
     }
@@ -56,7 +57,7 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, 10, 10)
         );
 
-        matchPoints(IntersectCalculator.intersect(a, b, variant), new Point[]{Point.point(CRS.WGS84, 0, 5)});
+        matchPoints(calculator.intersect(a, b), new Point[]{Point.point(CRS.WGS84, 0, 5)});
     }
 
     @Test
@@ -74,25 +75,8 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -40, -5),
                 Point.point(CRS.WGS84, -40, 3));
 
-        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        Point[] actual = calculator.intersect(a, b);
         Point[] expected = new Point[]{Point.point(CRS.Cartesian, -40, 0), Point.point(CRS.Cartesian, -40, 1.0313299764)};
-        matchPoints(actual, expected);
-
-        a = Polyline.polyline(
-                Point.point(CRS.Cartesian, -5, -5),
-                Point.point(CRS.Cartesian, -5, 0),
-                Point.point(CRS.Cartesian, -2.5, 2.5),
-                Point.point(CRS.Cartesian, 2.5, 2.5),
-                Point.point(CRS.Cartesian, 2.5, 5),
-                Point.point(CRS.Cartesian, -2.5, 5)
-        );
-        b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 0, 10));
-
-        actual = IntersectCalculator.intersect(a, b, variant);
-        expected = new Point[]{
-                Point.point(CRS.Cartesian, 0, 2.5),
-                Point.point(CRS.Cartesian, 0, 5)
-        };
         matchPoints(actual, expected);
     }
 
@@ -111,7 +95,7 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -14, 15)
         );
 
-        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        Point[] actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 15, 0)});
 
         a = Polyline.polyline(
@@ -127,7 +111,7 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -5, 15)
         );
 
-        actual = IntersectCalculator.intersect(a, b, variant);
+        actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 10.0, -5.0575148968282075)});
     }
 
@@ -146,7 +130,7 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -14, 15)
         );
 
-        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        Point[] actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 15, 0), Point.point(CRS.WGS84, -5, 0)});
 
         a = Polygon.simple(
@@ -162,7 +146,7 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -5, 15)
         );
 
-        actual = IntersectCalculator.intersect(a, b, variant);
+        actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 10.0, -5.0575148968282075)});
     }
 
@@ -180,7 +164,7 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, 150, -150)
         );
 
-        assertThat(IntersectCalculator.intersect(a, b, variant), org.hamcrest.Matchers.emptyArray());
+        assertThat(calculator.intersect(a, b), org.hamcrest.Matchers.emptyArray());
     }
 
     @Test
@@ -198,8 +182,8 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -14, 15)
         );
 
-        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
-        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        assertThat(calculator.doesIntersect(a, b), equalTo(true));
+        Point[] actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 15, 0), Point.point(CRS.WGS84, -5, 0)});
 
         a = Polygon.simple(
@@ -215,8 +199,8 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -5, 15)
         );
 
-        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
-        actual = IntersectCalculator.intersect(a, b, variant);
+        assertThat(calculator.doesIntersect(a, b), equalTo(true));
+        actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 10.0, -5.0575148968282075), Point.point(CRS.WGS84, -4.999999999999999, 10.113252586707066)});
 
         a = Polygon.simple(
@@ -230,8 +214,8 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -10, 10)
         );
 
-        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
-        actual = IntersectCalculator.intersect(a, b, variant);
+        assertThat(calculator.doesIntersect(a, b), equalTo(true));
+        actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 3.3124813211817257, 0), Point.point(CRS.WGS84, -3.3124813211817257, 0)});
 
         a = Polygon.simple(
@@ -278,8 +262,8 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, 3.981505774021, -1.790199797499)
         };
 
-        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
-        actual = IntersectCalculator.intersect(a, b, variant);
+        assertThat(calculator.doesIntersect(a, b), equalTo(true));
+        actual = calculator.intersect(a, b);
         matchPoints(actual, expected);
     }
 
@@ -353,7 +337,7 @@ public class WGS84IntersectTest {
             b.insertPolygon(Polygon.simple(points));
         }
 
-        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        Point[] actual = calculator.intersect(a, b);
 
         Point[] expected = new Point[]{
                 Point.point(CRS.WGS84, 9.999999999999998, -0.0),
@@ -408,8 +392,8 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, 166, 15)
         );
 
-        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
-        Point[] actual = IntersectCalculator.intersect(a, b, variant);
+        assertThat(calculator.doesIntersect(a, b), equalTo(true));
+        Point[] actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, -165, 0), Point.point(CRS.WGS84, 175, 0)});
 
         a = Polygon.simple(
@@ -425,8 +409,8 @@ public class WGS84IntersectTest {
                 Point.point(CRS.WGS84, -166, 15)
         );
 
-        assertThat(IntersectCalculator.doesIntersect(a, b, variant), equalTo(true));
-        actual = IntersectCalculator.intersect(a, b, variant);
+        assertThat(calculator.doesIntersect(a, b), equalTo(true));
+        actual = calculator.intersect(a, b);
         matchPoints(actual, new Point[]{Point.point(CRS.WGS84, 165, 0), Point.point(CRS.WGS84, -175, 0)});
     }
 

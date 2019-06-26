@@ -1,7 +1,9 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.algo.LinearReference;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Vector;
@@ -18,7 +20,9 @@ public class WGS84LinearReference extends LinearReference {
             return null;
         }
 
-        double length = DistanceCalculator.distance(a, b);
+        Distance calculator = DistanceCalculator.getCalculator(CRS.WGS84);
+
+        double length = calculator.distance(a, b);
 
         if (length < d) {
             return null;
