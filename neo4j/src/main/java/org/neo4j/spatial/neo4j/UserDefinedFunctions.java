@@ -5,9 +5,10 @@ import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.helpers.collection.Pair;
-import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
+import org.neo4j.spatial.algo.Intersect;
+import org.neo4j.spatial.algo.IntersectCalculator;
 import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianNaiveIntersect;
@@ -166,6 +167,40 @@ public class UserDefinedFunctions {
         }
     }
 
+    /*
+    spatial.algo.intersection
+    spatial.algo.property.intersection
+
+    spatial.osm.graph.createGeometry
+    spatial.osm.property.createGeometry
+
+    -lower priority
+    spatial.osm.graph.deleteGeometry
+    spatial.osm.property.deleteGeometry
+     */
+    @Procedure("spatial.algo.graph.intersection")
+    public Stream<PointResult> intersectionGraphPolygonPolyline(@Name("polygonMain") Node polygonMain, @Name("polylineMain") Node polylineMain, @Name("variant") String variantString) {
+        IntersectCalculator.AlgorithmVariant variant;
+        if (variantString.equals("Naive")) {
+            variant = IntersectCalculator.AlgorithmVariant.Naive;
+        } else if (variantString.equals("MCSweepLine")) {
+            variant = IntersectCalculator.AlgorithmVariant.MCSweepLine;
+        } else {
+            throw new IllegalArgumentException("Illegal algorithm variant. Choose 'Naive' or 'MCSweepLine'");
+        }
+
+        List<org.neo4j.spatial.core.Point> result = new ArrayList<>();
+        Polygon polygon = getGraphNodePolygon(polygonMain);
+        MultiPolyline multiPolyline = getGraphNodePolyline(polylineMain);
+
+        Intersect calculator = IntersectCalculator.getCalculator(polygon, variant);
+
+        for (Polyline polyline : multiPolyline.getChildren()) {
+            Collections.addAll(result, calculator.intersect(polygon, polyline));
+        }
+        return result.stream().map(a -> new PointResult(asNeo4jPoint(a)));
+    }
+
     @UserFunction("neo4j.boundingBoxFor")
     public Map<String, Point> boundingBoxFor(@Name("polygon") List<Point> polygon) {
         if (polygon == null || polygon.size() < 4) {
@@ -174,10 +209,10 @@ public class UserDefinedFunctions {
             throw new IllegalArgumentException("Invalid 'polygon', first and last point should be the same, but were: " + polygon.get(0) + " and " + polygon.get(polygon.size() - 1));
         } else {
             CRS crs = polygon.get(0).getCRS();
-            double[] min = asPoint(polygon.get(0)).getCoordinate();
-            double[] max = asPoint(polygon.get(0)).getCoordinate();
+            double[] min = asInMemoryPoint(polygon.get(0)).getCoordinate();
+            double[] max = asInMemoryPoint(polygon.get(0)).getCoordinate();
             for (Point p : polygon) {
-                double[] vertex = asPoint(p).getCoordinate();
+                double[] vertex = asInMemoryPoint(p).getCoordinate();
                 for (int i = 0; i < vertex.length; i++) {
                     if (vertex[i] < min[i]) {
                         min[i] = vertex[i];
@@ -188,8 +223,8 @@ public class UserDefinedFunctions {
                 }
             }
             HashMap<String, Point> bbox = new HashMap<>();
-            bbox.put("min", asPoint(crs, min));
-            bbox.put("max", asPoint(crs, max));
+            bbox.put("min", asNeo4jPoint(crs, min));
+            bbox.put("max", asNeo4jPoint(crs, max));
             return bbox;
         }
     }
@@ -206,17 +241,17 @@ public class UserDefinedFunctions {
             if (!polyCrs.equals(pointCrs)) {
                 throw new IllegalArgumentException("Cannot compare geometries of different CRS: " + polyCrs + " !+ " + pointCrs);
             } else {
-                Polygon.SimplePolygon geometry = Polygon.simple(asPoints(polygon));
-                return CartesianWithin.within(geometry, asPoint(point));
+                Polygon.SimplePolygon geometry = Polygon.simple(asInMemoryPoints(polygon));
+                return CartesianWithin.within(geometry, asInMemoryPoint(point));
             }
         }
     }
 
     @UserFunction("neo4j.convexHullPoints")
     public List<Point> convexHullPoints(@Name("points") List<Point> points) {
-        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(asPoints(points));
+        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(asInMemoryPoints(points));
 
-        return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
+        return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
 
     @UserFunction("neo4j.convexHullArray")
@@ -224,7 +259,7 @@ public class UserDefinedFunctions {
         MultiPolygon multiPolygon = getArrayPolygon(main);
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
-        return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
+        return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
 
     @UserFunction("neo4j.convexHullGraphNode")
@@ -232,7 +267,7 @@ public class UserDefinedFunctions {
         MultiPolygon multiPolygon = getGraphNodePolygon(main);
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
-        return asPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
+        return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
 
     @UserFunction("neo4j.naiveIntersectArray")
@@ -243,11 +278,11 @@ public class UserDefinedFunctions {
         Polygon.SimplePolygon convertedPolygon2 = getSimplePolygon(polygon2);
 
         org.neo4j.spatial.core.Point[] intersections = new CartesianNaiveIntersect().intersect(convertedPolygon1, convertedPolygon2);
-        return asPoints(polygon1.get(0).getCRS(), intersections);
+        return asNeo4jPoints(polygon1.get(0).getCRS(), intersections);
     }
 
     private Polygon.SimplePolygon getSimplePolygon(@Name("polygon1") List<Point> polygon1) {
-        org.neo4j.spatial.core.Point[] convertedPoints1 = asPoints(polygon1);
+        org.neo4j.spatial.core.Point[] convertedPoints1 = asInMemoryPoints(polygon1);
         return Polygon.simple(convertedPoints1);
     }
 
@@ -259,7 +294,7 @@ public class UserDefinedFunctions {
         Polygon.SimplePolygon convertedPolygon2 = getSimplePolygon(polygon2);
 
         org.neo4j.spatial.core.Point[] intersections = new CartesianMCSweepLineIntersect().intersect(convertedPolygon1, convertedPolygon2);
-        return asPoints(polygon1.get(0).getCRS(), intersections);
+        return asNeo4jPoints(polygon1.get(0).getCRS(), intersections);
     }
 
     private void validatePolygons(List<Point> polygon1, List<Point> polygon2) {
@@ -281,15 +316,15 @@ public class UserDefinedFunctions {
     }
 
 
-    private org.neo4j.spatial.core.Point[] asPoints(List<Point> polygon) {
+    private org.neo4j.spatial.core.Point[] asInMemoryPoints(List<Point> polygon) {
         org.neo4j.spatial.core.Point[] points = new org.neo4j.spatial.core.Point[polygon.size()];
         for (int i = 0; i < points.length; i++) {
-            points[i] = asPoint(polygon.get(i));
+            points[i] = asInMemoryPoint(polygon.get(i));
         }
         return points;
     }
 
-    private org.neo4j.spatial.core.Point asPoint(Point point) {
+    private org.neo4j.spatial.core.Point asInMemoryPoint(Point point) {
         List<Double> coordinates = point.getCoordinate().getCoordinate();
         double[] coords = new double[coordinates.size()];
         for (int i = 0; i < coords.length; i++) {
@@ -299,19 +334,23 @@ public class UserDefinedFunctions {
         return org.neo4j.spatial.core.Point.point(crs, coords);
     }
 
-    private List<Point> asPoints(CRS crs, org.neo4j.spatial.core.Point[] points) {
+    private List<Point> asNeo4jPoints(CRS crs, org.neo4j.spatial.core.Point[] points) {
         List<Point> converted = new ArrayList<>();
         for (int i = 0; i < points.length; i++) {
-            converted.add(asPoint(crs, points[i]));
+            converted.add(asNeo4jPoint(crs, points[i]));
         }
         return converted;
     }
 
-    private Point asPoint(CRS crs, org.neo4j.spatial.core.Point point) {
+    private Point asNeo4jPoint(CRS crs, org.neo4j.spatial.core.Point point) {
         return new Neo4jPoint(crs, new Coordinate(point.getCoordinate()));
     }
 
-    private Point asPoint(CRS crs, double[] coords) {
+    private Point asNeo4jPoint(org.neo4j.spatial.core.Point point) {
+        return new Neo4jPoint(CRSConverter.toNeo4jCRS(point.getCRS()), new Coordinate(point.getCoordinate()));
+    }
+
+    private Point asNeo4jPoint(CRS crs, double[] coords) {
         return new Neo4jPoint(crs, new Coordinate(coords));
     }
 
@@ -332,6 +371,14 @@ public class UserDefinedFunctions {
         @Override
         public CRS getCRS() {
             return crs;
+        }
+    }
+
+    public class PointResult {
+        public Point point;
+
+        private PointResult(Point point) {
+            this.point = point;
         }
     }
 
