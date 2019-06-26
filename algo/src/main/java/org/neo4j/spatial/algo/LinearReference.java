@@ -5,6 +5,9 @@ import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Polyline;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class LinearReference {
     /**
      * Finds the point on the polygon which is distance d from the start point of the polygon.
@@ -13,30 +16,32 @@ public abstract class LinearReference {
      * @param d
      * @return The new point, and null if the distance is negative
      */
-    public Point reference(Polygon.SimplePolygon polygon, Point start, Point direction, double d) {
+    public Point[] reference(Polygon.SimplePolygon polygon, Point start, Point direction, double d) {
         if (d < 0) {
             return null;
         }
 
+        List<Point> points = new ArrayList<>();
         Distance calculator = DistanceCalculator.getCalculator(start);
 
         polygon.startTraversal(start, direction);
         Point previous = polygon.getNextPoint();
-        Point point = null;
-        while (d >= 0) {
+        points.add(previous);
+        while (d > 0) {
             Point current = polygon.getNextPoint();
             double length = calculator.distance(previous, current);
 
             if (length < d) {
                 d -= length;
+                points.add(current);
             } else {
-                point = reference(previous, current, d);
+                points.add(reference(previous, current, d));
                 break;
             }
             previous = current;
         }
 
-        return point;
+        return points.toArray(new Point[0]);
     }
 
     /**
@@ -46,30 +51,40 @@ public abstract class LinearReference {
      * @param d
      * @return The new point, and null if the distance is negative or is greater than the length of the polyline
      */
-    public Point reference(Polyline polyline, Point start, Point direction, double d) {
+    public Point[] reference(Polyline polyline, Point start, Point direction, double d) {
         if (d < 0) {
             return null;
         }
 
+        List<Point> points = new ArrayList<>();
         Distance calculator = DistanceCalculator.getCalculator(start);
 
         polyline.startTraversal(start, direction);
         Point previous = polyline.getNextPoint();
-        Point point = null;
-        while (!polyline.fullyTraversed()) {
+        points.add(previous);
+        while (d > 0 && !polyline.fullyTraversed()) {
             Point current = polyline.getNextPoint();
             double length = calculator.distance(previous, current);
 
             if (length < d) {
                 d -= length;
+                points.add(current);
             } else {
-                point = reference(previous, current, d);
-                break;
+                Point reference = reference(previous, current, d);
+                if (reference == null) {
+                    return null;
+                }
+                points.add(reference);
+                return points.toArray(new Point[0]);
             }
             previous = current;
         }
 
-        return point;
+        if (d > 0) {
+            return null;
+        }
+
+        return points.toArray(new Point[0]);
     }
 
     /**
