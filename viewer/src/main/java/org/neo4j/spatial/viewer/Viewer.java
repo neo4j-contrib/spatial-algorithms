@@ -37,7 +37,7 @@ public class Viewer {
 
         int color = 0;
 
-        Driver driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "Neo4j"));
+        Driver driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "abc"));
 
         try (Session session = driver.session()) {
             int[] ids = new int[]{
@@ -68,18 +68,17 @@ public class Viewer {
             for (int id : ids) {
                 parameters = new HashMap<>();
                 parameters.put("id", id);
-//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getIDPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
-//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getGraphPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
+                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getGraphPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
 //                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getArrayPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
             }
         }
 
         String[] polygons = new String[]{
-                "POLYGON((0.23306181510094326 -0.1658925289826501,-0.16633821591583559 -0.15286471138490676,-0.18722097218865746 -0.1454790830825448,-0.268991127297881 -0.08710049990082208,-0.3295179725890604 0.08297835964413663,-0.29485479735199543 0.14143608770049493,-0.1666122850949554 0.17879740780903264,0.11678630901000576 0.18644764846696849,0.29368885640605624 0.1535555312924335,0.30839532726428276 0.14886692235083526,0.31224235934754047 0.11890173271874749,0.2930714012115545 0.026009786538145285,0.23306181510094326 -0.1658925289826501))"
+                //"POLYGON((0.23306181510094326 -0.1658925289826501,-0.16633821591583559 -0.15286471138490676,-0.18722097218865746 -0.1454790830825448,-0.268991127297881 -0.08710049990082208,-0.3295179725890604 0.08297835964413663,-0.29485479735199543 0.14143608770049493,-0.1666122850949554 0.17879740780903264,0.11678630901000576 0.18644764846696849,0.29368885640605624 0.1535555312924335,0.30839532726428276 0.14886692235083526,0.31224235934754047 0.11890173271874749,0.2930714012115545 0.026009786538145285,0.23306181510094326 -0.1658925289826501))"
         };
 
         String[] points = new String[]{
-                "POINT(0.2930714012115545 0.026009786538145285)",
+                /*"POINT(0.2930714012115545 0.026009786538145285)",
         "POINT(0.19642097155328753 0.14015186842620214)",
         "POINT(0.17853008634847028 -0.061668790305009435)",
         "POINT(-0.10926169278233791 -0.07580738878083287)",
@@ -178,7 +177,7 @@ public class Viewer {
         "POINT(0.23306181510094326 -0.1658925289826501)",
         "POINT(0.051466707835884556 -0.04661493637411568)",
         "POINT(-0.1806172067859032 0.08723666459797902)",
-        "POINT(0.004023341841465078 -0.0604218315798955)",
+        "POINT(0.004023341841465078 -0.0604218315798955)",*/
         };
 
         for (String s : polygons) {
