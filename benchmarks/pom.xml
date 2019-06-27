@@ -68,6 +68,23 @@ THE POSSIBILITY OF SUCH DAMAGE.
             <artifactId>spatial-algorithms-algo</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>spatial-algorithms-neo4j</artifactId>
+            <version>0.2.0-neo4j-3.4.14</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>spatial-algorithms-viewer</artifactId>
+            <version>0.2.0-neo4j-3.4.14</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <properties>
