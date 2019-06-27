@@ -68,8 +68,8 @@ public class Viewer {
             for (int id : ids) {
                 parameters = new HashMap<>();
                 parameters.put("id", id);
-                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getGraphPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
-//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN neo4j.getArrayPolygonWKT(r) AS WKT", parameters, viewer, session, color++);
+                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN spatial.osm.graph.polygonAsWKT(r) AS WKT", parameters, viewer, session, color++);
+//                addWKTFromDB("MATCH (r:OSMRelation) WHERE r.relation_osm_id=$id RETURN spatial.osm.property.polygonAsWKT(r) AS WKT", parameters, viewer, session, color++);
             }
         }
 

@@ -28,21 +28,22 @@ public class UserDefinedFunctions {
     @Context
     public Log log;
 
-    @Procedure("neo4j.polygon")
-    public Stream<PolygonResult> makePolygon(@Name("points") List<Point> points) {
+    @UserFunction("spatial.polygon")
+    public List<Point> makePolygon(@Name("points") List<Point> points) {
         if (points == null || points.size() < 3) {
             throw new IllegalArgumentException("Invalid 'points', should be a list of at least 3, but was: " + (points == null ? "null" : points.size()));
         } else if (points.get(0).equals(points.get(points.size() - 1))) {
-            return Stream.of(new PolygonResult(points));
+            return points;
         } else {
             ArrayList<Point> polygon = new ArrayList<>(points.size() + 1);
             polygon.addAll(points);
             polygon.add(points.get(0));
-            return Stream.of(new PolygonResult(polygon));
+            return polygon;
         }
     }
 
-    @Procedure(name = "neo4j.createArrayCache", mode = Mode.WRITE)
+    // TODO write tests
+    @Procedure(name = "spatial.osm.array.createPolygon", mode = Mode.WRITE)
     public void createArrayCache(@Name("main") Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
 
@@ -71,7 +72,7 @@ public class UserDefinedFunctions {
         }
     }
 
-    @Procedure(name = "neo4j.createOSMGraphGeometries", mode = Mode.WRITE)
+    @Procedure(name = "spatial.osm.graph.createPolygon", mode = Mode.WRITE)
     public void createOSMGraphGeometries(@Name("main") Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
         long id = (long) main.getProperty("relation_osm_id");
@@ -107,7 +108,8 @@ public class UserDefinedFunctions {
         return multiPolygon;
     }
 
-    @UserFunction(name = "neo4j.getGraphPolygonWKT")
+    // TODO write tests
+    @UserFunction(name = "spatial.osm.graph.polygonAsWKT")
     public String getGraphPolygonWKT(@Name("main") Node main) {
         return getGraphNodePolygon(main).toWKT();
     }
@@ -119,7 +121,8 @@ public class UserDefinedFunctions {
         return multiPolygon;
     }
 
-    @UserFunction(name = "neo4j.getArrayPolygonWKT")
+    // TODO write tests
+    @UserFunction(name = "spatial.osm.property.polygonAsWKT")
     public String getArrayPolygonWKT(@Name("main") Node main) {
         return getArrayPolygon(main).toWKT();
     }
@@ -137,7 +140,7 @@ public class UserDefinedFunctions {
         return multiPolyline;
     }
 
-    @UserFunction(name = "neo4j.getGraphPolylineWKT")
+    @UserFunction(name = "spatial.osm.graph.polylineAsWKT")
     public String getGraphPolylineWKT(@Name("main") Node main) {
         return getGraphNodePolyline(main).toWKT();
     }
@@ -178,7 +181,8 @@ public class UserDefinedFunctions {
     spatial.osm.graph.deleteGeometry
     spatial.osm.property.deleteGeometry
      */
-    @Procedure("spatial.algo.graph.intersection")
+    // TODO write tests
+    @Procedure("spatial.osm.graph.intersection")
     public Stream<PointResult> intersectionGraphPolygonPolyline(@Name("polygonMain") Node polygonMain, @Name("polylineMain") Node polylineMain, @Name("variant") String variantString) {
         IntersectCalculator.AlgorithmVariant variant;
         if (variantString.equals("Naive")) {
@@ -201,7 +205,7 @@ public class UserDefinedFunctions {
         return result.stream().map(a -> new PointResult(asNeo4jPoint(a)));
     }
 
-    @UserFunction("neo4j.boundingBoxFor")
+    @UserFunction("spatial.boundingBox")
     public Map<String, Point> boundingBoxFor(@Name("polygon") List<Point> polygon) {
         if (polygon == null || polygon.size() < 4) {
             throw new IllegalArgumentException("Invalid 'polygon', should be a list of at least 4, but was: " + (polygon == null ? "null" : polygon.size()));
@@ -229,7 +233,7 @@ public class UserDefinedFunctions {
         }
     }
 
-    @UserFunction("neo4j.withinPolygon")
+    @UserFunction("spatial.algo.withinPolygon")
     public boolean withinPolygon(@Name("point") Point point, @Name("polygon") List<Point> polygon) {
         if (polygon == null || polygon.size() < 4) {
             throw new IllegalArgumentException("Invalid 'polygon', should be a list of at least 4, but was: " + polygon.size());
@@ -247,14 +251,15 @@ public class UserDefinedFunctions {
         }
     }
 
-    @UserFunction("neo4j.convexHullPoints")
+    @UserFunction("spatial.algo.convexHull")
     public List<Point> convexHullPoints(@Name("points") List<Point> points) {
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(asInMemoryPoints(points));
 
         return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
 
-    @UserFunction("neo4j.convexHullArray")
+    // TODO: write tests
+    @UserFunction("spatial.algo.property.convexHull")
     public List<Point> convexHullArray(@Name("main") Node main) {
         MultiPolygon multiPolygon = getArrayPolygon(main);
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
@@ -262,7 +267,8 @@ public class UserDefinedFunctions {
         return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
 
-    @UserFunction("neo4j.convexHullGraphNode")
+    // TODO: write tests
+    @UserFunction("spatial.algo.graph.convexHull")
     public List<Point> convexHullGraphNode(@Name("main") Node main) {
         MultiPolygon multiPolygon = getGraphNodePolygon(main);
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
@@ -270,7 +276,8 @@ public class UserDefinedFunctions {
         return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
 
-    @UserFunction("neo4j.naiveIntersectArray")
+    // TODO write tests
+    @UserFunction("spatial.algo.intersection")
     public List<Point> naiveIntersectArray(@Name("polygon1") List<Point> polygon1, @Name("polygon2") List<Point> polygon2) {
         validatePolygons(polygon1, polygon2);
 
@@ -286,7 +293,8 @@ public class UserDefinedFunctions {
         return Polygon.simple(convertedPoints1);
     }
 
-    @UserFunction("neo4j.MCSweepLineIntersectArray")
+    // TODO write tests
+    @UserFunction("spatial.algo.intersection.sweepline")
     public List<Point> MCSweepLineIntersectArray(@Name("polygon1") List<Point> polygon1, @Name("polygon2") List<Point> polygon2) {
         validatePolygons(polygon1, polygon2);
 
@@ -379,14 +387,6 @@ public class UserDefinedFunctions {
 
         private PointResult(Point point) {
             this.point = point;
-        }
-    }
-
-    public class PolygonResult {
-        public List<Point> polygon;
-
-        private PolygonResult(List<Point> points) {
-            this.polygon = points;
         }
     }
 }

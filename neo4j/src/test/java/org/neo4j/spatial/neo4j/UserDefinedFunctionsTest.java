@@ -54,7 +54,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 1, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 1));
-        testCall(db, "CALL neo4j.polygon($points)", map("points", points), result -> {
+        testCall(db, "RETURN spatial.polygon($points)", map("points", points), result -> {
             assertThat("Should have one polygon", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get list of points", record, instanceOf(List.class));
@@ -123,7 +123,7 @@ public class UserDefinedFunctionsTest {
             rel.setProperty("relation_osm_id", 1L);
             connectors[3].createRelationshipTo(nodes[0][0], Relation.NODE);
 
-            db.execute("CALL neo4j.createOSMGraphGeometries($main)", map("main", main));
+            db.execute("CALL spatial.osm.graph.createPolygon($main)", map("main", main));
             Result result = db.execute("MATCH (m)-[:POLYGON_STRUCTURE]->(a:Shell)-[:POLYGON_START]->() WHERE id(m) = $mainId RETURN a", map("mainId", main.getId()));
 
             assertThat(result.hasNext(), equalTo(true));
@@ -193,7 +193,7 @@ public class UserDefinedFunctionsTest {
             rel.setProperty("relation_osm_id", 1l);
             connectors[3].createRelationshipTo(nodes[0][0], Relation.NODE);
 
-            db.execute("CALL neo4j.createOSMGraphGeometries($main)", map("main", main));
+            db.execute("CALL spatial.osm.graph.createPolygon($main)", map("main", main));
             Result result = db.execute("MATCH (m)-[:POLYGON_STRUCTURE]->(a:Shell)-[:POLYGON_START]->() WHERE id(m) = $mainId RETURN a", map("mainId", main.getId()));
 
             assertThat(result.hasNext(), equalTo(true));
@@ -277,7 +277,7 @@ public class UserDefinedFunctionsTest {
             connectorNodes[3].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 0.5 * 1e-3, 0));
             connectors[3].createRelationshipTo(connectorNodes[3], Relation.NODE);
 
-            db.execute("CALL neo4j.createOSMGraphGeometries($main)", map("main", main));
+            db.execute("CALL spatial.osm.graph.createPolygon($main)", map("main", main));
             Result result = db.execute("MATCH (m)-[:POLYGON_STRUCTURE]->(a:Shell)-[:POLYGON_START]->() WHERE id(m) = $mainId RETURN a", map("mainId", main.getId()));
 
             assertThat(result.hasNext(), equalTo(true));
@@ -343,12 +343,12 @@ public class UserDefinedFunctionsTest {
             rel.setProperty("relation_osm_id", 1l);
             connectors[2].createRelationshipTo(nodes[3][0], Relation.NODE);
 
-            db.execute("CALL neo4j.createOSMGraphGeometries($main)", map("main", main));
+            db.execute("CALL spatial.osm.graph.createPolygon($main)", map("main", main));
             Result result = db.execute("MATCH (m)-[:POLYLINE_STRUCTURE]->(a:Polyline)-[:POLYLINE_START]->() WHERE id(m) = $mainId RETURN a", map("mainId", main.getId()));
 
             assertThat(result.hasNext(), equalTo(true));
 
-            result = db.execute("MATCH (m) WHERE id(m) = $mainId RETURN neo4j.getGraphPolylineWKT(m) AS WKT", map("mainId", main.getId()));
+            result = db.execute("MATCH (m) WHERE id(m) = $mainId RETURN spatial.osm.graph.polylineAsWKT(m) AS WKT", map("mainId", main.getId()));
 
             if (result.hasNext()) {
                 String WKT = (String) result.next().get("WKT");
@@ -370,7 +370,7 @@ public class UserDefinedFunctionsTest {
 
             createNestedSquareOSM(main, ways, wayNodes, nodes);
 
-            testCall(db, "CALL neo4j.createOSMGraphGeometries($main)",
+            testCall(db, "CALL spatial.osm.graph.createPolygon($main)",
                     map("main", main), result -> {
                     });
 
@@ -445,12 +445,12 @@ public class UserDefinedFunctionsTest {
 
     @Test
     public void shouldFailToMakePolygonFromNullField() {
-        testCallFails(db, "CALL neo4j.polygon($points)", map("points", null), "Invalid 'points', should be a list of at least 3, but was: null");
+        testCallFails(db, "RETURN spatial.polygon($points)", map("points", null), "Invalid 'points', should be a list of at least 3, but was: null");
     }
 
     @Test
     public void shouldFailToMakePolygonFromEmptyField() {
-        testCallFails(db, "CALL neo4j.polygon($points)", map("points", new ArrayList<Point>()), "Invalid 'points', should be a list of at least 3, but was: 0");
+        testCallFails(db, "RETURN spatial.polygon($points)", map("points", new ArrayList<Point>()), "Invalid 'points', should be a list of at least 3, but was: 0");
     }
 
     @Test
@@ -458,7 +458,7 @@ public class UserDefinedFunctionsTest {
         ArrayList<Point> points = new ArrayList<>();
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 1, 0));
-        testCallFails(db, "CALL neo4j.polygon($points)", map("points", points), "Invalid 'points', should be a list of at least 3, but was: 2");
+        testCallFails(db, "RETURN spatial.polygon($points)", map("points", points), "Invalid 'points', should be a list of at least 3, but was: 2");
     }
 
     public static void testCall(GraphDatabaseService db, String call, Consumer<Map<String, Object>> consumer) {
@@ -474,7 +474,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10,10));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0,20));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -10,10));
-        testCall(db, "CALL neo4j.polygon($points) YIELD polygon WITH neo4j.convexHullPoints(polygon) as convexHull RETURN convexHull", map("points", points), result -> {
+        testCall(db, "WITH spatial.polygon($points) AS polygon RETURN spatial.algo.convexHull(polygon) AS convexHull", map("points", points), result -> {
             assertThat("Should have one result", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get convexHull as list", record, instanceOf(List.class));
@@ -489,7 +489,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10, 0));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 10));
-        testCall(db, "CALL neo4j.polygon($points) YIELD polygon WITH neo4j.boundingBoxFor(polygon) as bbox RETURN bbox", map("points", points), result -> {
+        testCall(db, "WITH spatial.polygon($points) AS polygon RETURN spatial.boundingBox(polygon) AS bbox", map("points", points), result -> {
             assertThat("Should have one result", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get bbox as map", record, instanceOf(Map.class));
@@ -509,7 +509,7 @@ public class UserDefinedFunctionsTest {
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 10));
         Point a = Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1);
         Point b = Values.pointValue(CoordinateReferenceSystem.WGS84, 9, 9);
-        testCall(db, "CALL neo4j.polygon($points) YIELD polygon WITH polygon, neo4j.boundingBoxFor(polygon) as bbox RETURN neo4j.withinPolygon($a,polygon) as a, neo4j.withinPolygon($b,polygon) as b", map("points", points, "a", a, "b", b), result -> {
+        testCall(db, "WITH spatial.polygon($points) AS polygon RETURN spatial.algo.withinPolygon($a,polygon) AS a, spatial.algo.withinPolygon($b,polygon) AS b", map("points", points, "a", a, "b", b), result -> {
             assertThat("Should get result as map", result, instanceOf(Map.class));
             Map<String, Object> results = (Map<String, Object>) result;
             assertThat("Should have 'a' key", results.containsKey("a"), equalTo(true));
