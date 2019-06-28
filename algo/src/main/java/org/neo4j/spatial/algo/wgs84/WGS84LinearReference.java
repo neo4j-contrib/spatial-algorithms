@@ -10,6 +10,11 @@ import org.neo4j.spatial.core.Vector;
 
 public class WGS84LinearReference extends LinearReference {
     @Override
+    protected CRS getCRS() {
+        return CRS.WGS84;
+    }
+
+    @Override
     public Point reference(LineSegment lineSegment, double d) {
         return reference(lineSegment.getPoints()[0], lineSegment.getPoints()[1], d);
     }

@@ -44,15 +44,15 @@ public class AreaBenchmarks {
 
         Point originUS = Point.point(CRS.WGS84, -122.31, 37.56);    // San Francisco
         for (int i = 0; i < n_US; i++) {
-            polygons[i] = MicroBenchmarkUtil.createPolygon(random, originUS, 0.1, 1.0, 0.1, 1.1);
+            polygons[i] = MicroBenchmarkUtil.createPolygon(random, originUS, 0.1, 1.0, 0.1, 1.1).first();
         }
         Point originEU = Point.point(CRS.WGS84, 12.99, 55.61);      // Malmo (Neo4j)
         for (int i = n_US; i < n_US + n_EU; i++) {
-            polygons[i] = MicroBenchmarkUtil.createPolygon(random, originEU, 0.1, 1.0, 0.1, 1.1);
+            polygons[i] = MicroBenchmarkUtil.createPolygon(random, originEU, 0.1, 1.0, 0.1, 1.1).first();
         }
         Point originOZ = Point.point(CRS.WGS84, 151.17, -33.90);    // Sydney
         for (int i = n_US + n_EU; i < n_US + n_EU + n_OZ; i++) {
-            polygons[i] = MicroBenchmarkUtil.createPolygon(random, originOZ, 0.1, 1.0, 0.1, 1.1);
+            polygons[i] = MicroBenchmarkUtil.createPolygon(random, originOZ, 0.1, 1.0, 0.1, 1.1).first();
         }
     }
 

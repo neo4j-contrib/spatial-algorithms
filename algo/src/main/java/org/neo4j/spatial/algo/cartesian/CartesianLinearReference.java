@@ -6,6 +6,11 @@ import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 
 public class CartesianLinearReference extends LinearReference {
+    @Override
+    protected CRS getCRS() {
+        return CRS.Cartesian;
+    }
+
     public Point reference(LineSegment lineSegment, double d) {
         return reference(lineSegment.getPoints()[0], lineSegment.getPoints()[1], d);
     }

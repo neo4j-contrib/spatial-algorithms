@@ -48,8 +48,6 @@ public class Neo4jSimpleGraphNodePolygon extends Neo4jSimpleGraphPolygon {
     @Override
     public Point getNextPoint() {
         super.traversing = true;
-        pointer = getNextNode(pointer);
-        Point point = extractPoint(pointer);
-        return point;
+        return extractPoint(getNextNode());
     }
 }

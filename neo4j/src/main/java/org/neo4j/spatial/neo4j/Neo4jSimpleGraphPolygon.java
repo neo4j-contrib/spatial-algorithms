@@ -1,7 +1,14 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.traversal.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Traverser;
+import org.neo4j.graphdb.traversal.Uniqueness;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.algo.Distance;
@@ -20,7 +27,6 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     private CRS crs;
     private ResourceIterator<Node> nodeIterator;
     boolean traversing;
-    Node pointer;
     Node start;
     Node main;
     Point startPoint;
@@ -28,7 +34,6 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     public Neo4jSimpleGraphPolygon(Node main, long osmRelationId) {
         this.osmRelationId = osmRelationId;
         this.traversing = false;
-        this.pointer = null;
         this.main = main;
         this.start = main;
         crs = extractPoint(main).getCRS();
@@ -96,7 +101,6 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
             if (currentDistance <= minDistance) {
                 minDistance = currentDistance;
                 this.start = next;
-                this.pointer = next;
                 this.startPoint = extracted;
             }
         }
@@ -144,14 +148,13 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     @Override
     public void startTraversal() {
         this.start = main;
-        this.pointer = main;
         this.traversing = false;
         this.nodeIterator = getNewTraverser(this.start).nodes().iterator();
     }
 
     abstract Point extractPoint(Node node);
 
-    Node getNextNode(Node node) {
+    Node getNextNode() {
         if (this.nodeIterator == null) {
             throw new TraversalException("No traversal is currently ongoing");
         }
@@ -215,9 +218,12 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                 }
             }
 
-            if (endNode.equals(firstNode) || endNode.equals(secondNode)) {
+            if (endNode.equals(firstNode)) {
                 finished = true;
                 return Evaluation.INCLUDE_AND_PRUNE;
+            } else if (endNode.equals(secondNode)) {
+                finished = true;
+                return Evaluation.EXCLUDE_AND_PRUNE;
             }
 
             if (firstNode == null) {
@@ -302,7 +308,10 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
             Relationship rel = path.lastRelationship();
             Node endNode = path.endNode();
 
-            if (endNode.equals(firstNode) || endNode.equals(secondNode)) {
+            if (endNode.equals(firstNode)) {
+                finished = true;
+                return Evaluation.INCLUDE_AND_PRUNE;
+            } else if (endNode.equals(secondNode)) {
                 finished = true;
                 return Evaluation.EXCLUDE_AND_PRUNE;
             }

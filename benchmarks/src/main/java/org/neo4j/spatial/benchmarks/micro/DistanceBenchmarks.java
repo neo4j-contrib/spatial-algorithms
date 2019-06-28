@@ -5,9 +5,23 @@ import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.infra.Blackhole;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 public class DistanceBenchmarks {
+    public static void main(String[] args) throws RunnerException {
+        Options opt = new OptionsBuilder()
+                .include(DistanceBenchmarks.class.getSimpleName())
+                .forks(0)
+                .mode(Mode.SingleShotTime)
+                .build();
+
+        new Runner(opt).run();
+    }
 
     @Benchmark
     public void testCartesianDistance(Blackhole bh) {

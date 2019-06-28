@@ -100,7 +100,7 @@ public class UserDefinedFunctions {
         builder.build();
     }
 
-    private MultiPolygon getGraphNodePolygon(Node main) {
+    public static MultiPolygon getGraphNodePolygon(Node main) {
         long relationId = (long) main.getProperty("relation_osm_id");
         MultiPolygon multiPolygon = new MultiPolygon();
         insertChildrenGraphNode(main, multiPolygon, relationId);
@@ -114,7 +114,7 @@ public class UserDefinedFunctions {
         return getGraphNodePolygon(main).toWKT();
     }
 
-    private MultiPolygon getArrayPolygon(Node main) {
+    public static MultiPolygon getArrayPolygon(Node main) {
         MultiPolygon multiPolygon = new MultiPolygon();
         insertChildrenArray(main, multiPolygon);
 
@@ -145,7 +145,7 @@ public class UserDefinedFunctions {
         return getGraphNodePolyline(main).toWKT();
     }
 
-    private void insertChildrenGraphNode(Node node, MultiPolygon multiPolygon, long relationId) {
+    public static void insertChildrenGraphNode(Node node, MultiPolygon multiPolygon, long relationId) {
         for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
             Node child = polygonStructure.getEndNode();
             Node start = child.getSingleRelationship(Relation.POLYGON_START, Direction.OUTGOING).getEndNode().getSingleRelationship(Relation.FIRST_NODE, Direction.OUTGOING).getEndNode();
@@ -158,7 +158,7 @@ public class UserDefinedFunctions {
         }
     }
 
-    private void insertChildrenArray(Node node, MultiPolygon multiPolygon) {
+    public static void insertChildrenArray(Node node, MultiPolygon multiPolygon) {
         for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
             Node child = polygonStructure.getEndNode();
 

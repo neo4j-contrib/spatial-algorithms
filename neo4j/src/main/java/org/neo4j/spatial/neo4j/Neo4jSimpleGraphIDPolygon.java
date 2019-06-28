@@ -51,7 +51,6 @@ public class Neo4jSimpleGraphIDPolygon extends Neo4jSimpleGraphPolygon {
     @Override
     public Point getNextPoint() {
         super.traversing = true;
-        pointer = getNextNode(pointer);
-        return extractPoint(pointer);
+        return extractPoint(getNextNode());
     }
 }

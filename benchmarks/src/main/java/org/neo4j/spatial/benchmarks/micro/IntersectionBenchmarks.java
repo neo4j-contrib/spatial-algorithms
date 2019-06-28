@@ -1,5 +1,6 @@
 package org.neo4j.spatial.benchmarks.micro;
 
+import org.neo4j.helpers.collection.Pair;
 import org.neo4j.spatial.algo.Intersect;
 import org.neo4j.spatial.algo.IntersectCalculator;
 import org.neo4j.spatial.core.CRS;
@@ -36,13 +37,16 @@ public class IntersectionBenchmarks {
         new Runner(opt).run();
     }
 
-    private Map<String, Polygon.SimplePolygon[]> data = new LinkedHashMap<>();
+    private Map<String, Polygon.SimplePolygon[]> geographicData = new LinkedHashMap<>();
+    private Map<String, Polygon.SimplePolygon[]> cartesianData = new LinkedHashMap<>();
     private Intersect geographicNaiveCalculator = IntersectCalculator.getCalculator(CRS.WGS84, IntersectCalculator.AlgorithmVariant.Naive);
+    private Intersect geographicSweepCalculator = IntersectCalculator.getCalculator(CRS.WGS84, IntersectCalculator.AlgorithmVariant.MCSweepLine);
     private Intersect cartesianNaiveCalculator = IntersectCalculator.getCalculator(CRS.Cartesian, IntersectCalculator.AlgorithmVariant.Naive);
+    private Intersect cartesianSweepCalculator = IntersectCalculator.getCalculator(CRS.Cartesian, IntersectCalculator.AlgorithmVariant.MCSweepLine);
 
     @Setup
     public void setup() {
-        int n = 1000;
+        int n = 100;
 
         Map<String, Point> regions = new LinkedHashMap<>();
         regions.put("US", Point.point(CRS.WGS84, -122.31, 37.56));    // San Francisco
@@ -52,11 +56,15 @@ public class IntersectionBenchmarks {
         Random random = new Random(0);
         for (String region : regions.keySet()) {
             Point origin = regions.get(region);
-            Polygon.SimplePolygon[] polygons = new Polygon.SimplePolygon[n];
+            Polygon.SimplePolygon[] geographicPolygons = new Polygon.SimplePolygon[n];
+            Polygon.SimplePolygon[] cartesianPolygons = new Polygon.SimplePolygon[n];
             for (int i = 0; i < n; i++) {
-                polygons[i] = MicroBenchmarkUtil.createPolygon(random, origin, 0.1, 5.0, 0.95, 1.05);
+                Pair<Polygon.SimplePolygon, Polygon.SimplePolygon> polygonPair = MicroBenchmarkUtil.createPolygon(random, origin, 0.1, 5.0, 0.95, 1.05);
+                geographicPolygons[i] = polygonPair.first();
+                cartesianPolygons[i] = polygonPair.other();
             }
-            data.put(region, polygons);
+            geographicData.put(region, geographicPolygons);
+            cartesianData.put(region, cartesianPolygons);
         }
     }
 
@@ -86,8 +94,8 @@ public class IntersectionBenchmarks {
 
     @Benchmark
     public void testCartesianIntersectPolygonsNaive(Blackhole bh) {
-        for (String region : data.keySet()) {
-            Polygon.SimplePolygon[] polygons = data.get(region);
+        for (String region : cartesianData.keySet()) {
+            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
             for (int i = 0; i < polygons.length; i++) {
                 for (int j = i + 1; j < polygons.length; j++) {
                     bh.consume(cartesianNaiveCalculator.intersect(polygons[i], polygons[j]));
@@ -96,10 +104,46 @@ public class IntersectionBenchmarks {
         }
     }
 
+    @Benchmark
+    public void testCartesianIntersectPolygonsSweep(Blackhole bh) {
+        for (String region : cartesianData.keySet()) {
+            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
+            for (int i = 0; i < polygons.length; i++) {
+                for (int j = i + 1; j < polygons.length; j++) {
+                    bh.consume(cartesianSweepCalculator.intersect(polygons[i], polygons[j]));
+                }
+            }
+        }
+    }
+
+    @Benchmark
+    public void testGeographicIntersectPolygonsNaive(Blackhole bh) {
+        for (String region : geographicData.keySet()) {
+            Polygon.SimplePolygon[] polygons = geographicData.get(region);
+            for (int i = 0; i < polygons.length; i++) {
+                for (int j = i + 1; j < polygons.length; j++) {
+                    bh.consume(geographicNaiveCalculator.intersect(polygons[i], polygons[j]));
+                }
+            }
+        }
+    }
+
+    @Benchmark
+    public void testGeographicIntersectPolygonsSweep(Blackhole bh) {
+        for (String region : geographicData.keySet()) {
+            Polygon.SimplePolygon[] polygons = geographicData.get(region);
+            for (int i = 0; i < polygons.length; i++) {
+                for (int j = i + 1; j < polygons.length; j++) {
+                    bh.consume(geographicSweepCalculator.intersect(polygons[i], polygons[j]));
+                }
+            }
+        }
+    }
+
     public void testCartesianIntersectPolygonsNaiveX() {
-        System.out.println("Testing regions: " + data.keySet());
-        for (String region : data.keySet()) {
-            Polygon.SimplePolygon[] polygons = data.get(region);
+        System.out.println("Testing regions: " + cartesianData.keySet());
+        for (String region : cartesianData.keySet()) {
+            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
             System.out.println("\tTesting region: " + region + " of " + polygons.length + " polygons");
             for (int i = 0; i < polygons.length; i++) {
                 System.out.println(polygons[i].toWKT());
@@ -112,10 +156,10 @@ public class IntersectionBenchmarks {
     }
 
     public void testCartesianIntersectPolygonsNaiveWKT() {
-        System.out.println("Testing regions: " + data.keySet());
-        for (String region : data.keySet()) {
+        System.out.println("Testing regions: " + cartesianData.keySet());
+        for (String region : cartesianData.keySet()) {
             Viewer viewer = new Viewer();
-            Polygon.SimplePolygon[] polygons = data.get(region);
+            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
             System.out.println("\tTesting region: " + region + " of " + polygons.length + " polygons");
             System.out.println(polygons[0].toWKT());
             System.out.println(polygons[1].toWKT());
@@ -125,18 +169,6 @@ public class IntersectionBenchmarks {
             Point[] points = cartesianNaiveCalculator.intersect(polygons[0], polygons[1]);
             System.out.println("\t\t" + region + ": intersection(polygon_" + 0 + "[" + polygons[0].getPoints().length + "], polygon_" + 1 + "[" + polygons[1].getPoints().length + "]) = points[" + points.length + "]");
             viewer.view();
-        }
-    }
-
-    @Benchmark
-    public void testGeographicIntersectPolygonsNaive(Blackhole bh) {
-        for (String region : data.keySet()) {
-            Polygon.SimplePolygon[] polygons = data.get(region);
-            for (int i = 0; i < polygons.length; i++) {
-                for (int j = i + 1; j < polygons.length; j++) {
-                    bh.consume(geographicNaiveCalculator.intersect(polygons[i], polygons[j]));
-                }
-            }
         }
     }
 }

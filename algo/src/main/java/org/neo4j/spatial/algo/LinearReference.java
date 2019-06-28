@@ -1,5 +1,6 @@
 package org.neo4j.spatial.algo;
 
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -22,7 +23,7 @@ public abstract class LinearReference {
         }
 
         List<Point> points = new ArrayList<>();
-        Distance calculator = DistanceCalculator.getCalculator(start);
+        Distance calculator = DistanceCalculator.getCalculator(getCRS());
 
         polygon.startTraversal(start, direction);
         Point previous = polygon.getNextPoint();
@@ -105,4 +106,6 @@ public abstract class LinearReference {
      * @return The new point, and null if the distance is not in the range of the line segment
      */
     protected abstract Point reference(Point a, Point b, double d);
+
+    protected abstract CRS getCRS();
 }
