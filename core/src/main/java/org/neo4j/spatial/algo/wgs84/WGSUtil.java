@@ -90,31 +90,34 @@ public class WGSUtil {
         Vector v1 = new Vector(b.getPoints()[0]);
         Vector v2 = new Vector(b.getPoints()[1]);
 
+        Vector intersect = intersect(u1, u2, v1, v2);
+        return intersect != null ? intersect.toPoint() : null;
+    }
+
+    public static Vector intersect(Vector u1, Vector u2, Vector v1, Vector v2) {
         //Great circles
         Vector gc1 = u1.cross(u2);
         Vector gc2 = v1.cross(v2);
 
         //Intersection
-        Vector i1 = gc1.cross(gc2);
-        Vector i2 = gc2.cross(gc1);
+        Vector i1 = gc1.cross(gc2).normalize();
+        Vector i2 = gc2.cross(gc1).normalize();
 
-        Vector mid = u1.add(u2).add(v1).add(v2);
-
-        Vector intersect;
-        double u1u2Distance = distance(u1, u2);
-        double v1v2Distance = distance(v1, v2);
-        if (mid.dot(i1) > 0) {
-            intersect = i1;
-        } else {
-            intersect = i2;
-        }
-
-        if (AlgoUtil.lessOrEqual(distance(u1, intersect), u1u2Distance) && AlgoUtil.lessOrEqual(distance(u2, intersect), u1u2Distance)
-                && AlgoUtil.lessOrEqual(distance(v1, intersect), v1v2Distance) && AlgoUtil.lessOrEqual(distance(v2, intersect), v1v2Distance)) {
-            return intersect.toPoint();
+        if (inArc(i1, u1, u2) && inArc(i1, v1, v2)) {
+            return i1;
+        } else if (inArc(i2, u1, u2) && inArc(i2, v1, v2)) {
+            return i2;
         }
 
         return null;
+    }
+
+    private static boolean inArc(Vector i, Vector s, Vector e) {
+        double thetaSI = Math.acos(s.dot(i) / (s.magnitude() * i.magnitude()));
+        double thetaIE = Math.acos(i.dot(e) / (i.magnitude() * e.magnitude()));
+        double thetaSE = Math.acos(s.dot(e) / (s.magnitude() * e.magnitude()));
+
+        return AlgoUtil.equal(thetaSI + thetaIE, thetaSE);
     }
 
     /**
