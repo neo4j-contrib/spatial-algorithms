@@ -55,7 +55,7 @@ public class IntersectCalculator {
                 return getCartesianSweep();
             }
         } else {
-            if (variant == AlgorithmVariant.MCSweepLine) {
+            if (variant == AlgorithmVariant.Naive) {
                 return getWGS84Naive();
             } else {
                 return getWGS84Sweep();
@@ -75,7 +75,7 @@ public class IntersectCalculator {
                 return getCartesianSweep();
             }
         } else {
-            if (variant == AlgorithmVariant.MCSweepLine) {
+            if (variant == AlgorithmVariant.Naive) {
                 return getWGS84Naive();
             } else {
                 return getWGS84Sweep();
@@ -95,7 +95,7 @@ public class IntersectCalculator {
                 return getCartesianSweep();
             }
         } else {
-            if (variant == AlgorithmVariant.MCSweepLine) {
+            if (variant == AlgorithmVariant.Naive) {
                 return getWGS84Naive();
             } else {
                 return getWGS84Sweep();
@@ -115,7 +115,7 @@ public class IntersectCalculator {
                 return getCartesianSweep();
             }
         } else {
-            if (variant == AlgorithmVariant.MCSweepLine) {
+            if (variant == AlgorithmVariant.Naive) {
                 return getWGS84Naive();
             } else {
                 return getWGS84Sweep();

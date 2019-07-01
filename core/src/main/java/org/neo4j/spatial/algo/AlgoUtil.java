@@ -3,9 +3,7 @@ package org.neo4j.spatial.algo;
 import org.neo4j.spatial.core.Point;
 
 public class AlgoUtil {
-//    public static final double EPSILON = 0.00000000000001;
-//    public static final double EPSILON = 0.000000000001;
-    public static final double EPSILON = 0.000000001;
+    public static final double EPSILON = 0.000000003;
 
     /**
      * Computes the direction of the of the a-b-c turn by computing the z-component of ab x ac

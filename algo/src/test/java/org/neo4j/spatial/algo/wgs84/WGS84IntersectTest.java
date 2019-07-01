@@ -42,6 +42,18 @@ public class WGS84IntersectTest {
         Point actual = calculator.intersect(a, b);
         Point expected = Point.point(CRS.WGS84, -40, 0);
         matchPoints(new Point[]{actual}, new Point[]{expected});
+
+        p = Point.point(CRS.WGS84, 14.3920581, 56.9703284);
+        q = Point.point(CRS.WGS84, 14.3396204, 56.89899069999998);
+        r = Point.point(CRS.WGS84, 14.3702803, 56.9407475);
+        s = Point.point(CRS.WGS84, 14.371240500000003, 56.9405763);
+
+        a = LineSegment.lineSegment(p, q);
+        b = LineSegment.lineSegment(r, s);
+
+        actual = calculator.intersect(a, b);
+        expected = Point.point(CRS.WGS84, 14.370287083278082, 56.940746290639275);
+        matchPoints(new Point[]{actual}, new Point[]{expected});
     }
 
     @Test

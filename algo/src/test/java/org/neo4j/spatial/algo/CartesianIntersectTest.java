@@ -97,7 +97,7 @@ public class CartesianIntersectTest {
         assertThat(calculator.intersect(a, b), is(nullValue()));
 
         a = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0, 0), Point.point(CRS.Cartesian, 1,1));
-        b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0,1e-9), Point.point(CRS.Cartesian, 1,1+1e-9));
+        b = LineSegment.lineSegment(Point.point(CRS.Cartesian, 0,25e-9), Point.point(CRS.Cartesian, 1,25+1e-9));
         assertThat(calculator.intersect(a, b), is(nullValue()));
     }
 

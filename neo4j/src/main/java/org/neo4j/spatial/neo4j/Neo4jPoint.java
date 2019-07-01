@@ -43,6 +43,11 @@ class Neo4jPoint implements Point {
         return ((org.neo4j.graphdb.spatial.Point) this.node.getProperty(property)).getCRS();
     }
 
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(getCoordinate());
+    }
+
     public String toString() {
         return format("Neo4jPoint%s", Arrays.toString(getCoordinate()));
     }
