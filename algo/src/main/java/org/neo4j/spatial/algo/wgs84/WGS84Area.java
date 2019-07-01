@@ -1,7 +1,6 @@
 package org.neo4j.spatial.algo.wgs84;
 
 import org.neo4j.spatial.algo.Area;
-import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Vector;
 
@@ -13,33 +12,40 @@ public class WGS84Area extends Area {
      */
     @Override
     public double area(Polygon.SimplePolygon polygon) {
-        Point[] points = polygon.getPoints();
-        int n = points.length - 1;
-        Vector[] greatCircles = new Vector[n];
-
         polygon.startTraversal();
-        Point previous = polygon.getNextPoint();
-        int idx = 0;
-        while (!polygon.fullyTraversed()) {
-            Point current = polygon.getNextPoint();
-            Vector u = new Vector(previous);
-            Vector v = new Vector(current);
+        Vector currentGC;
+        Vector prev = new Vector(polygon.getNextPoint());
+        Vector current = new Vector(polygon.getNextPoint());
+        Vector previousGC = prev.cross(current);
 
-            greatCircles[idx] = u.cross(v);
+        prev = current;
 
-            previous = current;
-            idx++;
-        }
-
-        Vector n1 = new Vector(points[0]);
+        Vector firstGC = previousGC;
+        Vector normal = prev;
         double sumAngles = 0;
 
-        for (int i = 0; i < n; i++) {
-            sumAngles += WGSUtil.angleTo(greatCircles[i], n1, greatCircles[(i + 1) % n]);
+        int n = 0;
+
+        while (!polygon.fullyTraversed()) {
+            current = new Vector(polygon.getNextPoint());
+
+            if (prev.equals(current)) {
+                continue;
+            }
+
+            currentGC = prev.cross(current);
+
+            sumAngles += WGSUtil.angleTo(previousGC, normal, currentGC);
+
+            prev = current;
+            previousGC = currentGC;
+            n++;
         }
 
+        sumAngles += WGSUtil.angleTo(previousGC, normal, firstGC);
+
         double sumTheta = n * Math.PI - Math.abs(sumAngles);
-        double sphericalExcess = sumTheta - (n-2) * Math.PI;
-        return sphericalExcess * WGSUtil.RADIUS *WGSUtil.RADIUS;
+        double sphericalExcess = sumTheta - ((n-2) * Math.PI);
+        return sphericalExcess * WGSUtil.RADIUS * WGSUtil.RADIUS;
     }
 }
