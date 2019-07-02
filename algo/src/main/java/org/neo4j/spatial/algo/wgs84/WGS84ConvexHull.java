@@ -1,13 +1,13 @@
 package org.neo4j.spatial.algo.wgs84;
 
-import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
-import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Vector;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
 import java.util.stream.Stream;
 
@@ -56,29 +56,73 @@ public class WGS84ConvexHull {
             throw new IllegalArgumentException("Points do not lie all on the same hemisphere");
         }
 
-        Point[] projectedPoints = projectOnHemisphereDisk(pole, vectors);
+        Vector[] rotatedVectors = rotatePoints(pole, vectors);
 
-        int[] convexHullByIndex = CartesianConvexHull.convexHullByIndex(projectedPoints);
+        Map<Vector, Integer> mappingToIndex = new HashMap<>();
 
-        return Polygon.simple(Arrays.stream(convexHullByIndex).mapToObj(i -> points[i]).toArray(Point[]::new));
+        for (int i = 0; i < rotatedVectors.length; i++) {
+            mappingToIndex.put(rotatedVectors[i], i);
+        }
+
+        Arrays.sort(rotatedVectors, (a, b) -> {
+            double cosThetaA = Math.acos(a.getCoordinate(2) / a.magnitude());
+            double cosThetaB = Math.acos(b.getCoordinate(2) / b.magnitude());
+
+            double tanPhiA = Math.atan2(a.getCoordinate(1), a.getCoordinate(0));
+            double tanPhiB = Math.atan2(b.getCoordinate(1), b.getCoordinate(0));
+
+            int compareAzimuth = Double.compare(tanPhiA, tanPhiB);
+            int comparePolar = Double.compare(cosThetaA, cosThetaB);
+
+            return compareAzimuth != 0 ? compareAzimuth : comparePolar;
+        });
+
+        int start = 0;
+        double maxTheta = 0;
+
+        for (int i = 0; i < rotatedVectors.length; i++) {
+            Vector v = rotatedVectors[i];
+            double cosTheta = Math.acos(v.getCoordinate(2) / v.magnitude());
+
+
+            if (maxTheta < cosTheta) {
+                start = i;
+                maxTheta = cosTheta;
+            }
+        }
+
+        Stack<Vector> stack = new Stack<>();
+
+        for (int i = 0; i < rotatedVectors.length + 1; i++) {
+            Vector v = rotatedVectors[(i + start) % rotatedVectors.length];
+
+            //Remove last point from the stack if it does not cross the edge (stack.size()-2), v)
+            while (stack.size() > 1 && WGSUtil.intersect(stack.get(stack.size()-2), v, stack.peek(), WGSUtil.NORTH_POLE) == null) {
+                WGSUtil.intersect(stack.get(stack.size()-2), v, stack.peek(), WGSUtil.NORTH_POLE);
+                stack.pop();
+            }
+            stack.push(v);
+        }
+
+        return Polygon.simple(stack.stream().map(v -> points[mappingToIndex.get(v)]).toArray(Point[]::new));
     }
 
     /**
-     * Project the points on the disk closing the hemisphere.
+     * Rotate the points such that pole is the north pole
      *
      * @param pole The pole of the hemisphere
      * @param vectors The points represented as n-vectors
-     * @return Array of projected points
+     * @return Array of rotated points represented as vectors
      */
-    public static Point[] projectOnHemisphereDisk(Vector pole, Vector[] vectors) {
-        Vector zAxis = pole;
+    public static Vector[] rotatePoints(Vector pole, Vector[] vectors) {
+        Vector zAxis = pole.normalize();
         Vector xAxis;
         if (pole.equals(WGSUtil.NORTH_POLE) || pole.equals(WGSUtil.SOUTH_POLE)) {
             xAxis = new Vector(1, 0, 0);
         } else {
-            xAxis = pole.cross(WGSUtil.NORTH_POLE);
+            xAxis = pole.cross(WGSUtil.NORTH_POLE).normalize();
         }
-        Vector yAxis = zAxis.cross(xAxis);
+        Vector yAxis = zAxis.cross(xAxis).normalize();
 
         double[][] rotationMatrix = new double[][]{
                 xAxis.getCoordinates(),
@@ -86,20 +130,21 @@ public class WGS84ConvexHull {
                 zAxis.getCoordinates()
         };
 
-        Point[] projectedPoints = new Point[vectors.length];
+
+        Vector[] rotatedVectors = new Vector[vectors.length];
         for (int i = 0; i < vectors.length; i++) {
             double x = vectors[i].getCoordinate(0);
             double y = vectors[i].getCoordinate(1);
             double z = vectors[i].getCoordinate(2);
 
             //Ignore z-component
-            projectedPoints[i] = Point.point(
-                    CRS.Cartesian,
+            rotatedVectors[i] = new Vector(
                     x * rotationMatrix[0][0] + y * rotationMatrix[0][1] + z * rotationMatrix[0][2],
-                    x * rotationMatrix[1][0] + y * rotationMatrix[1][1] + z * rotationMatrix[1][2]
+                    x * rotationMatrix[1][0] + y * rotationMatrix[1][1] + z * rotationMatrix[1][2],
+                    x * rotationMatrix[2][0] + y * rotationMatrix[2][1] + z * rotationMatrix[2][2]
             );
         }
-        return projectedPoints;
+        return rotatedVectors;
     }
 
     /**

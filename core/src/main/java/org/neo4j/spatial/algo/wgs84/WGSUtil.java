@@ -96,8 +96,8 @@ public class WGSUtil {
 
     public static Vector intersect(Vector u1, Vector u2, Vector v1, Vector v2) {
         //Great circles
-        Vector gc1 = u1.cross(u2);
-        Vector gc2 = v1.cross(v2);
+        Vector gc1 = u1.cross(u2).normalize();
+        Vector gc2 = v1.cross(v2).normalize();
 
         //Intersection
         Vector i1 = gc1.cross(gc2).normalize();
