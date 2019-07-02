@@ -65,37 +65,7 @@ public class GraphPolylineBuilder extends GraphBuilder {
                 Relationship relation = a.createRelationshipTo(b, Relation.NEXT_IN_POLYLINE);
                 relation.setProperty("relation_osm_ids", new long[]{relationOsmId});
             }
-
-            connectEnds(relationOsmId, polyline.get(1), polyline.get(0));
-            int last = polyline.size() - 1;
-            connectEnds(relationOsmId, polyline.get(last), polyline.get(last-1));
         }
-    }
-
-    private void connectEnds(long relationOsmId, Node a, Node b) {
-        endOfPolylines:
-        for (Relationship relationship : b.getRelationships(Relation.END_OF_POLYLINE, Direction.INCOMING)) {
-            if (a.getId() != relationship.getStartNodeId()) {
-                continue;
-            }
-
-            long[] ids = (long[]) relationship.getProperty("relation_osm_ids");
-
-            for (long id : ids) {
-                if (id == relationOsmId) {
-                    continue endOfPolylines;
-                }
-            }
-            long[] idsModified = new long[ids.length + 1];
-            for (int j = 0; j < ids.length; j++) {
-                idsModified[j] = ids[j];
-            }
-            idsModified[idsModified.length - 1] = relationOsmId;
-
-            relationship.setProperty("relation_osm_ids", idsModified);
-        }
-        Relationship relation = a.createRelationshipTo(b, Relation.END_OF_POLYLINE);
-        relation.setProperty("relation_osm_ids", new long[]{relationOsmId});
     }
 
     private void connectToMain() {

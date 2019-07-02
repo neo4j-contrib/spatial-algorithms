@@ -63,9 +63,9 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         return new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
-                .relationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)
+                .relationships(Relation.NEXT_IN_POLYGON, Direction.BOTH)
                 .uniqueness(Uniqueness.NONE)
-                .evaluator(new WayEvaluator(osmRelationId)).traverse(start);
+                .evaluator(new WayEvaluator(osmRelationId, null, null)).traverse(start);
     }
 
     private Traverser getNewTraverser(Node start, Direction nextDirection, Direction nextInPolygonDirection) {
@@ -92,10 +92,17 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
 
         Distance calculator = DistanceCalculator.getCalculator(startPoint);
 
+        Point firstPoint = null;
+
         double minDistance = Double.MAX_VALUE;
         while (iterator.hasNext()) {
             Node next = iterator.next();
             Point extracted = extractPoint(next);
+            if (firstPoint == null) {
+                firstPoint = extracted;
+            } else if (firstPoint.equals(extracted)) {
+                break;
+            }
 
             double currentDistance = calculator.distance(extracted, startPoint);
             if (currentDistance <= minDistance) {
@@ -170,45 +177,30 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         private long relationId;
         private Direction nextDirection;
         private Direction nextInPolygonDirection;
-        private boolean withDirection;
         private boolean firstWay;
 
-        private Node firstNode;
-        private Node secondNode;
+        private long firstLocationNode = -1;
+        private long previousLocationNode = -1;
         private boolean finished;
         private Direction lastNextDirection;
-
-        public WayEvaluator(long relationId) {
-            this.relationId = relationId;
-            this.withDirection = false;
-            this.finished = false;
-        }
 
         public WayEvaluator(long relationId, Direction nextDirection, Direction nextInPolygonDirection) {
             this.relationId = relationId;
             this.nextDirection = nextDirection;
             this.nextInPolygonDirection = nextInPolygonDirection;
-            this.withDirection = true;
             this.firstWay = true;
             this.finished = false;
         }
 
         @Override
         public Evaluation evaluate(Path path) {
-            if (withDirection) {
-                return withDirection(path);
-            } else {
-                return withoutDirection(path);
-            }
-        }
-
-        private Evaluation withDirection(Path path) {
             if (finished) {
                 return Evaluation.EXCLUDE_AND_PRUNE;
             }
 
             Relationship rel = path.lastRelationship();
             Node endNode = path.endNode();
+            long locationNode = getLocationNode(endNode);
 
             if (path.length() == 1) {
                 if (rel.isType(Relation.NEXT) && nextInPolygonDirection != null) {
@@ -218,21 +210,25 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                 }
             }
 
-            if (endNode.equals(firstNode)) {
-                finished = true;
-                return Evaluation.INCLUDE_AND_PRUNE;
-            } else if (endNode.equals(secondNode)) {
-                finished = true;
-                return Evaluation.EXCLUDE_AND_PRUNE;
+            if (locationNode == previousLocationNode) {
+                if (rel.isType(Relation.NEXT_IN_POLYGON)) {
+                    if (!nextInPolygon(rel) || !validDirection(rel, endNode, nextInPolygonDirection)) {
+                        return Evaluation.EXCLUDE_AND_PRUNE;
+                    }
+                    firstWay = false;
+                    lastNextDirection = null;
+                }
+                return Evaluation.EXCLUDE_AND_CONTINUE;
             }
 
-            if (firstNode == null) {
-                firstNode = endNode;
-            } else if (secondNode == null) {
-                secondNode = endNode;
+            if (firstLocationNode == locationNode) {
+                finished = true;
+                return Evaluation.INCLUDE_AND_PRUNE;
             }
 
             if (rel == null) {
+                firstLocationNode = locationNode;
+                previousLocationNode = locationNode;
                 return Evaluation.INCLUDE_AND_CONTINUE;
             }
 
@@ -241,13 +237,10 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                     return Evaluation.EXCLUDE_AND_PRUNE;
                 }
 
-                if (!onlyOption(rel.getOtherNode(endNode))) {
-                    return Evaluation.EXCLUDE_AND_PRUNE;
-                }
-
                 if (nextInPolygon(rel)) {
                     firstWay = false;
                     lastNextDirection = null;
+                    previousLocationNode = locationNode;
                     return Evaluation.INCLUDE_AND_CONTINUE;
                 } else {
                     return Evaluation.EXCLUDE_AND_PRUNE;
@@ -259,100 +252,15 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                     return Evaluation.EXCLUDE_AND_PRUNE;
                 }
 
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT)) {
-                    if (!relationship.equals(rel)) {
-                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;;
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
-                    if (nextInPolygon(relationship)) {
-                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;;
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                Node oneButLast = path.lastRelationship().getOtherNode(endNode);
-
-                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYGON, Direction.INCOMING)) {
-                    if (nextInPolygon(relationship)) {
-                        return Evaluation.EXCLUDE_AND_PRUNE;
-                    }
-                }
-                lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;;
+                previousLocationNode = locationNode;
+                lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;
                 return Evaluation.INCLUDE_AND_CONTINUE;
             }
             return Evaluation.EXCLUDE_AND_PRUNE;
         }
 
-        private boolean onlyOption(Node node) {
-            if (nextDirection != null) {
-                Iterator<Relationship> firstStep = node.getRelationships(Relation.NEXT, nextDirection).iterator();
-                if (firstStep.hasNext()) {
-                    Node oneStep = firstStep.next().getOtherNode(node);
-                    Iterator<Relationship> secondStep = oneStep.getRelationships(Relation.NEXT, nextDirection).iterator();
-                    if (secondStep.hasNext()) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        private Evaluation withoutDirection(Path path) {
-            if (finished) {
-                return Evaluation.EXCLUDE_AND_PRUNE;
-            }
-
-            Relationship rel = path.lastRelationship();
-            Node endNode = path.endNode();
-
-            if (endNode.equals(firstNode)) {
-                finished = true;
-                return Evaluation.INCLUDE_AND_PRUNE;
-            } else if (endNode.equals(secondNode)) {
-                finished = true;
-                return Evaluation.EXCLUDE_AND_PRUNE;
-            }
-
-            if (firstNode == null) {
-                firstNode = endNode;
-            } else if (secondNode == null) {
-                secondNode = endNode;
-            }
-
-            if (rel == null) {
-                return Evaluation.INCLUDE_AND_CONTINUE;
-            }
-
-            if (rel.isType(Relation.NEXT_IN_POLYGON)) {
-                return nextInPolygon(rel) ? Evaluation.INCLUDE_AND_CONTINUE : Evaluation.EXCLUDE_AND_PRUNE;
-            }
-
-            if (rel.isType(Relation.NEXT)) {
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT)) {
-                    if (!relationship.equals(rel)) {
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
-                    if (nextInPolygon(relationship)) {
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                Node oneButLast = path.lastRelationship().getOtherNode(endNode);
-
-                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYGON, Direction.INCOMING)) {
-                    if (nextInPolygon(relationship)) {
-                        return Evaluation.EXCLUDE_AND_PRUNE;
-                    }
-                }
-                return Evaluation.INCLUDE_AND_CONTINUE;
-            }
-            return Evaluation.EXCLUDE_AND_PRUNE;
+        private long getLocationNode(Node node) {
+            return node.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNodeId();
         }
 
         private boolean validDirection(Relationship rel, Node endNode, Direction direction) {

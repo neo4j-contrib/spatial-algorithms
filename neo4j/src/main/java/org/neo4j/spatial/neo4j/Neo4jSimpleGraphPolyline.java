@@ -53,10 +53,9 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         return new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
-                .relationships(Relation.NEXT_IN_POLYLINE, Direction.OUTGOING)
-                .relationships(Relation.END_OF_POLYLINE)
+                .relationships(Relation.NEXT_IN_POLYLINE)
                 .uniqueness(Uniqueness.NONE)
-                .evaluator(new WayEvaluator(osmRelationId)).traverse(start);
+                .evaluator(new WayEvaluator(osmRelationId, Relation.NEXT, Direction.OUTGOING)).traverse(start);
     }
 
     private Traverser getNewTraverser(Node start, Relation relation, Direction direction) {
@@ -64,7 +63,6 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
                 .relationships(Relation.NEXT_IN_POLYLINE)
-                .relationships(Relation.END_OF_POLYLINE)
                 .uniqueness(Uniqueness.NONE)
                 .evaluator(new WayEvaluator(osmRelationId, relation, direction)).traverse(start);
     }
@@ -122,19 +120,6 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
             }
         }
 
-        for (Relationship relationship : this.start.getRelationships(Relation.END_OF_POLYLINE)) {
-            if (WayEvaluator.partOfPolyline(relationship, osmRelationId)) {
-                Node other = relationship.getOtherNode(this.start);
-
-                double currentDistance = calculator.distance(directionPoint, extractPoint(other));
-                if (currentDistance < minDistance) {
-                    minDistance = currentDistance;
-                    minRelation = Relation.END_OF_POLYLINE;
-                    minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;
-                }
-            }
-        }
-
         for (Relationship relationship : this.start.getRelationships(Relation.NEXT)) {
             Node other = relationship.getOtherNode(this.start);
 
@@ -175,36 +160,23 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         private long relationId;
         private Relation relation;
         private Direction direction;
-        private boolean withDirection;
         private boolean firstWay;
 
+        private long previousLocationNode = -1;
         private Direction lastNextDirection;
-
-        public WayEvaluator(long relationId) {
-            this.relationId = relationId;
-            this.withDirection = false;
-        }
 
         public WayEvaluator(long relationId, Relation relation, Direction direction) {
             this.relationId = relationId;
             this.relation = relation;
             this.direction = direction;
-            this.withDirection = true;
             this.firstWay = true;
         }
 
         @Override
         public Evaluation evaluate(Path path) {
-            if (withDirection) {
-                return withDirection(path);
-            } else {
-                return withoutDirection(path);
-            }
-        }
-
-        private Evaluation withDirection(Path path) {
             Relationship rel = path.lastRelationship();
             Node endNode = path.endNode();
+            long locationNode = getLocationNode(endNode);
 
             if (path.length() == 1) {
                 if (!(rel.isType(this.relation) && validDirection(rel, endNode, this.direction))) {
@@ -213,7 +185,19 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
             }
 
             if (rel == null) {
+                previousLocationNode = locationNode;
                 return Evaluation.INCLUDE_AND_CONTINUE;
+            }
+
+            if (locationNode == previousLocationNode) {
+                if (rel.isType(Relation.NEXT_IN_POLYLINE)) {
+                    if (!partOfPolyline(rel) || !validDirection(rel, endNode, this.direction)) {
+                        return Evaluation.EXCLUDE_AND_PRUNE;
+                    }
+                    firstWay = false;
+                    lastNextDirection = null;
+                }
+                return Evaluation.EXCLUDE_AND_CONTINUE;
             }
 
             if (rel.isType(Relation.NEXT_IN_POLYLINE)) {
@@ -221,31 +205,10 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
                     return Evaluation.EXCLUDE_AND_PRUNE;
                 }
 
-                if (!onlyOption(rel.getOtherNode(endNode))) {
-                    return Evaluation.EXCLUDE_AND_PRUNE;
-                }
-
                 if (partOfPolyline(rel)) {
                     firstWay = false;
                     lastNextDirection = null;
-                    return Evaluation.INCLUDE_AND_CONTINUE;
-                } else {
-                    return Evaluation.EXCLUDE_AND_PRUNE;
-                }
-            }
-
-            if (rel.isType(Relation.END_OF_POLYLINE)) {
-                if (!validDirection(rel, endNode, direction)) {
-                    return Evaluation.EXCLUDE_AND_PRUNE;
-                }
-
-                if (!onlyOption(rel.getOtherNode(endNode))) {
-                    return Evaluation.EXCLUDE_AND_PRUNE;
-                }
-
-                if (partOfPolyline(rel)) {
-                    firstWay = false;
-                    lastNextDirection = null;
+                    previousLocationNode = locationNode;
                     return Evaluation.INCLUDE_AND_CONTINUE;
                 } else {
                     return Evaluation.EXCLUDE_AND_PRUNE;
@@ -257,94 +220,15 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
                     return Evaluation.EXCLUDE_AND_PRUNE;
                 }
 
-                Node oneButLast = path.lastRelationship().getOtherNode(endNode);
-
-                for (Relationship relationship : endNode.getRelationships(Relation.END_OF_POLYLINE)) {
-                    if (relationship.getOtherNodeId(endNode.getId()) == oneButLast.getId()) {
-                        return Evaluation.EXCLUDE_AND_PRUNE;
-                    }
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT)) {
-                    if (!relationship.equals(rel)) {
-                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.OUTGOING)) {
-                    if (partOfPolyline(relationship)) {
-                        lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.INCOMING)) {
-                    if (partOfPolyline(relationship)) {
-                        return Evaluation.EXCLUDE_AND_PRUNE;
-                    }
-                }
-                lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;;
+                previousLocationNode = locationNode;
+                lastNextDirection = rel.getEndNode().equals(endNode) ? Direction.OUTGOING : Direction.INCOMING;
                 return Evaluation.INCLUDE_AND_CONTINUE;
             }
             return Evaluation.EXCLUDE_AND_PRUNE;
         }
 
-        private boolean onlyOption(Node node) {
-            if (this.relation == Relation.NEXT) {
-                Iterator<Relationship> firstStep = node.getRelationships(Relation.NEXT, direction).iterator();
-                if (firstStep.hasNext()) {
-                    Node oneStep = firstStep.next().getOtherNode(node);
-                    Iterator<Relationship> secondStep = oneStep.getRelationships(Relation.NEXT, direction).iterator();
-                    if (secondStep.hasNext()) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        private Evaluation withoutDirection(Path path) {
-            Relationship rel = path.lastRelationship();
-            Node endNode = path.endNode();
-
-            if (rel == null) {
-                return Evaluation.INCLUDE_AND_CONTINUE;
-            }
-
-            if (rel.isType(Relation.NEXT_IN_POLYLINE) || rel.isType(Relation.END_OF_POLYLINE)) {
-                return partOfPolyline(rel) ? Evaluation.INCLUDE_AND_CONTINUE : Evaluation.EXCLUDE_AND_PRUNE;
-            }
-
-            if (rel.isType(Relation.NEXT)) {
-                Node oneButLast = path.lastRelationship().getOtherNode(endNode);
-
-                for (Relationship relationship : endNode.getRelationships(Relation.END_OF_POLYLINE)) {
-                    if (relationship.getOtherNodeId(endNode.getId()) == oneButLast.getId()) {
-                        return Evaluation.EXCLUDE_AND_PRUNE;
-                    }
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT)) {
-                    if (!relationship.equals(rel)) {
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                for (Relationship relationship : endNode.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.OUTGOING)) {
-                    if (partOfPolyline(relationship)) {
-                        return Evaluation.INCLUDE_AND_CONTINUE;
-                    }
-                }
-
-                for (Relationship relationship : oneButLast.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.INCOMING)) {
-                    if (partOfPolyline(relationship)) {
-                        return Evaluation.EXCLUDE_AND_PRUNE;
-                    }
-                }
-                return Evaluation.INCLUDE_AND_CONTINUE;
-            }
-            return Evaluation.EXCLUDE_AND_PRUNE;
+        private long getLocationNode(Node node) {
+            return node.getSingleRelationship(Relation.NODE, Direction.OUTGOING).getEndNodeId();
         }
 
         private boolean validDirection(Relationship rel, Node endNode, Direction direction) {

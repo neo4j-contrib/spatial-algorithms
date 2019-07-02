@@ -156,7 +156,7 @@ public class OSMTraverser {
             }
 
             EnrichedWay wayToAddTo = polylines.get(bestIndex);
-            wayToAddTo.join(wayToAdd, joinDirection, false);
+            wayToAddTo.join(wayToAdd, joinDirection);
 
             Vector first = new Vector(true, wayToAddTo.first.other());
             Vector last = new Vector(true, wayToAddTo.last.other());
@@ -191,52 +191,40 @@ public class OSMTraverser {
 
         boolean joinByCommonNode(EnrichedWay other) {
             if (first.first().equals(other.last.first())) {
-                join(other, JoinDirection.FL, true);
+                join(other, JoinDirection.FL);
                 return true;
             } else if (last.first().equals(other.first.first())) {
-                join(other, JoinDirection.LF, true);
+                join(other, JoinDirection.LF);
                 return true;
             } else if (first.first().equals(other.first.first())) {
-                join(other, JoinDirection.FF, true);
+                join(other, JoinDirection.FF);
                 return true;
             } else if (last.first().equals(other.last.first())) {
-                join(other, JoinDirection.LL, true);
+                join(other, JoinDirection.LL);
                 return true;
             }
             return false;
         }
 
-        void join(EnrichedWay other, JoinDirection direction, boolean deletion) {
+        void join(EnrichedWay other, JoinDirection direction) {
             switch (direction) {
                 case FF:
-                    if (deletion) {
-                        this.wayNodes.remove(0);
-                    }
                     Collections.reverse(other.wayNodes);
                     other.wayNodes.addAll(wayNodes);
                     wayNodes = other.wayNodes;
                     this.first = other.last;
                     break;
                 case FL:
-                    if (deletion) {
-                        this.wayNodes.remove(0);
-                    }
                     other.wayNodes.addAll(wayNodes);
                     wayNodes = other.wayNodes;
                     this.first = other.first;
                     break;
                 case LF:
-                    if (deletion) {
-                        other.wayNodes.remove(0);
-                    }
                     wayNodes.addAll(other.wayNodes);
                     this.last = other.last;
                     break;
                 case LL:
                     Collections.reverse(other.wayNodes);
-                    if (deletion) {
-                        other.wayNodes.remove(0);
-                    }
                     this.wayNodes.addAll(other.wayNodes);
                     this.last = other.first;
                     break;

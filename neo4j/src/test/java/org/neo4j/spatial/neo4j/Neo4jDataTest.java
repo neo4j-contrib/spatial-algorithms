@@ -195,16 +195,18 @@ public class Neo4jDataTest {
                 wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (n)], Relation.NEXT);
             }
 
-            for (int i = n/2+1; i < n; i++) {
+            for (int i = n/2; i < n; i++) {
                 wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (wayNodes.length)], Relation.NEXT);
             }
 
             wayNodes[n].createRelationshipTo(nodes[0], Relation.NODE);
             wayNodes[n-1].createRelationshipTo(wayNodes[n], Relation.NEXT);
-            wayNodes[n].createRelationshipTo(wayNodes[1], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
-            wayNodes[n+1].createRelationshipTo(nodes[n/2], Relation.NODE);
-            wayNodes[n/2-1].createRelationshipTo(wayNodes[n+1], Relation.NEXT);
-            wayNodes[n+1].createRelationshipTo(wayNodes[n/2+1], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
+            wayNodes[n].createRelationshipTo(wayNodes[0], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
+
+            int a = n+1;
+            wayNodes[a].createRelationshipTo(nodes[n/2], Relation.NODE);
+            wayNodes[n/2-1].createRelationshipTo(wayNodes[a], Relation.NEXT);
+            wayNodes[a].createRelationshipTo(wayNodes[n/2], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
 
             simplePolygon = new Neo4jSimpleGraphNodePolygon(wayNodes[0], osmRelationId);
             int idx;
@@ -279,12 +281,6 @@ public class Neo4jDataTest {
                 wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
             }
 
-            Relationship rel;
-            rel = wayNodes[0].createRelationshipTo(wayNodes[1], Relation.END_OF_POLYLINE);
-            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
-            rel = wayNodes[n-2].createRelationshipTo(wayNodes[n-1], Relation.END_OF_POLYLINE);
-            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
-
             polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
 
             org.neo4j.spatial.core.Point[] polylinePoints = polyline.getPoints();
@@ -358,12 +354,6 @@ public class Neo4jDataTest {
             wayNodes[n].createRelationshipTo(nodes[n/2], Relation.NODE);
             wayNodes[n/2-1].createRelationshipTo(wayNodes[n], Relation.NEXT);
             wayNodes[n].createRelationshipTo(wayNodes[n/2+1], Relation.NEXT_IN_POLYLINE).setProperty("relation_osm_ids", new long[]{osmRelationId});
-
-            Relationship rel;
-            rel = wayNodes[0].createRelationshipTo(wayNodes[1], Relation.END_OF_POLYLINE);
-            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
-            rel = wayNodes[n-2].createRelationshipTo(wayNodes[n-1], Relation.END_OF_POLYLINE);
-            rel.setProperty("relation_osm_ids", new long[]{osmRelationId});
 
             polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
             int idx;
