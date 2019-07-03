@@ -38,10 +38,6 @@ public class WGS84MonotoneChainPartitioner {
         for (int i = 1; i < lineSegments.length; i++) {
             double currentIncreasing = getXDirection(lineSegments[i]);
 
-            if (lineSegments[i].getPoints()[0].equals(Point.point(CRS.WGS84, 14.3337373, 57.0188833)) || lineSegments[i].getPoints()[1].equals(Point.point(CRS.WGS84, 14.3337373, 57.0188833))) {
-                System.out.println(i);
-            }
-
             if (currentIncreasing == 0.0) {
                 verticals.add(lineSegments[i]);
 
