@@ -29,12 +29,20 @@ public abstract class LinearReference {
         Point previous = polygon.getNextPoint();
         points.add(previous);
         while (d > 0) {
+            if (polygon.fullyTraversed()) {
+                polygon.startTraversal(start, direction);
+                polygon.getNextPoint();//Skip start/end point
+            }
+
             Point current = polygon.getNextPoint();
             double length = calculator.distance(previous, current);
 
             if (length < d) {
                 d -= length;
-                points.add(current);
+
+                if (!points.get(points.size()-1).equals(current)) {
+                    points.add(current);
+                }
             } else {
                 points.add(reference(previous, current, d));
                 break;
