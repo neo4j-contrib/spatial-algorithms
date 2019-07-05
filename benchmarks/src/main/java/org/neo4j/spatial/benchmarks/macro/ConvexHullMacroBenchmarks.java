@@ -7,7 +7,9 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.spatial.algo.Area;
 import org.neo4j.spatial.algo.cartesian.CartesianArea;
+import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.algo.wgs84.WGS84Area;
+import org.neo4j.spatial.algo.wgs84.WGS84ConvexHull;
 import org.neo4j.spatial.benchmarks.JfrProfiler;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.neo4j.UserDefinedFunctions;
@@ -30,16 +32,14 @@ import java.io.File;
 @State(Scope.Benchmark)
 @Fork(1)
 @BenchmarkMode(Mode.AverageTime)
-public class AreaMacroBenchmarks {
+public class ConvexHullMacroBenchmarks {
 
     private Node[] nodes;
     private GraphDatabaseService db;
-    private Area cartesianCalculator = new CartesianArea();
-    private Area WGS84Calculator = new WGS84Area();
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-                .include(AreaMacroBenchmarks.class.getSimpleName())
+                .include(ConvexHullMacroBenchmarks.class.getSimpleName())
                 .forks(1)
                 .addProfiler(JfrProfiler.class)
                 .build();
@@ -96,12 +96,12 @@ public class AreaMacroBenchmarks {
     }
 
     @Benchmark
-    public void testCartesianAreaGraph(Blackhole bh) {
+    public void testCartesianConvexHullGraph(Blackhole bh) {
         try (Transaction tx = db.beginTx()) {
             for (Node osmRelation : nodes) {
                 MultiPolygon polygon = UserDefinedFunctions.getGraphNodePolygon(osmRelation);
 
-                bh.consume(cartesianCalculator.area(polygon));
+                bh.consume(CartesianConvexHull.convexHull(polygon));
 
             }
             tx.success();
@@ -109,25 +109,25 @@ public class AreaMacroBenchmarks {
     }
 
     @Benchmark
-    public void testGeographicAreaGraph(Blackhole bh) {
+    public void testGeographicConvexHullGraph(Blackhole bh) {
         try (Transaction tx = db.beginTx()) {
             for (Node osmRelation : nodes) {
                 MultiPolygon polygon = UserDefinedFunctions.getGraphNodePolygon(osmRelation);
 
-                bh.consume(WGS84Calculator.area(polygon));
+                bh.consume(WGS84ConvexHull.convexHull(polygon));
             }
             tx.success();
         }
     }
 
     @Benchmark
-    public void testCartesianAreaProperty(Blackhole bh) {
+    public void testCartesianConvexHullProperty(Blackhole bh) {
         try {
             try (Transaction tx = db.beginTx()) {
                 for (Node osmRelation : nodes) {
                     MultiPolygon polygon = UserDefinedFunctions.getArrayPolygon(osmRelation);
 
-                    bh.consume(cartesianCalculator.area(polygon));
+                    bh.consume(CartesianConvexHull.convexHull(polygon));
                 }
                 tx.success();
             }
@@ -138,12 +138,12 @@ public class AreaMacroBenchmarks {
     }
 
     @Benchmark
-    public void testGeographicAreaProperty(Blackhole bh) {
+    public void testGeographicConvexHullProperty(Blackhole bh) {
         try (Transaction tx = db.beginTx()) {
             for (Node osmRelation : nodes) {
                 MultiPolygon polygon = UserDefinedFunctions.getArrayPolygon(osmRelation);
 
-                bh.consume(WGS84Calculator.area(polygon));
+                bh.consume(WGS84ConvexHull.convexHull(polygon));
             }
             tx.success();
         }

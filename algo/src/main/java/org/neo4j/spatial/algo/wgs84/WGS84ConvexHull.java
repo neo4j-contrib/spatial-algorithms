@@ -1,12 +1,16 @@
 package org.neo4j.spatial.algo.wgs84;
 
+import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
+import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Vector;
 
+import java.net.CacheRequest;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.stream.Stream;
@@ -78,17 +82,25 @@ public class WGS84ConvexHull {
         });
 
         int start = 0;
+        double minTheta = Double.MAX_VALUE;
         double maxTheta = 0;
 
         for (int i = 0; i < rotatedVectors.length; i++) {
             Vector v = rotatedVectors[i];
             double cosTheta = Math.acos(v.getCoordinate(2) / v.magnitude());
 
-
             if (maxTheta < cosTheta) {
                 start = i;
                 maxTheta = cosTheta;
             }
+
+            if (minTheta > cosTheta) {
+                minTheta = cosTheta;
+            }
+        }
+
+        if (maxTheta - minTheta < 0.1) {
+            return CartesianConvexHull.convexHull(points);
         }
 
         Stack<Vector> stack = new Stack<>();
@@ -98,7 +110,6 @@ public class WGS84ConvexHull {
 
             //Remove last point from the stack if it does not cross the edge (stack.size()-2), v)
             while (stack.size() > 1 && WGSUtil.intersect(stack.get(stack.size()-2), v, stack.peek(), WGSUtil.NORTH_POLE) == null) {
-                WGSUtil.intersect(stack.get(stack.size()-2), v, stack.peek(), WGSUtil.NORTH_POLE);
                 stack.pop();
             }
             stack.push(v);

@@ -8,6 +8,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.algo.LinearReferenceCalculator;
+import org.neo4j.spatial.benchmarks.JfrProfiler;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -44,17 +45,11 @@ public class LinearReferenceMacroBenchmarks {
     private Distance geographicDistanceCalc= DistanceCalculator.getCalculator(CRS.WGS84);
     private Distance cartesianDistanceCalc = DistanceCalculator.getCalculator(CRS.Cartesian);
 
-    private static int s = 2420;
-    private static int n = 100;
-
-    private static double[][] a = new double[n][2];
-    private static double[][] b = new double[n][2];
-
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
                 .include(LinearReferenceMacroBenchmarks.class.getSimpleName())
-                .forks(0)
-                .mode(Mode.SingleShotTime)
+                .forks(1)
+                .addProfiler(JfrProfiler.class)
                 .build();
 
         new Runner(opt).run();
@@ -102,6 +97,9 @@ public class LinearReferenceMacroBenchmarks {
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < ids.length; i++) {
                 nodes[i] = db.findNode(label, "relation_osm_id", ids[i]);
+
+                geographicDist = 0;
+                cartesianDist = 0;
 
                 Polygon.SimplePolygon polygon = UserDefinedFunctions.getArrayPolygon(nodes[i]).getChildren().get(0).getPolygon();
 

@@ -4,6 +4,7 @@ import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.algo.LinearReference;
 import org.neo4j.spatial.algo.LinearReferenceCalculator;
+import org.neo4j.spatial.benchmarks.JfrProfiler;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -39,8 +40,8 @@ public class LinearReferenceBenchmarks {
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
                 .include(LinearReferenceBenchmarks.class.getSimpleName())
-                .forks(0)
-                .mode(Mode.SingleShotTime)
+                .forks(1)
+                .addProfiler(JfrProfiler.class)
                 .build();
 
         new Runner(opt).run();
@@ -48,9 +49,9 @@ public class LinearReferenceBenchmarks {
 
     @Setup
     public void setup() {
-        int n_US = 10000;
-        int n_EU = 10000;
-        int n_OZ = 10000;
+        int n_US = 1000;
+        int n_EU = 1000;
+        int n_OZ = 1000;
 
         Random random = new Random(0);
         polygons = new Polygon.SimplePolygon[n_US + n_EU + n_OZ];

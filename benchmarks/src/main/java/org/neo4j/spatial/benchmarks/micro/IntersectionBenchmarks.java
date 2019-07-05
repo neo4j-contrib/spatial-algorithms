@@ -3,6 +3,7 @@ package org.neo4j.spatial.benchmarks.micro;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.spatial.algo.Intersect;
 import org.neo4j.spatial.algo.IntersectCalculator;
+import org.neo4j.spatial.benchmarks.JfrProfiler;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.LineSegment;
 import org.neo4j.spatial.core.Point;
@@ -25,13 +26,10 @@ import java.util.Random;
 public class IntersectionBenchmarks {
 
     public static void main(String[] args) throws RunnerException {
-//        IntersectionBenchmarks c = new IntersectionBenchmarks();
-//        c.setup();
-//        c.testCartesianIntersectPolygonsNaiveWKT();
         Options opt = new OptionsBuilder()
                 .include(IntersectionBenchmarks.class.getSimpleName())
-                .forks(0)
-                .mode(Mode.SingleShotTime)
+                .forks(1)
+                .addProfiler(JfrProfiler.class)
                 .build();
 
         new Runner(opt).run();
@@ -68,65 +66,65 @@ public class IntersectionBenchmarks {
         }
     }
 
-    @Benchmark
-    public void testCartesianIntersectLinesegments(Blackhole bh) {
-        for (double x1 = -1000.0; x1 < 1000.0; x1 += 1.0) {
-            for (double x2 = -1000.0; x2 < 1000.0; x2 += 1.0) {
-                LineSegment a = LineSegment.lineSegment(Point.point(CRS.Cartesian, x1, 10), Point.point(CRS.Cartesian, -x1, -10));
-                LineSegment b = LineSegment.lineSegment(Point.point(CRS.Cartesian, x2, 10), Point.point(CRS.Cartesian, -x2, -10));
+//    @Benchmark
+//    public void testCartesianIntersectLinesegments(Blackhole bh) {
+//        for (double x1 = -1000.0; x1 < 1000.0; x1 += 1.0) {
+//            for (double x2 = -1000.0; x2 < 1000.0; x2 += 1.0) {
+//                LineSegment a = LineSegment.lineSegment(Point.point(CRS.Cartesian, x1, 10), Point.point(CRS.Cartesian, -x1, -10));
+//                LineSegment b = LineSegment.lineSegment(Point.point(CRS.Cartesian, x2, 10), Point.point(CRS.Cartesian, -x2, -10));
+//
+//                bh.consume(cartesianNaiveCalculator.intersect(a, b));
+//            }
+//        }
+//    }
+//
+//    @Benchmark
+//    public void testGeographicIntersectLinesegments(Blackhole bh) {
+//        for (double x1 = -10.0; x1 < 10.0; x1 += 0.01) {
+//            for (double x2 = -10.0; x2 < 10.0; x2 += 0.01) {
+//                LineSegment a = LineSegment.lineSegment(Point.point(CRS.WGS84, x1, 10), Point.point(CRS.WGS84, -x1, -10));
+//                LineSegment b = LineSegment.lineSegment(Point.point(CRS.WGS84, x2, 10), Point.point(CRS.WGS84, -x2, -10));
+//
+//                bh.consume(geographicNaiveCalculator.intersect(a, b));
+//            }
+//        }
+//    }
 
-                bh.consume(cartesianNaiveCalculator.intersect(a, b));
-            }
-        }
-    }
+//    @Benchmark
+//    public void testCartesianIntersectPolygonsNaive(Blackhole bh) {
+//        for (String region : cartesianData.keySet()) {
+//            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
+//            for (int i = 0; i < polygons.length; i++) {
+//                for (int j = i + 1; j < polygons.length; j++) {
+//                    bh.consume(cartesianNaiveCalculator.intersect(polygons[i], polygons[j]));
+//                }
+//            }
+//        }
+//    }
 
-    @Benchmark
-    public void testGeographicIntersectLinesegments(Blackhole bh) {
-        for (double x1 = -10.0; x1 < 10.0; x1 += 0.01) {
-            for (double x2 = -10.0; x2 < 10.0; x2 += 0.01) {
-                LineSegment a = LineSegment.lineSegment(Point.point(CRS.WGS84, x1, 10), Point.point(CRS.WGS84, -x1, -10));
-                LineSegment b = LineSegment.lineSegment(Point.point(CRS.WGS84, x2, 10), Point.point(CRS.WGS84, -x2, -10));
+//    @Benchmark
+//    public void testCartesianIntersectPolygonsSweep(Blackhole bh) {
+//        for (String region : cartesianData.keySet()) {
+//            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
+//            for (int i = 0; i < polygons.length; i++) {
+//                for (int j = i + 1; j < polygons.length; j++) {
+//                    bh.consume(cartesianSweepCalculator.intersect(polygons[i], polygons[j]));
+//                }
+//            }
+//        }
+//    }
 
-                bh.consume(geographicNaiveCalculator.intersect(a, b));
-            }
-        }
-    }
-
-    @Benchmark
-    public void testCartesianIntersectPolygonsNaive(Blackhole bh) {
-        for (String region : cartesianData.keySet()) {
-            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
-            for (int i = 0; i < polygons.length; i++) {
-                for (int j = i + 1; j < polygons.length; j++) {
-                    bh.consume(cartesianNaiveCalculator.intersect(polygons[i], polygons[j]));
-                }
-            }
-        }
-    }
-
-    @Benchmark
-    public void testCartesianIntersectPolygonsSweep(Blackhole bh) {
-        for (String region : cartesianData.keySet()) {
-            Polygon.SimplePolygon[] polygons = cartesianData.get(region);
-            for (int i = 0; i < polygons.length; i++) {
-                for (int j = i + 1; j < polygons.length; j++) {
-                    bh.consume(cartesianSweepCalculator.intersect(polygons[i], polygons[j]));
-                }
-            }
-        }
-    }
-
-    @Benchmark
-    public void testGeographicIntersectPolygonsNaive(Blackhole bh) {
-        for (String region : geographicData.keySet()) {
-            Polygon.SimplePolygon[] polygons = geographicData.get(region);
-            for (int i = 0; i < polygons.length; i++) {
-                for (int j = i + 1; j < polygons.length; j++) {
-                    bh.consume(geographicNaiveCalculator.intersect(polygons[i], polygons[j]));
-                }
-            }
-        }
-    }
+//    @Benchmark
+//    public void testGeographicIntersectPolygonsNaive(Blackhole bh) {
+//        for (String region : geographicData.keySet()) {
+//            Polygon.SimplePolygon[] polygons = geographicData.get(region);
+//            for (int i = 0; i < polygons.length; i++) {
+//                for (int j = i + 1; j < polygons.length; j++) {
+//                    bh.consume(geographicNaiveCalculator.intersect(polygons[i], polygons[j]));
+//                }
+//            }
+//        }
+//    }
 
     @Benchmark
     public void testGeographicIntersectPolygonsSweep(Blackhole bh) {

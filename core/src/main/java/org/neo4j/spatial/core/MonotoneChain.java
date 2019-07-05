@@ -124,6 +124,9 @@ public class MonotoneChain {
         while (vertices.get(i).getPoint().getCoordinate()[0] <= x) {
             i++;
         }
+        if (i >= vertices.size()) {
+            i = vertices.size() - 1;
+        }
         return new Point[]{vertices.get(i-1).getPoint(), vertices.get(i).getPoint()};
     }
 

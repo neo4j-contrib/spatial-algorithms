@@ -99,6 +99,7 @@ public class WGS84ConvexHullTest {
                 Point.point(CRS.WGS84, -100.632042887, 39.4907340449),
                 Point.point(CRS.WGS84, -73.8050993807, 46.8027114658),
                 Point.point(CRS.WGS84, -91.3035842365, 42.1149121926),
+                Point.point(CRS.WGS84, -92.3035842365, 42.1149121926),
                 Point.point(CRS.WGS84, -116.879247003, 30.1789613908),
                 Point.point(CRS.WGS84, -82.1702840671, 25.3838618864),
                 Point.point(CRS.WGS84, -122.899633545, 27.73655328),

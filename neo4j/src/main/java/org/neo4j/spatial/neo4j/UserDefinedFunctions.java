@@ -13,6 +13,7 @@ import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianNaiveIntersect;
 import org.neo4j.spatial.algo.cartesian.CartesianWithin;
+import org.neo4j.spatial.algo.wgs84.WGS84ConvexHull;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.MultiPolyline;
 import org.neo4j.spatial.core.Polygon;
@@ -72,6 +73,35 @@ public class UserDefinedFunctions {
         }
     }
 
+    @Procedure(name = "spatial.osm.array.createPolyline", mode = Mode.WRITE)
+    public void createArrayLine(@Name("main") Node main) {
+        GraphDatabaseService db = main.getGraphDatabase();
+
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("main", main.getId());
+        Result mainResult = db.execute("MATCH (p:Polyline)<-[:POLYLINE_STRUCTURE]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polylineNode", parameters);
+
+        long relation_osm_id = (long) main.getProperty("relation_osm_id");
+
+        while (mainResult.hasNext()) {
+            Node polylineNode = (Node) mainResult.next().get("polylineNode");
+
+            parameters = new HashMap<>();
+            parameters.put("polylineNode", polylineNode.getId());
+            Result startNodeResult = db.execute("MATCH (p:Polyline)-[:POLYLINE_START]->(n:OSMWayNode) WHERE id(p)=$polylineNode RETURN n AS startNode", parameters);
+
+            if (!startNodeResult.hasNext()) {
+                return;
+            }
+
+            Node startNode = (Node) startNodeResult.next().get("startNode");
+
+            Neo4jSimpleGraphNodePolyline polyline = new Neo4jSimpleGraphNodePolyline(startNode, relation_osm_id);
+
+            polylineNode.setProperty("polyline", Arrays.stream(polyline.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new));
+        }
+    }
+
     @Procedure(name = "spatial.osm.graph.createPolygon", mode = Mode.WRITE)
     public void createOSMGraphGeometries(@Name("main") Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
@@ -127,7 +157,20 @@ public class UserDefinedFunctions {
         return getArrayPolygon(main).toWKT();
     }
 
-    private MultiPolyline getGraphNodePolyline(Node main) {
+    public static MultiPolyline getArrayPolyline(Node main) {
+        long relationId = (long) main.getProperty("relation_osm_id");
+        MultiPolyline multiPolyline = new MultiPolyline();
+
+        for (Relationship relationship : main.getRelationships(Relation.POLYLINE_STRUCTURE, Direction.OUTGOING)) {
+            Node start = relationship.getEndNode();
+            Polyline polyline = Neo4jArrayToInMemoryConverter.convertToInMemoryPolyline(start);
+            multiPolyline.insertPolyline(polyline);
+        }
+
+        return multiPolyline;
+    }
+
+    public static MultiPolyline getGraphNodePolyline(Node main) {
         long relationId = (long) main.getProperty("relation_osm_id");
         MultiPolyline multiPolyline = new MultiPolyline();
 
@@ -271,7 +314,7 @@ public class UserDefinedFunctions {
     @UserFunction("spatial.algo.graph.convexHull")
     public List<Point> convexHullGraphNode(@Name("main") Node main) {
         MultiPolygon multiPolygon = getGraphNodePolygon(main);
-        Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
+        Polygon.SimplePolygon convexHull = WGS84ConvexHull.convexHull(multiPolygon);
 
         return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
     }
@@ -287,7 +330,6 @@ public class UserDefinedFunctions {
         org.neo4j.spatial.core.Point[] intersections = new CartesianNaiveIntersect().intersect(convertedPolygon1, convertedPolygon2);
         return asNeo4jPoints(polygon1.get(0).getCRS(), intersections);
     }
-
     private Polygon.SimplePolygon getSimplePolygon(@Name("polygon1") List<Point> polygon1) {
         org.neo4j.spatial.core.Point[] convertedPoints1 = asInMemoryPoints(polygon1);
         return Polygon.simple(convertedPoints1);

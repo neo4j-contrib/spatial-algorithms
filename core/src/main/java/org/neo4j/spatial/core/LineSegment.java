@@ -61,9 +61,9 @@ class InMemoryLineSegment implements LineSegment {
         if (a.dimension() != b.dimension()) {
             throw new IllegalArgumentException("Cannot create line segment from points with different dimensions");
         }
-        if (a.getCRS() != b.getCRS()) {
-            throw new IllegalArgumentException("Cannot create line segment from points with different coordinate reference systems");
-        }
+//        if (a.getCRS() != b.getCRS()) {
+//            throw new IllegalArgumentException("Cannot create line segment from points with different coordinate reference systems");
+//        }
         this.points = new Point[]{a,b};
     }
 

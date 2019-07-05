@@ -37,6 +37,10 @@ public class AlgoUtil {
         return Math.abs(a-b) < EPSILON;
     }
 
+    public static boolean equal(double a, double b, double epsilon) {
+        return Math.abs(a-b) < epsilon;
+    }
+
     public static boolean lessOrEqual(double a, double b) {
         return a-b <= EPSILON;
     }

@@ -2,6 +2,7 @@ package org.neo4j.spatial.benchmarks.micro;
 
 import org.neo4j.spatial.algo.Area;
 import org.neo4j.spatial.algo.AreaCalculator;
+import org.neo4j.spatial.benchmarks.JfrProfiler;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
@@ -26,8 +27,8 @@ public class AreaBenchmarks {
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
                 .include(AreaBenchmarks.class.getSimpleName())
-                .forks(0)
-                .mode(Mode.SingleShotTime)
+                .forks(1)
+                .addProfiler(JfrProfiler.class)
                 .build();
 
         new Runner(opt).run();
