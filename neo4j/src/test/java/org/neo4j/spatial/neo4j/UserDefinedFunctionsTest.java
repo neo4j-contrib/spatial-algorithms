@@ -4,14 +4,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.graphdb.traversal.Evaluators;
@@ -24,14 +17,13 @@ import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Values;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.*;
 
 public class UserDefinedFunctionsTest {
@@ -90,7 +82,7 @@ public class UserDefinedFunctionsTest {
                     if (j == 0) {
                         ways[i].createRelationshipTo(wayNodes[i][j], Relation.FIRST_NODE);
                     } else {
-                        rel = wayNodes[i][j-1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
+                        rel = wayNodes[i][j - 1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
                         rel.setProperty("relation_osm_id", 1L);
                     }
                 }
@@ -107,19 +99,19 @@ public class UserDefinedFunctionsTest {
                 connectors[i] = db.createNode(Label.label("OSMWayNode"));
             }
 
-            rel = wayNodes[0][y-1].createRelationshipTo(connectors[0], Relation.NEXT);
+            rel = wayNodes[0][y - 1].createRelationshipTo(connectors[0], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1L);
             connectors[0].createRelationshipTo(nodes[1][0], Relation.NODE);
 
-            rel = wayNodes[1][y-1].createRelationshipTo(connectors[1], Relation.NEXT);
+            rel = wayNodes[1][y - 1].createRelationshipTo(connectors[1], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1L);
             connectors[1].createRelationshipTo(nodes[2][0], Relation.NODE);
 
-            rel = wayNodes[2][y-1].createRelationshipTo(connectors[2], Relation.NEXT);
+            rel = wayNodes[2][y - 1].createRelationshipTo(connectors[2], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1L);
             connectors[2].createRelationshipTo(nodes[3][0], Relation.NODE);
 
-            rel = wayNodes[3][y-1].createRelationshipTo(connectors[3], Relation.NEXT);
+            rel = wayNodes[3][y - 1].createRelationshipTo(connectors[3], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1L);
             connectors[3].createRelationshipTo(nodes[0][0], Relation.NODE);
 
@@ -156,7 +148,7 @@ public class UserDefinedFunctionsTest {
                     wayNodes[i][j] = db.createNode(Label.label("OSMWayNode"));
 
                     if (j > 0) {
-                        rel = wayNodes[i][j-1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
+                        rel = wayNodes[i][j - 1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
                         rel.setProperty("relation_osm_id", 1l);
                     }
                 }
@@ -174,9 +166,9 @@ public class UserDefinedFunctionsTest {
             }
 
             ways[0].createRelationshipTo(wayNodes[0][0], Relation.FIRST_NODE);
-            rel = wayNodes[0][y-1].createRelationshipTo(connectors[0], Relation.NEXT);
+            rel = wayNodes[0][y - 1].createRelationshipTo(connectors[0], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
-            connectors[0].createRelationshipTo(nodes[1][y-1], Relation.NODE);
+            connectors[0].createRelationshipTo(nodes[1][y - 1], Relation.NODE);
 
             ways[1].createRelationshipTo(connectors[1], Relation.FIRST_NODE);
             rel = connectors[1].createRelationshipTo(wayNodes[1][0], Relation.NEXT);
@@ -184,9 +176,9 @@ public class UserDefinedFunctionsTest {
             connectors[1].createRelationshipTo(nodes[2][0], Relation.NODE);
 
             ways[2].createRelationshipTo(wayNodes[2][0], Relation.FIRST_NODE);
-            rel = wayNodes[2][y-1].createRelationshipTo(connectors[2], Relation.NEXT);
+            rel = wayNodes[2][y - 1].createRelationshipTo(connectors[2], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
-            connectors[2].createRelationshipTo(nodes[3][y-1], Relation.NODE);
+            connectors[2].createRelationshipTo(nodes[3][y - 1], Relation.NODE);
 
             ways[3].createRelationshipTo(connectors[3], Relation.FIRST_NODE);
             rel = connectors[3].createRelationshipTo(wayNodes[3][0], Relation.NEXT);
@@ -228,7 +220,7 @@ public class UserDefinedFunctionsTest {
                     if (j == 0) {
                         ways[i].createRelationshipTo(wayNodes[i][j], Relation.FIRST_NODE);
                     } else {
-                        rel = wayNodes[i][j-1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
+                        rel = wayNodes[i][j - 1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
                         rel.setProperty("relation_osm_id", 1l);
                     }
                 }
@@ -237,10 +229,10 @@ public class UserDefinedFunctionsTest {
                     nodes[i][j] = db.createNode(Label.label("OSMNode"));
 
                     int yCoord = (i * y) + j;
-                    if (i < x/2) {
+                    if (i < x / 2) {
                         nodes[i][j].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 1 * 1e-3, yCoord * 1e-3));
                     } else {
-                        nodes[i][j].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 0, ((y*x) - yCoord - 1) * 1e-3));
+                        nodes[i][j].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 0, ((y * x) - yCoord - 1) * 1e-3));
                     }
 
                     wayNodes[i][j].createRelationshipTo(nodes[i][j], Relation.NODE);
@@ -253,25 +245,25 @@ public class UserDefinedFunctionsTest {
 
             Node[] connectorNodes = new Node[x];
 
-            rel = wayNodes[0][y-1].createRelationshipTo(connectors[0], Relation.NEXT);
+            rel = wayNodes[0][y - 1].createRelationshipTo(connectors[0], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
             connectorNodes[0] = db.createNode(Label.label("OSMNode"));
             connectorNodes[0].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 1 * 1e-3, 2.5 * 1e-3));
             connectors[0].createRelationshipTo(connectorNodes[0], Relation.NODE);
 
-            rel = wayNodes[1][y-1].createRelationshipTo(connectors[1], Relation.NEXT);
+            rel = wayNodes[1][y - 1].createRelationshipTo(connectors[1], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
             connectorNodes[1] = db.createNode(Label.label("OSMNode"));
             connectorNodes[1].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 0.5 * 1e-3, 5 * 1e-3));
             connectors[1].createRelationshipTo(connectorNodes[1], Relation.NODE);
 
-            rel = wayNodes[2][y-1].createRelationshipTo(connectors[2], Relation.NEXT);
+            rel = wayNodes[2][y - 1].createRelationshipTo(connectors[2], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
             connectorNodes[2] = db.createNode(Label.label("OSMNode"));
             connectorNodes[2].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 2.5 * 1e-3));
             connectors[2].createRelationshipTo(connectorNodes[2], Relation.NODE);
 
-            rel = wayNodes[3][y-1].createRelationshipTo(connectors[3], Relation.NEXT);
+            rel = wayNodes[3][y - 1].createRelationshipTo(connectors[3], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
             connectorNodes[3] = db.createNode(Label.label("OSMNode"));
             connectorNodes[3].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, 0.5 * 1e-3, 0));
@@ -312,7 +304,7 @@ public class UserDefinedFunctionsTest {
                     if (j == 0) {
                         ways[i].createRelationshipTo(wayNodes[i][j], Relation.FIRST_NODE);
                     } else {
-                        rel = wayNodes[i][j-1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
+                        rel = wayNodes[i][j - 1].createRelationshipTo(wayNodes[i][j], Relation.NEXT);
                         rel.setProperty("relation_osm_id", 1l);
                     }
                 }
@@ -331,15 +323,15 @@ public class UserDefinedFunctionsTest {
                 connectors[i] = db.createNode(Label.label("OSMWayNode"));
             }
 
-            rel = wayNodes[0][y-1].createRelationshipTo(connectors[0], Relation.NEXT);
+            rel = wayNodes[0][y - 1].createRelationshipTo(connectors[0], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
             connectors[0].createRelationshipTo(nodes[1][0], Relation.NODE);
 
-            rel = wayNodes[1][y-1].createRelationshipTo(connectors[1], Relation.NEXT);
+            rel = wayNodes[1][y - 1].createRelationshipTo(connectors[1], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
             connectors[1].createRelationshipTo(nodes[2][0], Relation.NODE);
 
-            rel = wayNodes[2][y-1].createRelationshipTo(connectors[2], Relation.NEXT);
+            rel = wayNodes[2][y - 1].createRelationshipTo(connectors[2], Relation.NEXT);
             rel.setProperty("relation_osm_id", 1l);
             connectors[2].createRelationshipTo(nodes[3][0], Relation.NODE);
 
@@ -370,9 +362,8 @@ public class UserDefinedFunctionsTest {
 
             createNestedSquareOSM(main, ways, wayNodes, nodes);
 
-            testCall(db, "CALL spatial.osm.graph.createPolygon($main)",
-                    map("main", main), result -> {
-                    });
+            testCall(db, "CALL spatial.osm.graph.createPolygon($main)", map("main", main), result -> {
+            });
 
             List<Node> list = new MonoDirectionalTraversalDescription().breadthFirst()
                     .relationships(Relation.FIRST_NODE, Direction.OUTGOING)
@@ -382,10 +373,19 @@ public class UserDefinedFunctionsTest {
                     .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(Relation.NODE))
                     .traverse(ways[0]).nodes().stream().collect(Collectors.toList());
 
-            for (Node node : list) {
-                System.out.println(node);
-                System.out.println(node.getProperty("location"));
-            }
+            List<Point> points = list.stream().map(node -> (Point) node.getProperty("location")).collect(Collectors.toList());
+
+            ArrayList<Point> expected = new ArrayList<>();
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, -10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, -10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 10.0, -10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -10.0, -10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 10.0, 10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -10.0, 10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, 10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, 10.0));
+
+            assertThat(points, equalTo(expected));
 
             tx.success();
         }
@@ -426,7 +426,7 @@ public class UserDefinedFunctionsTest {
 
             ways[i].createRelationshipTo(wayNodes[i][0], Relation.FIRST_NODE);
             for (int j = 0; j < wayNodes[i].length - 1; j++) {
-                wayNodes[i][j].createRelationshipTo(wayNodes[i][j+1], Relation.NEXT);
+                wayNodes[i][j].createRelationshipTo(wayNodes[i][j + 1], Relation.NEXT);
             }
 
             for (int j = 0; j < nodes[i].length; j++) {
@@ -438,7 +438,7 @@ public class UserDefinedFunctionsTest {
 
         for (int i = 0; i < nodes.length; i++) {
             for (int j = 0; j < nodes[i].length; j++) {
-                nodes[i][j].setProperty("location", points[i*4+j]);
+                nodes[i][j].setProperty("location", points[i * 4 + j]);
             }
         }
     }
@@ -468,17 +468,17 @@ public class UserDefinedFunctionsTest {
     @Test
     public void shouldFindConvexHullForArrayPolygon() {
         ArrayList<Point> points = new ArrayList<>();
-        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -10,-10));
-        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10,-10));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -10, -10));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10, -10));
         points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 0));
-        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10,10));
-        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0,20));
-        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -10,10));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 10, 10));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 20));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -10, 10));
         testCall(db, "WITH spatial.polygon($points) AS polygon RETURN spatial.algo.convexHull(polygon) AS convexHull", map("points", points), result -> {
             assertThat("Should have one result", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get convexHull as list", record, instanceOf(List.class));
-            List<Point> convexHull = (List<Point>) record;
+            List convexHull = (List) record;
             assertThat("expected polygon of size 6", convexHull.size(), equalTo(6));
         });
     }
@@ -493,7 +493,7 @@ public class UserDefinedFunctionsTest {
             assertThat("Should have one result", result.size(), equalTo(1));
             Object record = result.values().iterator().next();
             assertThat("Should get bbox as map", record, instanceOf(Map.class));
-            Map<String, Object> bbox = (Map<String, Object>) record;
+            Map bbox = (Map) record;
             assertThat("Should have min key", bbox.containsKey("min"), equalTo(true));
             assertThat("Should have max key", bbox.containsKey("max"), equalTo(true));
             assertThat("Should have correct bbox.min", bbox.get("min"), equalTo(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0)));
@@ -510,12 +510,143 @@ public class UserDefinedFunctionsTest {
         Point a = Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1);
         Point b = Values.pointValue(CoordinateReferenceSystem.WGS84, 9, 9);
         testCall(db, "WITH spatial.polygon($points) AS polygon RETURN spatial.algo.withinPolygon($a,polygon) AS a, spatial.algo.withinPolygon($b,polygon) AS b", map("points", points, "a", a, "b", b), result -> {
-            assertThat("Should get result as map", result, instanceOf(Map.class));
-            Map<String, Object> results = (Map<String, Object>) result;
-            assertThat("Should have 'a' key", results.containsKey("a"), equalTo(true));
-            assertThat("Should have 'b' key", results.containsKey("b"), equalTo(true));
-            assertThat("'a' should be inside polygon", results.get("a"), equalTo(true));
-            assertThat("'b' should be outside polygon", results.get("b"), equalTo(false));
+            assertThat("Should have 'a' key", result.containsKey("a"), equalTo(true));
+            assertThat("Should have 'b' key", result.containsKey("b"), equalTo(true));
+            assertThat("'a' should be inside polygon", result.get("a"), equalTo(true));
+            assertThat("'b' should be outside polygon", result.get("b"), equalTo(false));
+        });
+    }
+
+    private static final double circumference = 40000000;
+    private static final double oneDegreeDistance = circumference / 360.0;
+    private static final double oneByOneDiagonal = Math.sqrt(2 * oneDegreeDistance * oneDegreeDistance);
+    private static final double oneByOneArea = oneDegreeDistance * oneDegreeDistance;
+
+    @Test
+    public void shouldFindAreaOfSimplePolygon() {
+        // square about the equator-utm
+        ArrayList<Point> points = new ArrayList<>();
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, 1));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -1));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, -1));
+
+        testCall(db, "WITH spatial.polygon($points) AS polygon RETURN spatial.algo.area(polygon) AS area", map("points", points), result -> {
+            assertThat("Should have 'area' key", result.containsKey("area"), equalTo(true));
+            assertThat("'area' should be within 1% of a 2x2 degree square in m^2", (double) result.get("area"), closeTo(4 * oneByOneArea, oneByOneArea / 100.0));
+        });
+    }
+
+    @Test
+    public void shouldFindAreaOfSimplePolygonFarFromEquator() {
+        // square about the equator-utm
+        ArrayList<Point> points = new ArrayList<>();
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 60));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 60));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 61));
+        points.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 61));
+
+        testCall(db, "WITH spatial.polygon($points) AS polygon RETURN spatial.algo.area(polygon) AS area", map("points", points), result -> {
+            assertThat("Should have 'area' key", result.containsKey("area"), equalTo(true));
+            double shrinkFactor = Math.cos(Math.PI * 60.5 / 180.0);
+            assertThat("'area' far from equator should be smaller by a factor of 'cos(latitude)' than a 1x1 degree square in m^2", (double) result.get("area"), closeTo(oneByOneArea * shrinkFactor, oneByOneArea / 1000.0));
+        });
+    }
+
+    @Test
+    public void shouldFindDistanceBetweenTwoPolygons() {
+        // square above-right of equator-utm
+        ArrayList<Point> a = new ArrayList<>();
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 2, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 2, 2));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 2));
+
+        // square below-left of equator-utm
+        ArrayList<Point> b = new ArrayList<>();
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -1));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -2, -1));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -2, -2));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -2));
+
+        testCall(db, "WITH spatial.polygon($a) AS a, spatial.polygon($b) AS b RETURN spatial.algo.distance(a,b) AS distance", map("a", a, "b", b), result -> {
+            assertThat("Should have 'distance' key", result.containsKey("distance"), equalTo(true));
+            assertThat("'distance' should be close to a 1x1 degree diagonal in meters", (double) result.get("distance"), closeTo(2 * oneByOneDiagonal, 250));
+        });
+    }
+
+    @Test
+    public void shouldFindDistanceAndEndPointsBetweenTwoPolygons() {
+        // square above-right of equator-utm
+        ArrayList<Point> a = new ArrayList<>();
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 2, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 2, 2));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 2));
+
+        // square below-left of equator-utm
+        ArrayList<Point> b = new ArrayList<>();
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -1));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -2, -1));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -2, -2));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -2));
+
+        testCall(db, "WITH spatial.polygon($a) AS a, spatial.polygon($b) AS b RETURN spatial.algo.distance.ends(a,b) AS dist", map("a", a, "b", b), result -> {
+            assertThat("Should have 'dist' key", result.containsKey("dist"), equalTo(true));
+            assertThat("Should get distance result as map", result.get("dist"), instanceOf(Map.class));
+            Map dist = (Map) result.get("dist");
+            assertThat("'distance' should be close to a 2x2 degree diagonal in meters", (double) dist.get("distance"), closeTo(2 * oneByOneDiagonal, 250));
+            assertThat(Arrays.asList(dist.get("start"), dist.get("end")),
+                    containsInAnyOrder(
+                            Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -1),
+                            Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1)));
+        });
+    }
+
+    @Test
+    public void shouldFindDistanceBetweenTwoPolygonsWithInterpolation() {
+        // square above equator-utm
+        ArrayList<Point> a = new ArrayList<>();
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 2));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, 2));
+
+        // triangle below, but touching equator
+        ArrayList<Point> b = new ArrayList<>();
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -1));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, -1));
+
+        testCall(db, "WITH spatial.polygon($a) AS a, spatial.polygon($b) AS b RETURN spatial.algo.distance(a,b) AS distance", map("a", a, "b", b), result -> {
+            assertThat("Should have 'distance' key", result.containsKey("distance"), equalTo(true));
+            assertThat("'distance' should be close to one degree in meters", (double) result.get("distance"), closeTo(oneDegreeDistance, 115));
+        });
+    }
+
+    @Test
+    public void shouldFindDistanceAndEndPointsBetweenTwoPolygonsWithInterpolation() {
+        // square above equator-utm
+        ArrayList<Point> a = new ArrayList<>();
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 1));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, 2));
+        a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, 2));
+
+        // triangly below, but touching equator
+        ArrayList<Point> b = new ArrayList<>();
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1, -1));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0));
+        b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1, -1));
+
+        testCall(db, "WITH spatial.polygon($a) AS a, spatial.polygon($b) AS b RETURN spatial.algo.distance.ends(a,b) AS dist", map("a", a, "b", b), result -> {
+            assertThat("Should have 'dist' key", result.containsKey("dist"), equalTo(true));
+            assertThat("Should get distance result as map", result.get("dist"), instanceOf(Map.class));
+            Map dist = (Map) result.get("dist");
+            assertThat("'distance' should be close to one degree in meters", (double) dist.get("distance"), closeTo(oneDegreeDistance, 115));
+            assertThat("Start point x-coord should be interpolated to zero (UTM)", ((Point) dist.get("start")).getCoordinate().getCoordinate().get(0), closeTo(0, 0.000001));
+            assertThat("Start point y-coord should be interpolated a little above the one degree line due to great-circle", ((Point) dist.get("start")).getCoordinate().getCoordinate().get(1), closeTo(1, 0.001));
+            assertThat(dist.get("end"), equalTo(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0)));
         });
     }
 

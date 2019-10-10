@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-parent</artifactId>
-        <version>0.2.0-neo4j-3.4.14</version>
+        <version>0.2.1-neo4j-3.5.11</version>
     </parent>
 
     <artifactId>spatial-algorithms-neo4j</artifactId>
@@ -45,6 +45,13 @@
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-io</artifactId>
             <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.neo4j.community</groupId>
+            <artifactId>it-test-support</artifactId>
+            <version>${neo4j.version}</version>
             <scope>test</scope>
         </dependency>
 

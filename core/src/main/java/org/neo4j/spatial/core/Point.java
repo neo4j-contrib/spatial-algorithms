@@ -4,12 +4,10 @@ import java.util.Arrays;
 
 import static java.lang.String.format;
 
-public interface Point {
+public interface Point extends HasCRS {
     static Point point(CRS crs, double... coordinate) {
         return new InMemoryPoint(crs, coordinate);
     }
-
-    CRS getCRS();
 
     double[] getCoordinate();
 
