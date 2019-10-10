@@ -7,8 +7,7 @@ import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
-import org.neo4j.spatial.algo.Intersect;
-import org.neo4j.spatial.algo.IntersectCalculator;
+import org.neo4j.spatial.algo.*;
 import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianNaiveIntersect;
@@ -44,7 +43,8 @@ public class UserDefinedFunctions {
     }
 
     // TODO write tests
-    @Procedure(name = "spatial.osm.array.createPolygon", mode = Mode.WRITE)
+    @Description( "Creates a polygon as a Point[] property named 'polygon' on the node" )
+    @Procedure(name = "spatial.osm.property.createPolygon", mode = Mode.WRITE)
     public void createArrayCache(@Name("main") Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
 
@@ -317,6 +317,39 @@ public class UserDefinedFunctions {
         Polygon.SimplePolygon convexHull = WGS84ConvexHull.convexHull(multiPolygon);
 
         return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
+    }
+
+    @UserFunction("spatial.algo.area")
+    public double area(@Name("polygon") List<Point> polygon) {
+        Polygon.SimplePolygon convertedPolygon = getSimplePolygon(polygon);
+        Area area = AreaCalculator.getCalculator(convertedPolygon);
+        return area.area(convertedPolygon);
+    }
+
+    @UserFunction("spatial.algo.distance")
+    public double distance(@Name("polygon1") List<Point> polygon1, @Name("polygon2") List<Point> polygon2) {
+        Polygon.SimplePolygon convertedPolygon1 = getSimplePolygon(polygon1);
+        Polygon.SimplePolygon convertedPolygon2 = getSimplePolygon(polygon2);
+
+        Distance distance = DistanceCalculator.getCalculator(convertedPolygon1);
+        return distance.distance(convertedPolygon1, convertedPolygon2);
+    }
+
+    @UserFunction("spatial.algo.distance.ends")
+    public Map<String, Object> distanceAndEndPoints(@Name("polygon1") List<Point> polygon1, @Name("polygon2") List<Point> polygon2) {
+        try {
+            Polygon.SimplePolygon convertedPolygon1 = getSimplePolygon(polygon1);
+            Polygon.SimplePolygon convertedPolygon2 = getSimplePolygon(polygon2);
+            final CRS crs = polygon1.get(0).getCRS();
+
+            Distance distance = DistanceCalculator.getCalculator(convertedPolygon1);
+            Distance.DistanceResult dae = distance.distanceAndEndpoints(convertedPolygon1, convertedPolygon2);
+            return dae.asMap(p -> asNeo4jPoint(crs, p));
+        } catch (Exception e) {
+            System.out.println("Failed to calculate polygon distance: " + e.getMessage());
+            e.printStackTrace();
+            return Distance.DistanceResult.NO_RESULT.withError(e).asMap();
+        }
     }
 
     // TODO write tests

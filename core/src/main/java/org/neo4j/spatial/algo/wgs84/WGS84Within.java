@@ -9,7 +9,9 @@ import java.util.Arrays;
 
 public class WGS84Within {
     public static boolean within(Polygon polygon, Point point) {
-        return Arrays.stream(polygon.getShells()).filter(s -> within(s, point)).count() > Arrays.stream(polygon.getHoles()).filter(h -> within(h, point)).count();
+        long withinShells = Arrays.stream(polygon.getShells()).filter(s -> within(s, point)).count();
+        long withinHoles = Arrays.stream(polygon.getHoles()).filter(h -> within(h, point)).count();
+        return withinShells > withinHoles;
     }
 
     public static boolean within(Polygon.SimplePolygon polygon, Point point) {
@@ -17,7 +19,7 @@ public class WGS84Within {
 
         double courseDelta = WGSUtil.courseDelta(polygon.getPoints());
 
-        if (courseDelta > 270) {
+        if (courseDelta > 270 || courseDelta < -270) {
             //The polygon does not contain a pole
             boolean result = false;
             for (int i = 0; i < points.length - 1; i++) {

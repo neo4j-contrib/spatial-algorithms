@@ -10,7 +10,7 @@ import java.util.StringJoiner;
 
 import static java.lang.String.format;
 
-public interface Polyline {
+public interface Polyline extends HasCRS {
     static Polyline polyline(Point... points) {
         return new InMemoryPolyline(points);
     }
@@ -51,10 +51,6 @@ public interface Polyline {
         }
         return lineSegments.toArray(new LineSegment[0]);
     }
-
-    CRS getCRS();
-
-    int dimension();
 
     Point[] getPoints();
 

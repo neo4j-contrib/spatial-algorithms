@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-parent</artifactId>
-        <version>0.2.0-neo4j-3.4.14</version>
+        <version>0.2.1-neo4j-3.5.11</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,4 +29,27 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <!-- Neo4j Procedures require Java 8 -->
+                    <compilerVersion>${javac.target}</compilerVersion>
+                    <source>${javac.target}</source>
+                    <target>${javac.target}</target>
+                    <compilerArgs>
+                        <arg>-AIgnoreContextWarnings</arg>
+                        <arg>-AGeneratedDocumentationPath=target/generated-documentation</arg>
+                        <arg>-ADocumentation.FieldDelimiter=¦</arg>
+                        <arg>-ADocumentation.ExportedHeaders=qualified name¦description</arg>
+                        <arg>-ADocumentation.QuotedFields=false</arg>
+                        <arg>-ADocumentation.DelimitedFirstField=true</arg>
+                        <arg>-ADocumentation.ExportGrouping=PACKAGE</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

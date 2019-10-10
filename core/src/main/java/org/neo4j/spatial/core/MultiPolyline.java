@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.StringJoiner;
 
-public class MultiPolyline {
+public class MultiPolyline implements HasCRS {
     private List<Polyline> children;
 
     public MultiPolyline() {
@@ -35,6 +35,7 @@ public class MultiPolyline {
         return lineSegments.toArray(new LineSegment[0]);
     }
 
+    @Override
     public CRS getCRS() {
         return children.isEmpty() ? CRS.Cartesian : children.get(0).getCRS();
     }

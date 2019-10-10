@@ -13,7 +13,7 @@ import java.util.StringJoiner;
 
 import static java.lang.String.format;
 
-public interface Polygon {
+public interface Polygon extends HasCRS {
     static SimplePolygon simple(Point... points) {
         return new InMemorySimplePolygon(points);
     }
@@ -56,10 +56,6 @@ public interface Polygon {
     SimplePolygon[] getShells();
 
     SimplePolygon[] getHoles();
-
-    CRS getCRS();
-
-    int dimension();
 
     boolean isSimple();
 

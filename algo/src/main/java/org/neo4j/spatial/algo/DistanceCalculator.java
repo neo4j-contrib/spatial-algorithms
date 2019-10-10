@@ -2,12 +2,7 @@ package org.neo4j.spatial.algo;
 
 import org.neo4j.spatial.algo.cartesian.CartesianDistance;
 import org.neo4j.spatial.algo.wgs84.WGS84Distance;
-import org.neo4j.spatial.core.CRS;
-import org.neo4j.spatial.core.LineSegment;
-import org.neo4j.spatial.core.MultiPolyline;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
-import org.neo4j.spatial.core.Polyline;
+import org.neo4j.spatial.core.*;
 
 public class DistanceCalculator {
     private static CartesianDistance cartesian;
@@ -30,48 +25,14 @@ public class DistanceCalculator {
     public static Distance getCalculator(CRS crs) {
         if (crs == CRS.Cartesian) {
             return getCartesian();
-        } else {
+        } else if (crs == CRS.WGS84) {
             return getWGS84();
+        } else {
+            throw new IllegalArgumentException("The coordinate reference system is not supported for distance calculations: " + crs);
         }
     }
 
-    public static Distance getCalculator(Polygon a) {
-        if (a.getCRS() == CRS.Cartesian) {
-            return getCartesian();
-        } else {
-            return getWGS84();
-        }
-    }
-
-    public static Distance getCalculator(MultiPolyline a) {
-        if (a.getCRS() == CRS.Cartesian) {
-            return getCartesian();
-        } else {
-            return getWGS84();
-        }
-    }
-
-    public static Distance getCalculator(Polyline a) {
-        if (a.getCRS() == CRS.Cartesian) {
-            return getCartesian();
-        } else {
-            return getWGS84();
-        }
-    }
-
-    public static Distance getCalculator(LineSegment a) {
-        if (a.getCRS() == CRS.Cartesian) {
-            return getCartesian();
-        } else {
-            return getWGS84();
-        }
-    }
-
-    public static Distance getCalculator(Point a) {
-        if (a.getCRS() == CRS.Cartesian) {
-            return getCartesian();
-        } else {
-            return getWGS84();
-        }
+    public static Distance getCalculator(HasCRS geometry) {
+        return getCalculator(geometry.getCRS());
     }
 }

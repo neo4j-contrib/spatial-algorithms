@@ -45,7 +45,7 @@ public class WGS84Area extends Area {
         sumAngles += WGSUtil.angleTo(previousGC, normal, firstGC);
 
         double sumTheta = n * Math.PI - Math.abs(sumAngles);
-        double sphericalExcess = sumTheta - ((n-2) * Math.PI);
+        double sphericalExcess = sumTheta - (n-2) * Math.PI;
         return sphericalExcess * WGSUtil.RADIUS * WGSUtil.RADIUS;
     }
 }

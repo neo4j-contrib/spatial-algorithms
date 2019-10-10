@@ -7,7 +7,7 @@ import java.util.StringJoiner;
 
 import static java.lang.String.format;
 
-public interface LineSegment {
+public interface LineSegment extends HasCRS {
     static LineSegment lineSegment(Point a, Point b) {
         return new InMemoryLineSegment(a, b);
     }
@@ -43,10 +43,7 @@ public interface LineSegment {
         return segment.getPoints()[1].getCoordinate()[0] - segment.getPoints()[0].getCoordinate()[0];
     }
 
-    CRS getCRS();
-
-    int dimension();
-
+    // TODO: Test this method
     String toWKT();
 
     default String toLatLon() {

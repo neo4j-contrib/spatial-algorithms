@@ -10,14 +10,7 @@ import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 import org.neo4j.spatial.core.Vector;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class OSMTraverser {
@@ -52,12 +45,21 @@ public class OSMTraverser {
     private static List<List<Node>> collectWays(Node main) {
         GraphDatabaseService db = main.getGraphDatabase();
         List<List<Node>> wayNodes = new ArrayList<>();
+        String findWayNodes = null;
+        if (main.hasProperty("relation_osm_id")) {
+            findWayNodes = "MATCH (r:OSMRelation)-[:MEMBER*]->(w:OSMWay)-[:FIRST_NODE]->(f:OSMWayNode), " +
+                    "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE id(r) = $main " +
+                    "RETURN f, collect(wn) AS nodes";
+        } else if (main.hasProperty("way_osm_id")) {
+            findWayNodes = "MATCH (w:OSMWay)-[:FIRST_NODE]->(f:OSMWayNode), " +
+                    "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE id(w) = $main " +
+                    "RETURN f, collect(wn) AS nodes";
+        } else {
+            throw new IllegalArgumentException("Cannot find ways from OSM node that is neither a Relation nor a Way: " + main);
+        }
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
-        String findWayNodes = "MATCH (r:OSMRelation)-[:MEMBER*]->(w:OSMWay)-[:FIRST_NODE]->(f:OSMWayNode), " +
-                "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE id(r) = $main " +
-                "RETURN f, collect(wn) AS nodes";
         Result result = db.execute(findWayNodes, parameters);
         while(result.hasNext()) {
             Map<String, Object> next = result.next();

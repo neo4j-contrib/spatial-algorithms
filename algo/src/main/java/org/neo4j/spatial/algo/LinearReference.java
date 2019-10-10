@@ -1,10 +1,6 @@
 package org.neo4j.spatial.algo;
 
-import org.neo4j.spatial.core.CRS;
-import org.neo4j.spatial.core.LineSegment;
-import org.neo4j.spatial.core.Point;
-import org.neo4j.spatial.core.Polygon;
-import org.neo4j.spatial.core.Polyline;
+import org.neo4j.spatial.core.*;
 
 import java.util.ArrayList;
 import java.util.List;

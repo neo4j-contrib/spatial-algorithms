@@ -30,6 +30,16 @@ public class CartesianDistance extends Distance {
     }
 
     @Override
+    public DistanceResult distanceAndEndpoints(Polygon a, Polygon b) {
+        throw new IllegalStateException("Distance with end-points is not implemented for Cartesian data");
+    }
+
+    @Override
+    protected DistanceResult distanceAndEndpoints(LineSegment a, LineSegment b) {
+        throw new IllegalStateException("Distance with end-points is not implemented for Cartesian data");
+    }
+
+    @Override
     public double distance(Polygon polygon, MultiPolyline multiPolyline) {
         boolean intersects = new CartesianMCSweepLineIntersect().doesIntersect(polygon, multiPolyline);
 
