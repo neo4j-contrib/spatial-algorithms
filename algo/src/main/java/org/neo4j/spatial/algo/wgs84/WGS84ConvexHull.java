@@ -100,22 +100,41 @@ public class WGS84ConvexHull {
         }
 
         if (maxTheta - minTheta < 0.1) {
-            return CartesianConvexHull.convexHull(points);
-        }
 
-        Stack<Vector> stack = new Stack<>();
-
-        for (int i = 0; i < rotatedVectors.length + 1; i++) {
-            Vector v = rotatedVectors[(i + start) % rotatedVectors.length];
-
-            //Remove last point from the stack if it does not cross the edge (stack.size()-2), v)
-            while (stack.size() > 1 && WGSUtil.intersect(stack.get(stack.size()-2), v, stack.peek(), WGSUtil.NORTH_POLE) == null) {
-                stack.pop();
+            double[][] rotatedCoords = new double[rotatedVectors.length][2];
+            for (int i = 0; i < rotatedVectors.length; i++) {
+                double[] coordinates = rotatedVectors[i].getCoordinates();
+                rotatedCoords[i][0] = coordinates[0];
+                rotatedCoords[i][1] = coordinates[1];
             }
-            stack.push(v);
-        }
 
-        return Polygon.simple(stack.stream().map(v -> points[mappingToIndex.get(v)]).toArray(Point[]::new));
+            int[] indexes = CartesianConvexHull.convexHullByIndex(rotatedCoords);
+            Point[] resultPoints = new Point[indexes.length];
+
+            for (int i = 0; i < indexes.length; i++) {
+                Vector rotated = rotatedVectors[indexes[i]];
+                int index = mappingToIndex.get(rotated);
+                resultPoints[i] = points[index];
+            }
+
+            return Polygon.simple(resultPoints);
+
+        } else {
+
+            Stack<Vector> stack = new Stack<>();
+
+            for (int i = 0; i < rotatedVectors.length + 1; i++) {
+                Vector v = rotatedVectors[(i + start) % rotatedVectors.length];
+
+                //Remove last point from the stack if it does not cross the edge (stack.size()-2), v)
+                while (stack.size() > 1 && WGSUtil.intersect(stack.get(stack.size() - 2), v, stack.peek(), WGSUtil.NORTH_POLE) == null) {
+                    stack.pop();
+                }
+                stack.push(v);
+            }
+
+            return Polygon.simple(stack.stream().map(v -> points[mappingToIndex.get(v)]).toArray(Point[]::new));
+        }
     }
 
     /**

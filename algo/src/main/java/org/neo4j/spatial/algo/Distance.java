@@ -122,6 +122,13 @@ public abstract class Distance {
      */
     public abstract double distance(Point p1, Point p2);
 
+    /**
+     * @param p1
+     * @param p2
+     * @return The minimum distance between two coordinates
+     */
+    public abstract double distance(double[] p1, double[] p2);
+
     protected double getMinDistance(LineSegment[] aLS, LineSegment[] bLS) {
         double minDistance = Double.MAX_VALUE;
 

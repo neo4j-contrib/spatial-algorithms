@@ -24,7 +24,7 @@ public interface LineSegment extends HasCRS {
     static Point sharedPoint(LineSegment a, LineSegment b) {
         for (Point aPoint : a.getPoints()) {
             for (Point bPoint : b.getPoints()) {
-                if (AlgoUtil.equal(aPoint, bPoint)) {
+                if (AlgoUtil.equal(aPoint.getCoordinate(), bPoint.getCoordinate())) {
                     return Point.point(aPoint.getCRS(), aPoint.getCoordinate());
                 }
             }

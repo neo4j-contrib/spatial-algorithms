@@ -322,4 +322,13 @@ public class WGS84Distance extends Distance {
         //WGS84Distance (in meters)
         return WGSUtil.distance(u, v);
     }
+
+    @Override
+    public double distance(double[] p1, double[] p2) {
+        Vector u = new Vector(Vector.pointCoordinatesToVectorCoordinates(p1));
+        Vector v = new Vector(Vector.pointCoordinatesToVectorCoordinates(p2));
+
+        //WGS84Distance (in meters)
+        return WGSUtil.distance(u, v);
+    }
 }

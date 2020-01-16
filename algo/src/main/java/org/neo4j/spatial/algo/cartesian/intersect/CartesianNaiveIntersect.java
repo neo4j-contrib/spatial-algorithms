@@ -119,7 +119,7 @@ public class CartesianNaiveIntersect extends CartesianIntersect {
     private void addPoint(List<Point> intersections, Point newIntersection) {
         boolean flag = false;
         for (Point intersection : intersections) {
-            if (AlgoUtil.equal(intersection, newIntersection)) {
+            if (AlgoUtil.equal(intersection.getCoordinate(), newIntersection.getCoordinate())) {
                 flag = true;
                 break;
             }

@@ -66,20 +66,20 @@ public class CartesianConvexHull {
     }
 
     /**
-     * Computes the convex hull of a set of points using Graham's scan
+     * Computes the convex hull of a set of coordinates using Graham's scan
      *
-     * @param points
+     * @param coordinates of points
      * @return Ordered list of indices of the input which together form the convex hull
      */
-    public static int[] convexHullByIndex(Point[] points) {
-        Point reference = getLowestPoint(points);
-        List<Integer> sortedPoints = sortIndices(points, reference);
+    public static int[] convexHullByIndex(double[][] coordinates) {
+        double[] reference = getLowestCoordinate(coordinates);
+        List<Integer> sortedPoints = sortIndices(coordinates, reference);
 
         Stack<Integer> stack = new Stack<>();
 
         for (int current : sortedPoints) {
             //Remove last point from the stack if we make a clockwise turn (that point makes the hull concave)
-            while (stack.size() > 1 && AlgoUtil.ccw(points[stack.get(stack.size()-2)], points[stack.peek()], points[current]) <= 0) {
+            while (stack.size() > 1 && AlgoUtil.ccw(coordinates[stack.get(stack.size()-2)], coordinates[stack.peek()], coordinates[current]) <= 0) {
                 stack.pop();
 
             }
@@ -99,7 +99,7 @@ public class CartesianConvexHull {
      */
     private static List<Point> sortPoints(Point[] points, Point reference) {
         List<Point> sortedPoints = new ArrayList<>(Arrays.asList(points));
-        sortedPoints.sort((a, b) -> comparePoints(reference, a, b));
+        sortedPoints.sort((a, b) -> comparePoints(reference.getCoordinate(), a.getCoordinate(), b.getCoordinate()));
 
         //Remove points with same polar angle but shorter distance to reference
         List<Integer> toDelete = new ArrayList<>();
@@ -107,8 +107,8 @@ public class CartesianConvexHull {
             Point a = sortedPoints.get(i);
             Point b = sortedPoints.get(i+1);
 
-            double angleA = getPolarAngle(reference, a);
-            double angleB = getPolarAngle(reference, b);
+            double angleA = getPolarAngle(reference.getCoordinate(), a.getCoordinate());
+            double angleB = getPolarAngle(reference.getCoordinate(), b.getCoordinate());
             if (AlgoUtil.equal(angleA, angleB)) {
                 toDelete.add(i - toDelete.size());
             }
@@ -123,13 +123,13 @@ public class CartesianConvexHull {
      * Sorts the points based on their polar angle with respect to the reference point.
      * Ties are broken based on the distance to the reference point
      *
-     * @param points
+     * @param coordinates
      * @param reference
-     * @return Sorted list of points
+     * @return Sorted list of the indices of the array of input coordinates
      */
-    private static List<Integer> sortIndices(Point[] points, Point reference) {
-        List<Integer> sortedIndices = IntStream.range(0, points.length).boxed().collect(Collectors.toList());;
-        sortedIndices.sort((a, b) -> comparePoints(reference, points[a], points[b]));
+    private static List<Integer> sortIndices(double[][] coordinates, double[] reference) {
+        List<Integer> sortedIndices = IntStream.range(0, coordinates.length).boxed().collect(Collectors.toList());;
+        sortedIndices.sort((a, b) -> comparePoints(reference, coordinates[a], coordinates[b]));
 
         //Remove points with same polar angle but shorter distance to reference
         List<Integer> toDelete = new ArrayList<>();
@@ -137,8 +137,8 @@ public class CartesianConvexHull {
             int a = sortedIndices.get(i);
             int b = sortedIndices.get(i+1);
 
-            double angleA = getPolarAngle(reference, points[a]);
-            double angleB = getPolarAngle(reference, points[b]);
+            double angleA = getPolarAngle(reference, coordinates[a]);
+            double angleB = getPolarAngle(reference, coordinates[b]);
             if (AlgoUtil.equal(angleA, angleB)) {
                 toDelete.add(i - toDelete.size());
             }
@@ -171,8 +171,25 @@ public class CartesianConvexHull {
         return outer;
     }
 
-    private static int comparePoints(Point reference, Point a, Point b) {
-        if (a.equals(b)) {
+    // TODO: Reduce duplicated code
+    private static double[] getLowestCoordinate(double[][] inputCoordinates) {
+        double[] outer = inputCoordinates[0];
+
+        for (double[] coordinate : inputCoordinates) {
+            if (coordinate[1] < outer[1]) {
+                outer = coordinate;
+            } else if (coordinate[1] == outer[1]) {
+                if (coordinate[0] < outer[0]) {
+                    outer = coordinate;
+                }
+            }
+        }
+
+        return outer;
+    }
+
+    private static int comparePoints(double[] reference, double[] a, double[] b) {
+        if (Arrays.equals(a, b)) {
             return 0;
         }
 
@@ -194,7 +211,7 @@ public class CartesianConvexHull {
      * @param a         the point for which we want to know the polar angle
      * @return The polar angle of a with respect to the reference point
      */
-    private static double getPolarAngle(Point reference, Point a) {
-        return Math.atan2(a.getCoordinate()[1] - reference.getCoordinate()[1], a.getCoordinate()[0] - reference.getCoordinate()[0]);
+    private static double getPolarAngle(double[] reference, double[] a) {
+        return Math.atan2(a[1] - reference[1], a[0] - reference[0]);
     }
 }

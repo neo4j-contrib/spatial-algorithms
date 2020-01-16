@@ -11,7 +11,7 @@ public class PolygonUtil {
         }
         Point first = points[0];
         Point last = points[points.length - 1];
-        if (AlgoUtil.equal(first, last)) {
+        if (AlgoUtil.equal(first.getCoordinate(), last.getCoordinate())) {
             return points;
         } else {
             Point[] closed = Arrays.copyOf(points, points.length + 1);

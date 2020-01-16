@@ -22,7 +22,7 @@ public class RotatedPoint implements Point {
 
     @Override
     public double[] getCoordinate() {
-        return AlgoUtil.rotate(point, angle);
+        return AlgoUtil.rotate(point.getCoordinate(), angle);
     }
 
     @Override

@@ -20,8 +20,12 @@ public class Vector {
      * @param point
      */
     public Vector(Point point) {
-        double[] p = Arrays.stream(point.getCoordinate()).map(q -> q * Math.PI/180).toArray();
-        this.coordinates = new double[]{Math.cos(p[1]) * Math.cos(p[0]), Math.cos(p[1]) * Math.sin(p[0]), Math.sin(p[1])};
+        this.coordinates = pointCoordinatesToVectorCoordinates(point.getCoordinate());
+    }
+
+    public static double[] pointCoordinatesToVectorCoordinates(double[] point) {
+        double[] p = Arrays.stream(point).map(q -> q * Math.PI/180).toArray();
+        return new double[]{Math.cos(p[1]) * Math.cos(p[0]), Math.cos(p[1]) * Math.sin(p[0]), Math.sin(p[1])};
     }
 
     public double getCoordinate(int i) {

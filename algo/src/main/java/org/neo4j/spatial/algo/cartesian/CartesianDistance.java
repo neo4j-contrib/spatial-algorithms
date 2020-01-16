@@ -240,8 +240,11 @@ public class CartesianDistance extends Distance {
 
     @Override
     public double distance(Point p1, Point p2) {
-        double[] c1 = p1.getCoordinate();
-        double[] c2 = p2.getCoordinate();
+        return distance(p1.getCoordinate(), p2.getCoordinate());
+    }
+
+    @Override
+    public double distance(double[] c1, double[] c2) {
         return CartesianUtil.distance(c1, c2);
     }
 }

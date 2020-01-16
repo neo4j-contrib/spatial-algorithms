@@ -333,9 +333,9 @@ public class CartesianMCSweepLineIntersect extends CartesianIntersect {
     }
 
     private void addToOutput(Point rotatedPoint) {
-        Point point = Point.point(CRS.Cartesian, AlgoUtil.rotate(rotatedPoint, -this.sweepAngle));
+        Point point = Point.point(CRS.Cartesian, AlgoUtil.rotate(rotatedPoint.getCoordinate(), -this.sweepAngle));
         for (Point inList : outputList) {
-            if (AlgoUtil.equal(point, inList)) {
+            if (AlgoUtil.equal(point.getCoordinate(), inList.getCoordinate())) {
                 return;
             }
         }

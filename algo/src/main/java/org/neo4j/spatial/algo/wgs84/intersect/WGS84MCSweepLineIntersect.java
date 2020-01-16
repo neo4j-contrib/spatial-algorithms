@@ -451,7 +451,7 @@ public class WGS84MCSweepLineIntersect extends WGS84Intersect {
     private void addToOutput(Point point) {
         boolean flag = false;
         for (Point intersection : this.outputList) {
-            if (AlgoUtil.equal(intersection, point)) {
+            if (AlgoUtil.equal(intersection.getCoordinate(), point.getCoordinate())) {
                 flag = true;
                 break;
             }
