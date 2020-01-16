@@ -9,14 +9,14 @@ public class WGS84Distance extends Distance {
     @Override
     public double distance(Polygon a, Polygon b) {
         // TODO: Fix the intersection algorithm, as it currently claims polygons far away are intersecting
-        boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(a, b);
+        //boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(a, b);
 
         //Check if one polygon is (partially) contained by the other
-        if (intersects) {
-            return 0;
-        } else if (WGS84Within.within(a, b.getShells()[0].getPoints()[0]) || WGS84Within.within(b, a.getShells()[0].getPoints()[0])) {
-            return 0;
-        }
+//        if (intersects) {
+//            return 0;
+//        } else if (WGS84Within.within(a, b.getShells()[0].getPoints()[0]) || WGS84Within.within(b, a.getShells()[0].getPoints()[0])) {
+//            return 0;
+//        }
 
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
@@ -30,14 +30,14 @@ public class WGS84Distance extends Distance {
         //boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(a, b);
 
         //Check if one polygon is (partially) contained by the other
-        if (false) {//intersects) {
-            // TODO: This hack is to get around the intersection bug above, so we can actually get some distances, instead of all zeros.
-            return DistanceResult.OVERLAP_RESULT.withMessage("Two polygons intersect");
-        } else if (WGS84Within.within(a, b.getShells()[0].getPoints()[0]) || WGS84Within.within(b, a.getShells()[0].getPoints()[0])) {
-            return DistanceResult.OVERLAP_RESULT.withMessage("One polygon is covered by the other");
-        } else {
-            return getMinDistanceAndEndpoints(a.toLineSegments(), b.toLineSegments());
-        }
+//        if (intersects) {
+//            // TODO: This hack is to get around the intersection bug above, so we can actually get some distances, instead of all zeros.
+//            return DistanceResult.OVERLAP_RESULT.withMessage("Two polygons intersect");
+//        } else if (WGS84Within.within(a, b.getShells()[0].getPoints()[0]) || WGS84Within.within(b, a.getShells()[0].getPoints()[0])) {
+//            return DistanceResult.OVERLAP_RESULT.withMessage("One polygon is covered by the other");
+//        }
+
+        return getMinDistanceAndEndpoints(a.toLineSegments(), b.toLineSegments());
     }
 
     @Override
