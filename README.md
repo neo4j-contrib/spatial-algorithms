@@ -8,13 +8,14 @@ The new project has dropped support for 3D in favour of some other more ambitiou
 
 * Support for a wider range of algorithms, both complex and simple
 * Support for alternative models of storage of spatial geometries on the Neo4j database
+* Use of polar coordinates and vector algebra for geographic coordinate systems
  
 What it still maintains in common with the original project is:
 
 * It is based on the new spatial point support built into Neo4j 3.4
-* It does not attempt to replicate the comprehensive spatial capabilities of the [Neo4j Spatial](https://github.com/neo4j-contrib/spatial),
-  which gains a comprehensive set of features through reliance of JTS and Geotools
-* It is a re-implementation of algorithms without the use of 3rd party libraries like JTS
+* It does not attempt to replicate the comprehensive spatial capabilities of the [Neo4j Spatial Plugin](https://github.com/neo4j-contrib/spatial),
+  which obtains much of its feature set through a reliance on JTS and Geotools
+* It is a clean room re-implementation of algorithms without the use of 3rd party libraries like JTS
 
 ## Coordinate systems
 
@@ -24,6 +25,8 @@ Each algorithm is written to support two types of coordinate systems:
 * Geographic (approximated as spherical)
 
 Some algorithm implementations are similar, while others differ quite a lot between cartesian and geographic.
+In particular we have implemented the geographic algorithms in polar coordinates through the use of vector algebra.
+It is anticipated that this will have better performance than projecting to a plane and then using cartesian algebra.
 
 ## Algorithms
 
@@ -34,7 +37,7 @@ Currently there exist implementations of the following algorithms:
 * Area
 * Distance (between point and geometry and between geometry and geometry)
 * Linear referencing
-* ?
+* Intersection (including complex geometries)
 
 ## Data models
 
@@ -47,7 +50,8 @@ the graph of properties, nodes, relationships and sub-graphs to geometries. This
 ## Performance
 
 One advantage of using a database like Neo4j is that it becomes theoretically possible to run algorithms over data sets that are too large for memory.
-This is possible if the 
+This is possible if the mapping from graph structure to data suitable for the algorithms is done on the fly during the algorithm.
+It does not work if the algorithm needs to stream the same data multiple times, in which case the overhead of repeated conversion would be too much.
 
 # Developing with Spatial Algorithms
 
@@ -61,4 +65,10 @@ mvn clean install
 
 ## Using
 
-...
+The algorithms are designed to be used in two ways:
+ * either as a java library by developers of custom spatial procedures
+ * or as a set of procedures directly in a running Neo4j server
+ 
+The built-in procedures can be used as examples if you wish to build your own.
+Otherwise simply copy the file named something like `dist/target/spatial-algorithms-dist-0.2.1-neo4j-3.5.11.jar`
+into the plugins folder of your Neo4j installation.

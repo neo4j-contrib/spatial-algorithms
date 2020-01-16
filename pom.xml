@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.neo4j</groupId>
     <artifactId>spatial-algorithms-parent</artifactId>
-    <version>0.2.1-neo4j-3.5.11</version>
+    <version>0.2.2-neo4j-3.5.11</version>
     <packaging>pom</packaging>
     <name>Spatial Algorithms</name>
     <description>Utilities and Algorithms for Spatial Analysis</description>
