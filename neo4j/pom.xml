@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-parent</artifactId>
-        <version>0.2.1-neo4j-3.5.11</version>
+        <version>0.2.2-neo4j-3.5.11</version>
     </parent>
 
     <artifactId>spatial-algorithms-neo4j</artifactId>
