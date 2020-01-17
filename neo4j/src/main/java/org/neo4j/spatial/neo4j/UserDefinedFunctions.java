@@ -4,7 +4,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.helpers.collection.Pair;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.neo4j.spatial.algo.*;
@@ -27,6 +27,9 @@ public class UserDefinedFunctions {
 
     @Context
     public Log log;
+    
+    @Context
+    public Transaction tx;
 
     @UserFunction("spatial.polygon")
     public List<Point> makePolygon(@Name("points") List<Point> points) {
@@ -46,11 +49,9 @@ public class UserDefinedFunctions {
     @Description( "Creates a polygon as a Point[] property named 'polygon' on the node" )
     @Procedure(name = "spatial.osm.property.createPolygon", mode = Mode.WRITE)
     public void createArrayCache(@Name("main") Node main) {
-        GraphDatabaseService db = main.getGraphDatabase();
-
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
-        Result mainResult = db.execute("MATCH (p:Polygon)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
+        Result mainResult = tx.execute("MATCH (p:Polygon)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
 
         long relation_osm_id = (long) main.getProperty("relation_osm_id");
 
@@ -59,7 +60,7 @@ public class UserDefinedFunctions {
 
             parameters = new HashMap<>();
             parameters.put("polygonNode", polygonNode.getId());
-            Result startNodeResult = db.execute("MATCH (p:Polygon)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
+            Result startNodeResult = tx.execute("MATCH (p:Polygon)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
 
             if (!startNodeResult.hasNext()) {
                 return;
@@ -75,11 +76,9 @@ public class UserDefinedFunctions {
 
     @Procedure(name = "spatial.osm.array.createPolyline", mode = Mode.WRITE)
     public void createArrayLine(@Name("main") Node main) {
-        GraphDatabaseService db = main.getGraphDatabase();
-
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
-        Result mainResult = db.execute("MATCH (p:Polyline)<-[:POLYLINE_STRUCTURE]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polylineNode", parameters);
+        Result mainResult = tx.execute("MATCH (p:Polyline)<-[:POLYLINE_STRUCTURE]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polylineNode", parameters);
 
         long relation_osm_id = (long) main.getProperty("relation_osm_id");
 
@@ -88,7 +87,7 @@ public class UserDefinedFunctions {
 
             parameters = new HashMap<>();
             parameters.put("polylineNode", polylineNode.getId());
-            Result startNodeResult = db.execute("MATCH (p:Polyline)-[:POLYLINE_START]->(n:OSMWayNode) WHERE id(p)=$polylineNode RETURN n AS startNode", parameters);
+            Result startNodeResult = tx.execute("MATCH (p:Polyline)-[:POLYLINE_START]->(n:OSMWayNode) WHERE id(p)=$polylineNode RETURN n AS startNode", parameters);
 
             if (!startNodeResult.hasNext()) {
                 return;
@@ -104,28 +103,27 @@ public class UserDefinedFunctions {
 
     @Procedure(name = "spatial.osm.graph.createPolygon", mode = Mode.WRITE)
     public void createOSMGraphGeometries(@Name("main") Node main) {
-        GraphDatabaseService db = main.getGraphDatabase();
         long id = (long) main.getProperty("relation_osm_id");
 
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("id", id);
-        db.execute("MATCH (m:OSMRelation)-[:POLYGON_STRUCTURE*]->(p:Polygon) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
-        db.execute("MATCH (m:OSMRelation)-[:POLYLINE_STRUCTURE*]->(p:Polyline) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
+        tx.execute("MATCH (m:OSMRelation)-[:POLYGON_STRUCTURE*]->(p:Polygon) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
+        tx.execute("MATCH (m:OSMRelation)-[:POLYLINE_STRUCTURE*]->(p:Polyline) WHERE m.relation_osm_id = $id DETACH DELETE p", parameters);
         //TODO fix this by deleting id from array (NEXT_IN_... & END_OF_POLYLINE)
-//        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON]->(:OSMWayNode) DELETE n");
-//        db.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYLINE]->(:OSMWayNode) DELETE n");
-//        db.execute("MATCH (:OSMWayNode)-[n:END_OF_POLYLINE]->(:OSMWayNode) DELETE n");
+//        tx.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYGON]->(:OSMWayNode) DELETE n");
+//        tx.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYLINE]->(:OSMWayNode) DELETE n");
+//        tx.execute("MATCH (:OSMWayNode)-[n:END_OF_POLYLINE]->(:OSMWayNode) DELETE n");
 
-        Pair<List<List<Node>>, List<List<Node>>> geometries = OSMTraverser.traverseOSMGraph(main);
+        Pair<List<List<Node>>, List<List<Node>>> geometries = OSMTraverser.traverseOSMGraph(tx, main);
         List<List<Node>> polygons = geometries.first();
         List<List<Node>> polylines = geometries.other();
 
         GraphBuilder builder;
         if (polylines.isEmpty()) {
-            builder = new GraphPolygonBuilder(main, polygons);
+            builder = new GraphPolygonBuilder(tx, main, polygons);
         } else {
             polylines.addAll(polygons);
-            builder = new GraphPolylineBuilder(main, polylines);
+            builder = new GraphPolylineBuilder(tx, main, polylines);
         }
         builder.build();
     }
@@ -161,7 +159,7 @@ public class UserDefinedFunctions {
         long relationId = (long) main.getProperty("relation_osm_id");
         MultiPolyline multiPolyline = new MultiPolyline();
 
-        for (Relationship relationship : main.getRelationships(Relation.POLYLINE_STRUCTURE, Direction.OUTGOING)) {
+        for (Relationship relationship : main.getRelationships(Direction.OUTGOING, Relation.POLYLINE_STRUCTURE)) {
             Node start = relationship.getEndNode();
             Polyline polyline = Neo4jArrayToInMemoryConverter.convertToInMemoryPolyline(start);
             multiPolyline.insertPolyline(polyline);
@@ -174,7 +172,7 @@ public class UserDefinedFunctions {
         long relationId = (long) main.getProperty("relation_osm_id");
         MultiPolyline multiPolyline = new MultiPolyline();
 
-        for (Relationship relationship : main.getRelationships(Relation.POLYLINE_STRUCTURE, Direction.OUTGOING)) {
+        for (Relationship relationship : main.getRelationships(Direction.OUTGOING, Relation.POLYLINE_STRUCTURE)) {
             Node start = relationship.getEndNode().getSingleRelationship(Relation.POLYLINE_START, Direction.OUTGOING).getEndNode();
             Polyline polyline = new Neo4jSimpleGraphNodePolyline(start, relationId);
             multiPolyline.insertPolyline(polyline);
@@ -189,7 +187,7 @@ public class UserDefinedFunctions {
     }
 
     public static void insertChildrenGraphNode(Node node, MultiPolygon multiPolygon, long relationId) {
-        for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
+        for (Relationship polygonStructure : node.getRelationships(Direction.OUTGOING, Relation.POLYGON_STRUCTURE)) {
             Node child = polygonStructure.getEndNode();
             Node start = child.getSingleRelationship(Relation.POLYGON_START, Direction.OUTGOING).getEndNode().getSingleRelationship(Relation.FIRST_NODE, Direction.OUTGOING).getEndNode();
 
@@ -202,7 +200,7 @@ public class UserDefinedFunctions {
     }
 
     public static void insertChildrenArray(Node node, MultiPolygon multiPolygon) {
-        for (Relationship polygonStructure : node.getRelationships(Relation.POLYGON_STRUCTURE, Direction.OUTGOING)) {
+        for (Relationship polygonStructure : node.getRelationships(Direction.OUTGOING, Relation.POLYGON_STRUCTURE)) {
             Node child = polygonStructure.getEndNode();
 
             Polygon.SimplePolygon polygon = Neo4jArrayToInMemoryConverter.convertToInMemoryPolygon(child);

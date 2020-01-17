@@ -1,12 +1,12 @@
 package org.neo4j.spatial.neo4j;
 
+import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.TokenAccess;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
-import org.neo4j.values.storable.CoordinateReferenceSystem;
 
 import java.util.Arrays;
 
@@ -80,7 +80,7 @@ class Neo4jIDPoint implements Point {
     }
 
     private void getPropertyId() {
-        String[] properties = TokenAccess.PROPERTY_KEYS.inUse(ktx).stream().toArray(String[]::new);
+        String[] properties = Iterators.stream(TokenAccess.PROPERTY_KEYS.inUse(ktx)).toArray(String[]::new);
         for (int i = 0; i < properties.length; i++) {
             if (properties[i].equals(property)) {
                 propertyId = i;

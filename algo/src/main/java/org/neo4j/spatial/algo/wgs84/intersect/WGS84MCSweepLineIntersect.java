@@ -1,6 +1,6 @@
 package org.neo4j.spatial.algo.wgs84.intersect;
 
-import org.neo4j.helpers.collection.Pair;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianMonotoneChainPartitioner;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;

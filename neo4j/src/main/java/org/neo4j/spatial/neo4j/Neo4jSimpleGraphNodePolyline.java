@@ -2,7 +2,7 @@ package org.neo4j.spatial.neo4j;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.helpers.ArrayUtil;
+import org.neo4j.internal.helpers.ArrayUtil;
 import org.neo4j.spatial.algo.CCW;
 import org.neo4j.spatial.algo.CCWCalculator;
 import org.neo4j.spatial.core.CRS;

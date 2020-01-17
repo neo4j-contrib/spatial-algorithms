@@ -13,8 +13,8 @@ public class GraphPolygonBuilder extends GraphBuilder {
     private static Label SHELL_LABEL = Label.label("Shell");
     private static Label HOLE_LABEL = Label.label("Hole");
 
-    public GraphPolygonBuilder(Node main, List<List<Node>> polylines) {
-        super(main, polylines);
+    public GraphPolygonBuilder(Transaction tx, Node main, List<List<Node>> polylines) {
+        super(tx, main, polylines);
     }
 
     public void build() {
@@ -43,7 +43,7 @@ public class GraphPolygonBuilder extends GraphBuilder {
                     continue;
                 }
 
-                for (Relationship relationship : a.getRelationships(Relation.NEXT_IN_POLYGON, Direction.OUTGOING)) {
+                for (Relationship relationship : a.getRelationships(Direction.OUTGOING, Relation.NEXT_IN_POLYGON)) {
                     if (b.getId() != relationship.getOtherNodeId(a.getId())) {
                         continue;
                     }
@@ -110,7 +110,7 @@ public class GraphPolygonBuilder extends GraphBuilder {
      */
     private void buildGraphPolygon(Node parent, Neo4jMultiPolygonNode node) {
         Label label = node.getType() == MultiPolygon.PolygonType.SHELL ? SHELL_LABEL : HOLE_LABEL;
-        Node polygonNode = db.createNode(POLYGON_LABEL, label);
+        Node polygonNode = tx.createNode(POLYGON_LABEL, label);
 
         parent.createRelationshipTo(polygonNode, Relation.POLYGON_STRUCTURE);
         polygonNode.createRelationshipTo(node.getStartWay(), Relation.POLYGON_START);
@@ -129,7 +129,7 @@ public class GraphPolygonBuilder extends GraphBuilder {
         parameters.put("n", polystring.get(0).getId());
         parameters.put("m", main.getId());
 
-        Result result = db.execute("MATCH (n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER]-(m:OSMRelation) WHERE id(n)=$n AND id(m)=$m RETURN w", parameters);
+        Result result = tx.execute("MATCH (n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER]-(m:OSMRelation) WHERE id(n)=$n AND id(m)=$m RETURN w", parameters);
 
         if (result.hasNext()) {
             return (Node) result.next().get("w");

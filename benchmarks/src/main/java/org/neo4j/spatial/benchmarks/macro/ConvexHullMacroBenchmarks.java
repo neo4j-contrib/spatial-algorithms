@@ -1,10 +1,10 @@
 package org.neo4j.spatial.benchmarks.macro;
 
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.spatial.algo.Area;
 import org.neo4j.spatial.algo.cartesian.CartesianArea;
 import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
@@ -29,12 +29,15 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.io.File;
 
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+
 @State(Scope.Benchmark)
 @Fork(1)
 @BenchmarkMode(Mode.AverageTime)
 public class ConvexHullMacroBenchmarks {
 
     private Node[] nodes;
+    private DatabaseManagementService databases;
     private GraphDatabaseService db;
 
     public static void main(String[] args) throws RunnerException {
@@ -49,6 +52,7 @@ public class ConvexHullMacroBenchmarks {
 
     @Setup
     public void setup() {
+        databases = new TestDatabaseManagementServiceBuilder().impermanent().build();
         db = new GraphDatabaseFactory().newEmbeddedDatabase(new File("benchmarks/data/sweden"));
 
         long[] ids = new long[]{

@@ -1,18 +1,14 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.*;
 
 import java.util.List;
 
 public class GraphPolylineBuilder extends GraphBuilder {
     private static Label POLYLINE_LABEL = Label.label("Polyline");
 
-    public GraphPolylineBuilder(Node main, List<List<Node>> polylines) {
-        super(main, polylines);
+    public GraphPolylineBuilder(Transaction tx, Node main, List<List<Node>> polylines) {
+        super(tx, main, polylines);
     }
 
     public void build() {
@@ -33,7 +29,7 @@ public class GraphPolylineBuilder extends GraphBuilder {
                 Node a = polyline.get(i);
                 Node b = polyline.get(i + 1);
 
-                for (Relationship relationship : a.getRelationships(Relation.NEXT_IN_POLYLINE, Direction.OUTGOING)) {
+                for (Relationship relationship : a.getRelationships(Direction.OUTGOING, Relation.NEXT_IN_POLYLINE)) {
                     if (b.getId() != relationship.getEndNodeId()) {
                         continue;
                     }
@@ -70,7 +66,7 @@ public class GraphPolylineBuilder extends GraphBuilder {
 
     private void connectToMain() {
         for (List<Node> polyline : polylines) {
-            Node polylineNode = db.createNode(POLYLINE_LABEL);
+            Node polylineNode = tx.createNode(POLYLINE_LABEL);
 
             main.createRelationshipTo(polylineNode, Relation.POLYLINE_STRUCTURE);
             polylineNode.createRelationshipTo(polyline.get(0), Relation.POLYLINE_START);

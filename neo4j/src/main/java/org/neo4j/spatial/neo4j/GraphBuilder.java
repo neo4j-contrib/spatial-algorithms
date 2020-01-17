@@ -1,21 +1,19 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.List;
 
 public abstract class GraphBuilder {
     protected Node main;
     protected List<List<Node>> polylines;
-    protected GraphDatabaseService db;
+    protected Transaction tx;
 
-
-    public GraphBuilder(Node main, List<List<Node>> polylines) {
+    public GraphBuilder(Transaction tx, Node main, List<List<Node>> polylines) {
+        this.tx = tx;
         this.main = main;
         this.polylines = polylines;
-
-        this.db = main.getGraphDatabase();
     }
 
     abstract void build();

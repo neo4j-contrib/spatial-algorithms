@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-parent</artifactId>
-        <version>0.2.2-neo4j-3.5.11</version>
+        <version>0.2.2-neo4j-4.0.0</version>
     </parent>
 
     <artifactId>spatial-algorithms-algo</artifactId>
@@ -34,6 +34,13 @@
 
         <dependency>
             <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-collections</artifactId>
+            <version>${neo4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.neo4j</groupId>
             <artifactId>spatial-algorithms-core</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
@@ -45,7 +52,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
+                <version>${maven-shade-plugin-version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -54,9 +61,6 @@
                     </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <minimizeJar>true</minimizeJar>
-                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>

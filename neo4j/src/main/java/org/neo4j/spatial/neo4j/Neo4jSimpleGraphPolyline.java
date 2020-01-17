@@ -3,14 +3,13 @@ package org.neo4j.spatial.neo4j;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.graphdb.traversal.Uniqueness;
-import org.neo4j.helpers.collection.Pair;
+import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.DistanceCalculator;
@@ -24,7 +23,7 @@ import static java.lang.String.format;
 
 public abstract class Neo4jSimpleGraphPolyline implements Polyline {
     private long osmRelationId;
-    private ResourceIterator<Node> nodeIterator;
+    private Iterator<Node> nodeIterator;
     boolean traversing;
     Node pointer;
     Node start;
@@ -77,7 +76,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
 
     @Override
     public void startTraversal(Point startPoint, Point directionPoint) {
-        ResourceIterator<Node> iterator = getNewTraverser(this.main).nodes().iterator();
+        Iterator<Node> iterator = getNewTraverser(this.main).nodes().iterator();
         this.traversing = false;
 
         Distance calculator = DistanceCalculator.getCalculator(startPoint);
@@ -153,7 +152,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
     }
 
     protected Node[] traverseWholePolygon(Node main) {
-        return getNewTraverser(main).nodes().stream().toArray(Node[]::new);
+        return Iterables.stream(getNewTraverser(main).nodes()).toArray(Node[]::new);
     }
 
     private static class WayEvaluator implements Evaluator {

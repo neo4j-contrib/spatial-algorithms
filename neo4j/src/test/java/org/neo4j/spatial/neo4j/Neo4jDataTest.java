@@ -3,17 +3,16 @@ package org.neo4j.spatial.neo4j;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.internal.kernel.api.exceptions.KernelException;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.core.Polyline;
-import org.neo4j.test.TestGraphDatabaseFactory;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.Values;
@@ -22,18 +21,21 @@ import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class Neo4jDataTest {
+    private DatabaseManagementService databases;
     private GraphDatabaseService db;
 
     @Before
-    public void setUp() throws KernelException {
-        db = new TestGraphDatabaseFactory().newImpermanentDatabase();
+    public void setUp() {
+        databases = new TestDatabaseManagementServiceBuilder().impermanent().build();
+        db = databases.database(DEFAULT_DATABASE_NAME);
     }
 
     @After
-    public void tearDown() throws Exception {
-        db.shutdown();
+    public void tearDown() {
+        databases.shutdown();
     }
 
     @Test
@@ -41,11 +43,11 @@ public class Neo4jDataTest {
         Neo4jPoint neo4jPoint;
 
         try (Transaction tx = db.beginTx()) {
-            Node node = db.createNode(Label.label("PoI"));
+            Node node = tx.createNode(Label.label("PoI"));
             node.setProperty("location", Values.pointValue(CoordinateReferenceSystem.Cartesian, 5.3, 9.1));
             neo4jPoint = new Neo4jPoint(node);
             assertThat("expected Neo4jPoint to contain correct coordinates", neo4jPoint.getCoordinate(), equalTo(new double[]{5.3, 9.1}));
-            tx.success();
+            tx.commit();
         }
 
     }
@@ -55,11 +57,11 @@ public class Neo4jDataTest {
         PropertyPoint propertyPoint;
 
         try (Transaction tx = db.beginTx()) {
-            Node node = db.createNode(Label.label("Location"));
+            Node node = tx.createNode(Label.label("Location"));
             node.setProperty("x", 5.3);
             node.setProperty("y", 9.1);
             propertyPoint = new PropertyPoint(node, "x", "y");
-            tx.success();
+            tx.commit();
         }
 
         assertThat("expected PropertyPoint to contain correct coordinates", propertyPoint.getCoordinate(), equalTo(new double[]{5.3, 9.1}));
@@ -70,7 +72,7 @@ public class Neo4jDataTest {
         Polygon.SimplePolygon simplePolygon;
 
         try (Transaction tx = db.beginTx()) {
-            Node node = db.createNode(Label.label("Building"));
+            Node node = tx.createNode(Label.label("Building"));
             node.setProperty("polygon", new Point[]{
                     Values.pointValue(CoordinateReferenceSystem.Cartesian, -10, -10),
                     Values.pointValue(CoordinateReferenceSystem.Cartesian, 10, -10),
@@ -79,7 +81,7 @@ public class Neo4jDataTest {
                     Values.pointValue(CoordinateReferenceSystem.Cartesian, -10, 10)
             });
             simplePolygon = Neo4jArrayToInMemoryConverter.convertToInMemoryPolygon(node);
-            tx.success();
+            tx.commit();
         }
 
         assertThat("expected polygon to contain 6 points", simplePolygon.getPoints().length, equalTo(6));
@@ -103,8 +105,8 @@ public class Neo4jDataTest {
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < n; i++) {
-                wayNodes[i] = db.createNode();
-                nodes[i] = db.createNode();
+                wayNodes[i] = tx.createNode();
+                nodes[i] = tx.createNode();
 
                 PointValue point;
                 int half = n / 2;
@@ -157,7 +159,7 @@ public class Neo4jDataTest {
                 i = ((i-1) % (n) + (n)) % (n);
             }
 
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -173,8 +175,8 @@ public class Neo4jDataTest {
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < n; i++) {
-                wayNodes[i] = db.createNode();
-                nodes[i] = db.createNode();
+                wayNodes[i] = tx.createNode();
+                nodes[i] = tx.createNode();
 
                 PointValue point;
                 int half = n / 2;
@@ -188,8 +190,8 @@ public class Neo4jDataTest {
                 wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
             }
 
-            wayNodes[n] = db.createNode();
-            wayNodes[n+1] = db.createNode();
+            wayNodes[n] = tx.createNode();
+            wayNodes[n+1] = tx.createNode();
 
             for (int i = 0; i < n/2-1; i++) {
                 wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (n)], Relation.NEXT);
@@ -250,7 +252,7 @@ public class Neo4jDataTest {
             }
             assertThat(idx, equalTo(4)); //n+1 iterations
 
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -266,8 +268,8 @@ public class Neo4jDataTest {
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < n; i++) {
-                wayNodes[i] = db.createNode();
-                nodes[i] = db.createNode();
+                wayNodes[i] = tx.createNode();
+                nodes[i] = tx.createNode();
 
                 PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
 
@@ -316,7 +318,7 @@ public class Neo4jDataTest {
                 i--;
             }
 
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -332,8 +334,8 @@ public class Neo4jDataTest {
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < n; i++) {
-                wayNodes[i] = db.createNode();
-                nodes[i] = db.createNode();
+                wayNodes[i] = tx.createNode();
+                nodes[i] = tx.createNode();
 
                 PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
 
@@ -341,7 +343,7 @@ public class Neo4jDataTest {
                 wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
             }
 
-            wayNodes[n] = db.createNode();
+            wayNodes[n] = tx.createNode();
 
             for (int i = 0; i < n/2-1; i++) {
                 wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
@@ -397,7 +399,7 @@ public class Neo4jDataTest {
             }
             assertThat(idx, equalTo(-1)); //6 iterations
 
-            tx.success();
+            tx.commit();
         }
     }
 

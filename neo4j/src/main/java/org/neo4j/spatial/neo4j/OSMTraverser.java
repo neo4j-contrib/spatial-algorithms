@@ -1,11 +1,8 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.helpers.collection.Pair;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 import org.neo4j.spatial.core.Vector;
@@ -14,8 +11,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class OSMTraverser {
-    public static Pair<List<List<Node>>, List<List<Node>>> traverseOSMGraph(Node main) {
-        List<List<Node>> wayNodes = collectWays(main);
+    /**
+     * Traverse the OpenStreetMap graph looking for geometries in the form of a list of polygons and a list of polylines.
+     *
+     * @param tx the database transaction in which to query the database
+     * @param main The node representing the OSMRelation
+     * @return A pair of two collections, one of polygons and one of polylines
+     */
+    public static Pair<List<List<Node>>, List<List<Node>>> traverseOSMGraph(Transaction tx, Node main) {
+        List<List<Node>> wayNodes = collectWays(tx, main);
         List<EnrichedWay> candidates = wayNodes.stream().map(EnrichedWay::new).collect(Collectors.toList());
 
         Pair<List<EnrichedWay>, List<EnrichedWay>> enrichedWays = connectWaysByCommonNode(candidates);
@@ -39,11 +43,11 @@ public class OSMTraverser {
     /**
      * Find all ways related to the OSMRelation and try to combine connected ways (share same node at extreme points)
      *
+     * @param tx the database transaction in which to query the database
      * @param main The node representing the OSMRelation
      * @return List of ways where each way is connected by a common node
      */
-    private static List<List<Node>> collectWays(Node main) {
-        GraphDatabaseService db = main.getGraphDatabase();
+    private static List<List<Node>> collectWays(Transaction tx, Node main) {
         List<List<Node>> wayNodes = new ArrayList<>();
         String findWayNodes = null;
         if (main.hasProperty("relation_osm_id")) {
@@ -60,7 +64,7 @@ public class OSMTraverser {
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
-        Result result = db.execute(findWayNodes, parameters);
+        Result result = tx.execute(findWayNodes, parameters);
         while(result.hasNext()) {
             Map<String, Object> next = result.next();
             List<Node> nextWay = (List<Node>) next.get("nodes");

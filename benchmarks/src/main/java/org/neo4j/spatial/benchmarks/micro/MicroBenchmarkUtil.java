@@ -1,6 +1,6 @@
 package org.neo4j.spatial.benchmarks.micro;
 
-import org.neo4j.helpers.collection.Pair;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;

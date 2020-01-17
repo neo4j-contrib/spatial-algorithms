@@ -12,9 +12,9 @@ public class AlgoUtil {
      * @param b turning point
      * @param c ending point
      * @return Integer value with the following property:
-     *          ccw < 0: clockwise turn;
-     *          ccw = 0: collinear;
-     *          ccw > 1: counterclockwise turn
+     *          ccw lt 0: clockwise turn;
+     *          ccw eq 0: collinear;
+     *          ccw gt 1: counterclockwise turn
      */
     public static int ccw(Point a, Point b, Point c) {
         return ccw(a.getCoordinate(), b.getCoordinate(), c.getCoordinate());
@@ -27,9 +27,9 @@ public class AlgoUtil {
      * @param b turning coordinate
      * @param c ending coordinate
      * @return Integer value with the following property:
-     *          ccw < 0: clockwise turn;
-     *          ccw = 0: collinear;
-     *          ccw > 1: counterclockwise turn
+     *          ccw &lt; 0: clockwise turn;
+     *          ccw == 0: collinear;
+     *          ccw &gt; 1: counterclockwise turn
      */
     public static int ccw(double[] a, double[] b, double[] c) {
         double z = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
