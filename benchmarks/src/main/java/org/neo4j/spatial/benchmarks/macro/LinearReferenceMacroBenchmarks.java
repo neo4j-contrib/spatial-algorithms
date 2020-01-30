@@ -1,10 +1,11 @@
 package org.neo4j.spatial.benchmarks.macro;
 
+import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.spatial.algo.Distance;
 import org.neo4j.spatial.algo.DistanceCalculator;
 import org.neo4j.spatial.algo.LinearReferenceCalculator;
@@ -13,22 +14,15 @@ import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 import org.neo4j.spatial.neo4j.UserDefinedFunctions;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.io.File;
-import java.util.Arrays;
+import java.nio.file.Path;
 import java.util.Random;
 
 @State(Scope.Benchmark)
@@ -41,6 +35,7 @@ public class LinearReferenceMacroBenchmarks {
     private Point[] direction;
     private double[] cartesianDistance;
     private double[] geographicDistance;
+    private DatabaseManagementService databases;
     private GraphDatabaseService db;
     private Distance geographicDistanceCalc= DistanceCalculator.getCalculator(CRS.WGS84);
     private Distance cartesianDistanceCalc = DistanceCalculator.getCalculator(CRS.Cartesian);
@@ -57,7 +52,8 @@ public class LinearReferenceMacroBenchmarks {
 
     @Setup
     public void setup() {
-        db = new GraphDatabaseFactory().newEmbeddedDatabase(new File("benchmarks/data/sweden"));
+        databases = new TestDatabaseManagementServiceBuilder().setConfig(GraphDatabaseSettings.databases_root_path, Path.of("benchmarks/data")).build();
+        db = databases.database("sweden");
 
         long[] ids = new long[]{
                 54413,
@@ -96,7 +92,7 @@ public class LinearReferenceMacroBenchmarks {
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < ids.length; i++) {
-                nodes[i] = db.findNode(label, "relation_osm_id", ids[i]);
+                nodes[i] = tx.findNode(label, "relation_osm_id", ids[i]);
 
                 geographicDist = 0;
                 cartesianDist = 0;
@@ -121,13 +117,13 @@ public class LinearReferenceMacroBenchmarks {
                     throw new IllegalStateException("OSMRelation not found for relation: " + ids[i]);
                 }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
     @TearDown
     public void tearDown() {
-        db.shutdown();
+        databases.shutdown();
     }
 
     @Benchmark
@@ -138,7 +134,7 @@ public class LinearReferenceMacroBenchmarks {
 
                 bh.consume(LinearReferenceCalculator.getCalculator(CRS.Cartesian).reference(polygon, start[i], direction[i], cartesianDistance[i]));
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -150,7 +146,7 @@ public class LinearReferenceMacroBenchmarks {
 
                 bh.consume(LinearReferenceCalculator.getCalculator(CRS.WGS84).reference(polygon, start[i], direction[i], geographicDistance[i]));
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -163,7 +159,7 @@ public class LinearReferenceMacroBenchmarks {
 
                     bh.consume(LinearReferenceCalculator.getCalculator(CRS.Cartesian).reference(polygon, start[i], direction[i], cartesianDistance[i]));
                 }
-                tx.success();
+                tx.commit();
             }
         } catch (Exception e) {
             //ignore
@@ -179,7 +175,7 @@ public class LinearReferenceMacroBenchmarks {
 
                 bh.consume(LinearReferenceCalculator.getCalculator(CRS.WGS84).reference(polygon, start[i], direction[i], geographicDistance[i]));
             }
-            tx.success();
+            tx.commit();
         }
     }
 }

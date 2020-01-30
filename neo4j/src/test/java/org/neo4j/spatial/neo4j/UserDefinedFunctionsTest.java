@@ -285,9 +285,11 @@ public class UserDefinedFunctionsTest {
 
     @Test
     public void shouldCreateOSMGraphPolylineOneDirectionOverlap() {
+        long mainId;
         try (Transaction tx = db.beginTx()) {
             Node main = tx.createNode(Label.label("OSMRelation"));
-            main.setProperty("relation_osm_id", 1l);
+            main.setProperty("relation_osm_id", 1L);
+            mainId = main.getId();
 
             int x = 4;
             int y = 3;
@@ -340,12 +342,21 @@ public class UserDefinedFunctionsTest {
             rel.setProperty("relation_osm_id", 1l);
             connectors[2].createRelationshipTo(nodes[3][0], Relation.NODE);
 
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+
+            Node main = tx.getNodeById(mainId);
             tx.execute("CALL spatial.osm.graph.createPolygon($main)", map("main", main));
-            Result result = tx.execute("MATCH (m)-[:POLYLINE_STRUCTURE]->(a:Polyline)-[:POLYLINE_START]->() WHERE id(m) = $mainId RETURN a", map("mainId", main.getId()));
+            Result result = tx.execute("MATCH (m)-[:POLYLINE_STRUCTURE]->(a:Polyline)-[:POLYLINE_START]->() WHERE id(m) = $mainId RETURN a", map("mainId", mainId));
 
             assertThat(result.hasNext(), equalTo(true));
 
-            result = tx.execute("MATCH (m) WHERE id(m) = $mainId RETURN spatial.osm.graph.polylineAsWKT(m) AS WKT", map("mainId", main.getId()));
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+
+            Result result = tx.execute("MATCH (m) WHERE id(m) = $mainId RETURN spatial.osm.graph.polylineAsWKT(m) AS WKT", map("mainId", mainId));
 
             if (result.hasNext()) {
                 String WKT = (String) result.next().get("WKT");
@@ -358,45 +369,52 @@ public class UserDefinedFunctionsTest {
 
     @Test
     public void shouldCreateOSMGraphPolygon() {
+        long mainId;
+        long firstWayId;
         try (Transaction tx = db.beginTx()) {
             Node main = tx.createNode(Label.label("OSMRelation"));
             main.setProperty("relation_osm_id", 1L);
-            Node[] ways = new Node[4];
-            Node[][] wayNodes = new Node[ways.length][4];
-            Node[][] nodes = new Node[ways.length][4];
+            mainId = main.getId();
 
-            createNestedSquareOSM(tx, main, ways, wayNodes, nodes);
+            firstWayId = createNestedSquareOSM(tx, main);
 
-            testCall(db, "CALL spatial.osm.graph.createPolygon($main)", map("main", main), result -> {
-            });
+            tx.commit();
+        }
 
+        testCall(db, "CALL spatial.osm.graph.createPolygon.nodeId($mainId)", map("mainId", mainId));
+
+        try (Transaction tx = db.beginTx()) {
+
+            Node firstWay = tx.getNodeById(firstWayId);
             List<Node> list = Iterables.stream(new MonoDirectionalTraversalDescription().breadthFirst()
                     .relationships(Relation.FIRST_NODE, Direction.OUTGOING)
                     .relationships(Relation.NEXT)
                     .relationships(RelationshipType.withName("NEXT_IN_POLYGON"), Direction.OUTGOING)
                     .relationships(Relation.NODE, Direction.OUTGOING)
                     .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(Relation.NODE))
-                    .traverse(ways[0]).nodes()).collect(Collectors.toList());
+                    .traverse(firstWay).nodes()).collect(Collectors.toList());
 
             List<Point> points = list.stream().map(node -> (Point) node.getProperty("location")).collect(Collectors.toList());
 
             ArrayList<Point> expected = new ArrayList<>();
             expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, -10.0));
-            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, -10.0));
             expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 10.0, -10.0));
-            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -10.0, -10.0));
             expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 10.0, 10.0));
-            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -10.0, 10.0));
             expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, 0.001, 10.0));
             expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, 10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -10.0, 10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -10.0, -10.0));
+            expected.add(Values.pointValue(CoordinateReferenceSystem.Cartesian, -0.001, -10.0));
 
             assertThat(points, equalTo(expected));
-
-            tx.commit();
         }
     }
 
-    private void createNestedSquareOSM(Transaction tx, Node main, Node[] ways, Node[][] wayNodes, Node[][] nodes) {
+    private long createNestedSquareOSM(Transaction tx, Node main) {
+        Node[] ways = new Node[4];
+        Node[][] wayNodes = new Node[ways.length][4];
+        Node[][] nodes = new Node[ways.length][4];
+
         Label wayLabel = Label.label("OSMWay");
         Label wayNodeLabel = Label.label("OSMWayNode");
         Label nodeLabel = Label.label("OSMNode");
@@ -446,6 +464,8 @@ public class UserDefinedFunctionsTest {
                 nodes[i][j].setProperty("location", points[i * 4 + j]);
             }
         }
+
+        return ways[0].getId();
     }
 
     @Test
@@ -661,6 +681,10 @@ public class UserDefinedFunctionsTest {
             map.put(values[i].toString(), values[i + 1]);
         }
         return map;
+    }
+
+    public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params) {
+        testCall(db, call, params, result -> {}, true);
     }
 
     public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params, Consumer<Map<String, Object>> consumer) {

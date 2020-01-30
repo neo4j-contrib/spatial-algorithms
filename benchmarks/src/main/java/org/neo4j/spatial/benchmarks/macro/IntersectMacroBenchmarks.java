@@ -1,36 +1,27 @@
 package org.neo4j.spatial.benchmarks.macro;
 
+import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.spatial.algo.Area;
 import org.neo4j.spatial.algo.Intersect;
 import org.neo4j.spatial.algo.IntersectCalculator;
-import org.neo4j.spatial.algo.cartesian.CartesianArea;
-import org.neo4j.spatial.algo.wgs84.WGS84Area;
 import org.neo4j.spatial.benchmarks.JfrProfiler;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.MultiPolyline;
 import org.neo4j.spatial.neo4j.UserDefinedFunctions;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.io.File;
-import java.util.Arrays;
+import java.nio.file.Path;
 
 @State(Scope.Benchmark)
 @Fork(1)
@@ -39,6 +30,7 @@ public class IntersectMacroBenchmarks {
 
     private Node[] nodes;
     private Node polylineNode;
+    private DatabaseManagementService databases;
     private GraphDatabaseService db;
     private Intersect geographicNaiveCalculator = IntersectCalculator.getCalculator(CRS.WGS84, IntersectCalculator.AlgorithmVariant.Naive);
     private Intersect geographicSweepCalculator = IntersectCalculator.getCalculator(CRS.WGS84, IntersectCalculator.AlgorithmVariant.MCSweepLine);
@@ -58,7 +50,8 @@ public class IntersectMacroBenchmarks {
 
     @Setup
     public void setup() {
-        db = new GraphDatabaseFactory().newEmbeddedDatabase(new File("benchmarks/data/sweden"));
+        databases = new TestDatabaseManagementServiceBuilder().setConfig(GraphDatabaseSettings.databases_root_path, Path.of("benchmarks/data")).build();
+        db = databases.database("sweden");
 
         long[] ids = new long[]{
                 54367,
@@ -72,21 +65,21 @@ public class IntersectMacroBenchmarks {
 
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < ids.length; i++) {
-                nodes[i] = db.findNode(label, "relation_osm_id", ids[i]);
+                nodes[i] = tx.findNode(label, "relation_osm_id", ids[i]);
 
                 if (nodes[i] == null) {
                     throw new IllegalStateException("OSMRelation not found for relation: " + ids[i]);
                 }
             }
-            polylineNode = db.findNode(label, "relation_osm_id", polylineId);
+            polylineNode = tx.findNode(label, "relation_osm_id", polylineId);
 
-            tx.success();
+            tx.commit();
         }
     }
 
     @TearDown
     public void tearDown() {
-        db.shutdown();
+        databases.shutdown();
     }
 
     @Benchmark
@@ -98,7 +91,7 @@ public class IntersectMacroBenchmarks {
                 bh.consume(cartesianNaiveCalculator.intersect(polygon, polyLine));
 
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -110,7 +103,7 @@ public class IntersectMacroBenchmarks {
                 MultiPolyline polyLine = UserDefinedFunctions.getArrayPolyline(polylineNode);
                 bh.consume(cartesianSweepCalculator.intersect(polygon, polyLine));
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -123,7 +116,7 @@ public class IntersectMacroBenchmarks {
                     MultiPolyline polyLine = UserDefinedFunctions.getArrayPolyline(polylineNode);
                     bh.consume(geographicNaiveCalculator.intersect(polygon, polyLine));
                 }
-                tx.success();
+                tx.commit();
             }
         } catch (Exception e) {
             //ignore
@@ -140,7 +133,7 @@ public class IntersectMacroBenchmarks {
 
                 bh.consume(geographicSweepCalculator.intersect(polygon, polyLine));
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -153,7 +146,7 @@ public class IntersectMacroBenchmarks {
                 bh.consume(cartesianNaiveCalculator.intersect(polygon, polyLine));
 
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -165,7 +158,7 @@ public class IntersectMacroBenchmarks {
                 MultiPolyline polyLine = UserDefinedFunctions.getGraphNodePolyline(polylineNode);
                 bh.consume(cartesianSweepCalculator.intersect(polygon, polyLine));
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -178,7 +171,7 @@ public class IntersectMacroBenchmarks {
                     MultiPolyline polyLine = UserDefinedFunctions.getGraphNodePolyline(polylineNode);
                     bh.consume(geographicNaiveCalculator.intersect(polygon, polyLine));
                 }
-                tx.success();
+                tx.commit();
             }
         } catch (Exception e) {
             //ignore
@@ -194,7 +187,7 @@ public class IntersectMacroBenchmarks {
                 MultiPolyline polyLine = UserDefinedFunctions.getGraphNodePolyline(polylineNode);
                 bh.consume(geographicSweepCalculator.intersect(polygon, polyLine));
             }
-            tx.success();
+            tx.commit();
         }
     }
 }

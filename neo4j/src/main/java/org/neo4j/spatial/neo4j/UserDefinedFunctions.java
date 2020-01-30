@@ -101,6 +101,11 @@ public class UserDefinedFunctions {
         }
     }
 
+    @Procedure(name = "spatial.osm.graph.createPolygon.nodeId", mode = Mode.WRITE)
+    public void createOSMGraphGeometries(@Name("mainId") Long mainId) {
+        createOSMGraphGeometries(tx.getNodeById(mainId));
+    }
+
     @Procedure(name = "spatial.osm.graph.createPolygon", mode = Mode.WRITE)
     public void createOSMGraphGeometries(@Name("main") Node main) {
         long id = (long) main.getProperty("relation_osm_id");
