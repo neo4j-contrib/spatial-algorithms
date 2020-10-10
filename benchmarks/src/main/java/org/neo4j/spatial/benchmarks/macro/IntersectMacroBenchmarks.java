@@ -23,6 +23,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.nio.file.Path;
 
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.databases_root_path;
+
 @State(Scope.Benchmark)
 @Fork(1)
 @BenchmarkMode(Mode.AverageTime)
@@ -50,7 +52,7 @@ public class IntersectMacroBenchmarks {
 
     @Setup
     public void setup() {
-        databases = new TestDatabaseManagementServiceBuilder().setConfig(GraphDatabaseSettings.databases_root_path, Path.of("benchmarks/data")).build();
+        databases = new TestDatabaseManagementServiceBuilder().setConfig(databases_root_path, Path.of("benchmarks/data")).build();
         db = databases.database("sweden");
 
         long[] ids = new long[]{

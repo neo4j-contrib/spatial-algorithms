@@ -70,7 +70,7 @@ The algorithms are designed to be used in two ways:
  * or as a set of procedures directly in a running Neo4j server
  
 The built-in procedures can be used as examples if you wish to build your own.
-Otherwise simply copy the file named something like `dist/target/spatial-algorithms-dist-0.2.3-neo4j-4.0.8.jar`
+Otherwise simply copy the file named something like `dist/target/spatial-algorithms-dist-0.2.3-neo4j-4.1.3.jar`
 into the plugins folder of your Neo4j installation.
 
 ## Using the library in your Java project with Maven ##
@@ -104,14 +104,14 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-core</artifactId>
-        <version>0.2.3-neo4j-4.0.8</version>
+        <version>0.2.3-neo4j-4.1.3</version>
     </dependency>
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-algo</artifactId>
-        <version>0.2.3-neo4j-4.0.8</version>
+        <version>0.2.3-neo4j-4.1.3</version>
     </dependency>
 ~~~
 
 The version specified on the version line can be changed to match the version you wish to work with (based on the version of Neo4j itself you are using).
-Too see which versions are available see the list at [Spatial Algorithms Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/spatial-algorithms-algo).
+To see which versions are available see the list at [Spatial Algorithms Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/spatial-algorithms-algo).

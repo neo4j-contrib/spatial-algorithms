@@ -3,8 +3,10 @@ package org.neo4j.spatial.neo4j;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
+import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.TokenAccess;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 
@@ -39,8 +41,8 @@ class Neo4jIDPoint implements Point {
     @Override
     public double[] getCoordinate() {
         double[] coordinates = new double[2];
-        try ( NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor();
-              PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor() ) {
+        try (NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor(PageCursorTracer.NULL);
+             PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor(PageCursorTracer.NULL, EmptyMemoryTracker.INSTANCE)) {
             ktx.dataRead().singleNode(nodeId, nodeCursor);
             outer:
             while (nodeCursor.next()) {
@@ -60,8 +62,8 @@ class Neo4jIDPoint implements Point {
     @Override
     public CRS getCRS() {
         CRS crs = CRS.Cartesian;
-        try ( NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor();
-              PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor() ) {
+        try ( NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor(PageCursorTracer.NULL);
+              PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor(PageCursorTracer.NULL, EmptyMemoryTracker.INSTANCE) ) {
             ktx.dataRead().singleNode(nodeId, nodeCursor);
             outer:
             while (nodeCursor.next()) {

@@ -25,8 +25,8 @@ import java.util.Iterator;
 import static java.lang.String.format;
 
 public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
-    private long osmRelationId;
-    private CRS crs;
+    final private long osmRelationId;
+    final private CRS crs;
     private Iterator<Node> nodeIterator;
     boolean traversing;
     Node start;
