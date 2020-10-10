@@ -164,8 +164,8 @@ public interface Polygon extends HasCRS {
             StringJoiner joiner = new StringJoiner(",", "(", ")");
             if (hole) {
                 if (calculator.isCCW(this)) {
-                    for (int i = 0; i < points.length; i++) {
-                        joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
+                    for (Point point : points) {
+                        joiner.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
                     }
                 } else {
                     for (int i = points.length - 1; i >= 0; i--) {
@@ -178,8 +178,8 @@ public interface Polygon extends HasCRS {
                         joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
                     }
                 } else {
-                    for (int i = 0; i < points.length; i++) {
-                        joiner.add(points[i].getCoordinate()[0] + " " + points[i].getCoordinate()[1]);
+                    for (Point point : points) {
+                        joiner.add(point.getCoordinate()[0] + " " + point.getCoordinate()[1]);
                     }
                 }
             }
@@ -189,8 +189,8 @@ public interface Polygon extends HasCRS {
     }
 
     class InMemorySimplePolygon implements SimplePolygon {
-        private Point[] points;
-        private CRS crs;
+        private final Point[] points;
+        private final CRS crs;
 
         private int pointer;
         private int start;
@@ -237,7 +237,7 @@ public interface Polygon extends HasCRS {
 
             this.start = minIdx;
 
-            double forwardDistance = distance(directionPoint, points[(minIdx + 1) % (points.length - 1)]);
+            double forwardDistance = distance(directionPoint, points[(minIdx + 1) % (points.length)]);
             int backwardsIdx = nextIndex(minIdx, -1);
             double backwardDistance = distance(directionPoint, points[backwardsIdx]);
             if (forwardDistance < backwardDistance) {
