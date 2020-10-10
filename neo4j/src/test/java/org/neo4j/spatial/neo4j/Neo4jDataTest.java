@@ -98,55 +98,33 @@ public class Neo4jDataTest {
         Polygon.SimplePolygon simplePolygon;
         long osmRelationId = 1;
 
-        int n = 10;
-        Node[] wayNodes = new Node[n];
-        Node[] nodes = new Node[n];
-        double[][] points = getPoints(n);
+        TestModel model = new TestModel(10, 0);
 
         try (Transaction tx = db.beginTx()) {
-            for (int i = 0; i < n; i++) {
-                wayNodes[i] = tx.createNode();
-                nodes[i] = tx.createNode();
-
-                PointValue point;
-                int half = n / 2;
-                if (i < half) {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                } else {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                }
-
-                nodes[i].setProperty("location", point);
-                wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
-            }
-
-            for (int i = 0; i < n; i++) {
-                wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (n)], Relation.NEXT);
-            }
-
-            simplePolygon = new Neo4jSimpleGraphNodePolygon(wayNodes[0], osmRelationId);
+            model.buildNodes(tx);
+            simplePolygon = model.buildSingleWayPolygon(osmRelationId);
 
             org.neo4j.spatial.core.Point[] polygonPoints = simplePolygon.getPoints();
             for (int i = 0; i < polygonPoints.length; i++) {
-                assertThat(polygonPoints[i].getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(polygonPoints[i].getCoordinate()[1], equalTo(points[i % n][1]));
+                assertThat(polygonPoints[i].getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(polygonPoints[i].getCoordinate()[1], equalTo(model.pointAt(i)[1]));
             }
 
             simplePolygon.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 2));
             int i = 0;
             while (!simplePolygon.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = simplePolygon.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(i)[1]));
                 i++;
             }
 
             simplePolygon.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 0));
-            i = n;
+            i = model.n;
             while (!simplePolygon.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = simplePolygon.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(i)[1]));
                 i--;
             }
 
@@ -154,9 +132,9 @@ public class Neo4jDataTest {
             i = 5;
             while (!simplePolygon.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = simplePolygon.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
-                i = ((i-1) % (n) + (n)) % (n);
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(i)[1]));
+                i = ((i-1) % (model.n) + (model.n)) % (model.n);
             }
 
             tx.commit();
@@ -168,87 +146,56 @@ public class Neo4jDataTest {
         Polygon.SimplePolygon simplePolygon;
         long osmRelationId = 1;
 
-        int n = 10;
-        Node[] wayNodes = new Node[n+2];
-        Node[] nodes = new Node[n];
-        double[][] points = getPoints(n);
+        TestModel model = new TestModel(10, 2);
 
         try (Transaction tx = db.beginTx()) {
-            for (int i = 0; i < n; i++) {
-                wayNodes[i] = tx.createNode();
-                nodes[i] = tx.createNode();
-
-                PointValue point;
-                int half = n / 2;
-                if (i < half) {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                } else {
-                    point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-                }
-
-                nodes[i].setProperty("location", point);
-                wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
-            }
-
-            wayNodes[n] = tx.createNode();
-            wayNodes[n+1] = tx.createNode();
-
-            for (int i = 0; i < n/2-1; i++) {
-                wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (n)], Relation.NEXT);
-            }
-
-            for (int i = n/2; i < n; i++) {
-                wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (wayNodes.length)], Relation.NEXT);
-            }
-
-            wayNodes[n].createRelationshipTo(nodes[0], Relation.NODE);
-            wayNodes[n-1].createRelationshipTo(wayNodes[n], Relation.NEXT);
-            wayNodes[n].createRelationshipTo(wayNodes[0], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
-
-            int a = n+1;
-            wayNodes[a].createRelationshipTo(nodes[n/2], Relation.NODE);
-            wayNodes[n/2-1].createRelationshipTo(wayNodes[a], Relation.NEXT);
-            wayNodes[a].createRelationshipTo(wayNodes[n/2], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
-
-            simplePolygon = new Neo4jSimpleGraphNodePolygon(wayNodes[0], osmRelationId);
+            model.buildNodes(tx);
+            simplePolygon = model.buildTwoWayPolygon(tx, osmRelationId);
             int idx;
 
             org.neo4j.spatial.core.Point[] polygonPoints = simplePolygon.getPoints();
+            if (model.debug) System.out.println("Points:");
             for (int i = 0; i < polygonPoints.length; i++) {
-                assertThat(polygonPoints[i].getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(polygonPoints[i].getCoordinate()[1], equalTo(points[i % n][1]));
+                if (model.debug)
+                    System.out.printf("\t%d:\t%s\t%s\n", i, polygonPoints[i], Arrays.toString(model.pointAt(i)));
+                assertThat(polygonPoints[i].getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(polygonPoints[i].getCoordinate()[1], equalTo(model.pointAt(i)[1]));
             }
-            assertThat(polygonPoints.length, equalTo(n+1)); //n+1 iterations
+            assertThat(polygonPoints.length, equalTo(model.n + 1)); //n+1 iterations
 
+            if (model.debug) System.out.println("Traverse from 5:0 towards 5:2 (normal direction)");
             simplePolygon.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 2));
             idx = 0;
             while (!simplePolygon.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = simplePolygon.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[idx % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[idx % n][1]));
+                if (model.debug) System.out.printf("\t%d:\t%s\t%s\n", idx, point, Arrays.toString(model.pointAt(idx)));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(idx)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(idx)[1]));
                 idx++;
             }
-            assertThat(idx, equalTo(n+1)); //n+1 iterations
+            assertThat(idx, equalTo(model.n + 1)); //n+1 iterations
 
-
+            if (model.debug) System.out.printf("Traverse from 5:0 towards 0:0 (opposite direction)");
             simplePolygon.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 0));
-            idx = n;
+            idx = model.n;
             while (!simplePolygon.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = simplePolygon.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[idx % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[idx % n][1]));
+                if (model.debug) System.out.printf("\t%d:\t%s\t%s\n", idx, point, Arrays.toString(model.pointAt(idx)));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(idx)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(idx)[1]));
                 idx--;
             }
             assertThat(idx, equalTo(-1)); //n+1 iterations
 
-
+            if (model.debug) System.out.printf("Traverse from 0:8 towards 5:8 (opposite direction)");
             simplePolygon.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 8), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 8));
             idx = 5;
             while (!simplePolygon.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = simplePolygon.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[idx % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[idx % n][1]));
-                idx = ((idx-1) % (n) + (n)) % (n);
+                if (model.debug) System.out.printf("\t%d:\t%s\t%s\n", idx, point, Arrays.toString(model.pointAt(idx)));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(idx)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(idx)[1]));
+                idx = ((idx - 1) % (model.n) + (model.n)) % (model.n);
             }
             assertThat(idx, equalTo(4)); //n+1 iterations
 
@@ -261,51 +208,33 @@ public class Neo4jDataTest {
         Polyline polyline;
         long osmRelationId = 1;
 
-        int n = 10;
-        Node[] wayNodes = new Node[n];
-        Node[] nodes = new Node[n];
-        double[][] points = getPoints(n);
+        TestModel model = new TestModel(10, 0);
 
         try (Transaction tx = db.beginTx()) {
-            for (int i = 0; i < n; i++) {
-                wayNodes[i] = tx.createNode();
-                nodes[i] = tx.createNode();
-
-                PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-
-                System.out.printf("%s: %s\n", wayNodes[i], Arrays.toString(points[i]));
-
-                nodes[i].setProperty("location", point);
-                wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
-            }
-
-            for (int i = 0; i < n-1; i++) {
-                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
-            }
-
-            polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
+            model.buildNodes(tx);
+            polyline = model.buildSingleWayPolyline(osmRelationId);
 
             org.neo4j.spatial.core.Point[] polylinePoints = polyline.getPoints();
             for (int i = 0; i < polylinePoints.length; i++) {
-                assertThat(polylinePoints[i].getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(polylinePoints[i].getCoordinate()[1], equalTo(points[i % n][1]));
+                assertThat(polylinePoints[i].getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(polylinePoints[i].getCoordinate()[1], equalTo(model.pointAt(i)[1]));
             }
 
             polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 2));
             int i = 0;
             while (!polyline.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = polyline.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(i)[1]));
                 i++;
             }
 
             polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 2));
-            i = n-1;
+            i = model.n-1;
             while (!polyline.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = polyline.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(i)[1]));
                 i--;
             }
 
@@ -313,8 +242,8 @@ public class Neo4jDataTest {
             i = 5;
             while (!polyline.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = polyline.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[i % n][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[i % n][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(i)[1]));
                 i--;
             }
 
@@ -327,63 +256,37 @@ public class Neo4jDataTest {
         Polyline polyline;
         long osmRelationId = 1;
 
-        int n = 10;
-        Node[] wayNodes = new Node[n+1];
-        Node[] nodes = new Node[n];
-        double[][] points = getPoints(n);
+        TestModel model = new TestModel(10, 1, false);
 
         try (Transaction tx = db.beginTx()) {
-            for (int i = 0; i < n; i++) {
-                wayNodes[i] = tx.createNode();
-                nodes[i] = tx.createNode();
-
-                PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
-
-                nodes[i].setProperty("location", point);
-                wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
-            }
-
-            wayNodes[n] = tx.createNode();
-
-            for (int i = 0; i < n/2-1; i++) {
-                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
-            }
-
-            for (int i = n/2+1; i < n-1; i++) {
-                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
-            }
-
-            wayNodes[n].createRelationshipTo(nodes[n/2], Relation.NODE);
-            wayNodes[n/2-1].createRelationshipTo(wayNodes[n], Relation.NEXT);
-            wayNodes[n].createRelationshipTo(wayNodes[n/2+1], Relation.NEXT_IN_POLYLINE).setProperty("relation_osm_ids", new long[]{osmRelationId});
-
-            polyline = new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
+            model.buildNodes(tx);
+            polyline = model.buildTwoWayPolyline(tx, osmRelationId);
             int idx;
 
             org.neo4j.spatial.core.Point[] polylinePoints = polyline.getPoints();
             for (int i = 0; i < polylinePoints.length; i++) {
-                assertThat(polylinePoints[i].getCoordinate()[0], equalTo(points[i][0]));
-                assertThat(polylinePoints[i].getCoordinate()[1], equalTo(points[i][1]));
+                assertThat(polylinePoints[i].getCoordinate()[0], equalTo(model.pointAt(i)[0]));
+                assertThat(polylinePoints[i].getCoordinate()[1], equalTo(model.pointAt(i)[1]));
             }
-            assertThat(polylinePoints.length, equalTo(n)); //n iterations
+            assertThat(polylinePoints.length, equalTo(model.n)); //n iterations
 
             polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 5, 2));
             idx = 0;
             while (!polyline.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = polyline.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[idx][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[idx][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(idx)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(idx)[1]));
                 idx++;
             }
-            assertThat(idx, equalTo(n)); //n iterations
+            assertThat(idx, equalTo(model.n)); //n iterations
 
 
             polyline.startTraversal(org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 0), org.neo4j.spatial.core.Point.point(CRS.Cartesian, 0, 2));
-            idx = n-1;
+            idx = model.n-1;
             while (!polyline.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = polyline.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[idx][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[idx][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(idx)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(idx)[1]));
                 idx--;
             }
             assertThat(idx, equalTo(-1)); //n iterations
@@ -393,8 +296,8 @@ public class Neo4jDataTest {
             idx = 5;
             while (!polyline.fullyTraversed()) {
                 org.neo4j.spatial.core.Point point = polyline.getNextPoint();
-                assertThat(point.getCoordinate()[0], equalTo(points[idx][0]));
-                assertThat(point.getCoordinate()[1], equalTo(points[idx][1]));
+                assertThat(point.getCoordinate()[0], equalTo(model.pointAt(idx)[0]));
+                assertThat(point.getCoordinate()[1], equalTo(model.pointAt(idx)[1]));
                 idx--;
             }
             assertThat(idx, equalTo(-1)); //6 iterations
@@ -403,17 +306,119 @@ public class Neo4jDataTest {
         }
     }
 
-    private double[][] getPoints(int n) {
-        double[][] points = new double[n][2];
+    private static class TestModel {
+        final int n;
+        final Node[] wayNodes;
+        final Node[] nodes;
+        final double[][] points;
+        final boolean debug;
 
-        for (int i = 0; i < n; i++) {
-            int half = n / 2;
-            if (i < half) {
-                points[i] = new double[]{5, i*2};
-            } else {
-                points[i] = new double[]{0, n - (i+1-half)*2};
+        TestModel(int n, int extraWays) {
+            this(n, extraWays, false);
+        }
+
+        TestModel(int n, int extraWays, boolean debug) {
+            this.n = n;
+            this.debug = debug;
+            wayNodes = new Node[n + extraWays];
+            nodes = new Node[n];
+            points = makePoints(n);
+        }
+
+        double[] pointAt(int i) {
+            return points[i % n];
+        }
+
+        void buildNodes(Transaction tx) {
+            for (int i = 0; i < n; i++) {
+                wayNodes[i] = tx.createNode();
+                nodes[i] = tx.createNode();
+
+                PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
+                if (debug) System.out.printf("%s: %s\n", wayNodes[i], Arrays.toString(points[i]));
+
+                nodes[i].setProperty("location", point);
+                wayNodes[i].createRelationshipTo(nodes[i], Relation.NODE);
             }
         }
-        return points;
+
+        public Neo4jSimpleGraphNodePolyline buildSingleWayPolyline(long osmRelationId) {
+            for (int i = 0; i < n - 1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+            return new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
+        }
+
+        public Neo4jSimpleGraphNodePolygon buildSingleWayPolygon(long osmRelationId) {
+            for (int i = 0; i < n; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (n)], Relation.NEXT);
+            }
+            return new Neo4jSimpleGraphNodePolygon(wayNodes[0], osmRelationId);
+        }
+
+        public Neo4jSimpleGraphNodePolyline buildTwoWayPolyline(Transaction tx, long osmRelationId) {
+            wayNodes[n] = tx.createNode();
+
+            // Connect 0 to 4 in a chain
+            for (int i = 0; i < n / 2 - 1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+
+            // Connect 6 to 9 in a second chain
+            for (int i = n / 2 + 1; i < n - 1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+
+            // Create NODE relationship from wayNode-10 to node-5
+            wayNodes[n].createRelationshipTo(nodes[n / 2], Relation.NODE);
+
+            // Connect wayNode-4 to wayNode-10
+            wayNodes[n / 2 - 1].createRelationshipTo(wayNodes[n], Relation.NEXT);
+
+            // Connect wayNode-10 to wayNode-6 with NEXT_IN_POLYLINE
+            wayNodes[n].createRelationshipTo(wayNodes[n / 2 + 1], Relation.NEXT_IN_POLYLINE).setProperty("relation_osm_ids", new long[]{osmRelationId});
+
+            return new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
+        }
+
+        public Neo4jSimpleGraphNodePolygon buildTwoWayPolygon(Transaction tx, long osmRelationId) {
+            wayNodes[n] = tx.createNode();
+            wayNodes[n + 1] = tx.createNode();
+
+            // Connect 0 to 4 in a chain
+            for (int i = 0; i < n / 2 - 1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+
+            // Connect 5 to 9 in a second chain
+            for (int i = n / 2; i < n - 1; i++) {
+                wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
+            }
+
+            wayNodes[n].createRelationshipTo(nodes[0], Relation.NODE);
+            wayNodes[n - 1].createRelationshipTo(wayNodes[n], Relation.NEXT);
+            wayNodes[n].createRelationshipTo(wayNodes[0], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
+
+            int a = n + 1;
+            wayNodes[a].createRelationshipTo(nodes[n / 2], Relation.NODE);
+            wayNodes[n / 2 - 1].createRelationshipTo(wayNodes[a], Relation.NEXT);
+            wayNodes[a].createRelationshipTo(wayNodes[n / 2], Relation.NEXT_IN_POLYGON).setProperty("relation_osm_ids", new long[]{osmRelationId});
+
+            return new Neo4jSimpleGraphNodePolygon(wayNodes[0], osmRelationId);
+        }
+
+        private double[][] makePoints(int n) {
+            double[][] points = new double[n][2];
+
+            for (int i = 0; i < n; i++) {
+                int half = n / 2;
+                if (i < half) {
+                    points[i] = new double[]{5, i * 2};
+                } else {
+                    points[i] = new double[]{0, n - (i + 1 - half) * 2};
+                }
+            }
+            return points;
+        }
     }
 }
