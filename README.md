@@ -63,7 +63,7 @@ cd spatial-algorithms
 mvn clean install 
 ```
 
-## Using
+# Using
 
 The algorithms are designed to be used in two ways:
  * either as a java library by developers of custom spatial procedures
@@ -115,3 +115,39 @@ Add the following repositories and dependency to your project's pom.xml:
 
 The version specified on the version line can be changed to match the version you wish to work with (based on the version of Neo4j itself you are using).
 To see which versions are available see the list at [Spatial Algorithms Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/spatial-algorithms-algo).
+
+## Making polygons in OSM data
+
+Working with OpenStreetMap data can be done using the instructions at https://github.com/neo4j-contrib/osm.
+It is possible to create polygons in the OSM data model by passing the `Node` representing the
+OSM `Relation` object that defines the polygon to one of the `spatial.osm.*.createPolygon` functions.
+For example, in the _NODES 2020_ presentation by Craig Taverner, the following command builds `MultiPolygon`
+structures as tree-subgraphs with each node containing a `Point[]` defining each `SimplePolygon`
+for all shells and holes in the `MultiPolygon`. 
+
+~~~cypher
+// Make multipolygons for all provinces in Sweden:
+UNWIND [
+  4116216,54413,52834,941530,52832,54403,52826,54374,54417,54412,52824,43332835,54409,
+  4473774,9691220,54391,54386,54220,3172367,54223,52825,52827,54221,54367,54222,940675
+] AS osm_id
+MATCH (r:OSMRelation)
+  WHERE r.relation_osm_id=osm_id
+CALL spatial.osm.property.createPolygon(r)
+RETURN r.name;
+~~~
+
+The `relation_osm_id` values above can be found in either the OpenStreetMap main view, or within the Neo4j database
+created by importing the data and searching for OSM `Relation` objects with appropriate properties or tags.
+
+For example, the following Cypher command returns all provinces in Sweden:
+
+~~~cypher
+MATCH (r:OSMRelation)-[:TAGS]->(t:OSMTags)
+  WHERE t.name CONTAINS 'län'
+  AND t.admin_level = '4'
+RETURN r.relation_osm_id, t.name;
+~~~
+
+This data can be used, for example, in an application like the one demonstrated in NODES2020.
+That application can be found at https://github.com/johnymontana/osm-routing-app/tree/algorithms
