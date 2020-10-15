@@ -1,13 +1,18 @@
 package org.neo4j.spatial.algo.wgs84;
 
 import org.neo4j.spatial.algo.Distance;
+import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianIntersect;
 import org.neo4j.spatial.algo.wgs84.intersect.WGS84MCSweepLineIntersect;
 import org.neo4j.spatial.core.*;
 
+import java.util.Arrays;
+import java.util.Comparator;
+
 public class WGS84Distance extends Distance {
     @Override
     public double distance(Polygon a, Polygon b) {
+        debug("Calculating geographic distance");
         // TODO: Fix the intersection algorithm, as it currently claims polygons far away are intersecting
         //boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(a, b);
 
@@ -26,6 +31,7 @@ public class WGS84Distance extends Distance {
 
     @Override
     public DistanceResult distanceAndEndpoints(Polygon a, Polygon b) {
+        debug("Calculating geographic distance with end-points");
         // TODO: Fix the intersection algorithm, as it currently claims polygons far away are intersecting
         //boolean intersects = new WGS84MCSweepLineIntersect().doesIntersect(a, b);
 
@@ -36,8 +42,34 @@ public class WGS84Distance extends Distance {
 //        } else if (WGS84Within.within(a, b.getShells()[0].getPoints()[0]) || WGS84Within.within(b, a.getShells()[0].getPoints()[0])) {
 //            return DistanceResult.OVERLAP_RESULT.withMessage("One polygon is covered by the other");
 //        }
+        long start = System.currentTimeMillis();
+        debug("[%d]:\tStarting polygon distance calculation", System.currentTimeMillis() - start);
 
-        return getMinDistanceAndEndpoints(a.toLineSegments(), b.toLineSegments());
+        Polygon.SimplePolygon convexHull1 = CartesianConvexHull.convexHull(a.getShell());
+        Polygon.SimplePolygon convexHull2 = CartesianConvexHull.convexHull(b.getShell());
+        DistanceResult simpleDistance = getMinDistanceAndEndpoints(convexHull1.toLineSegments(), convexHull2.toLineSegments());
+        debug("[%d]:\tCalculated convex hull distance: %s", System.currentTimeMillis() - start, simpleDistance);
+
+        DistanceResult minDistance = DistanceResult.NO_RESULT;
+
+        LineSegment[] aLS = a.toLineSegments();
+        LineSegment[] bLS = b.toLineSegments();
+
+        Arrays.sort(aLS, Comparator.comparingDouble(o -> distance(o, simpleDistance.end)));
+        debug("[%d]:\tSorted %d line segments", System.currentTimeMillis() - start, aLS.length);
+        Arrays.sort(bLS, Comparator.comparingDouble(o -> distance(o, simpleDistance.start)));
+        debug("[%d]:\tSorted %d line segments", System.currentTimeMillis() - start, bLS.length);
+
+        int depth = 1;
+        for (int ai = 0; ai < depth; ai++) {
+            LineSegment aLineSegment = aLS[ai];
+            for (int bi = 0; bi < depth; bi++) {
+                LineSegment bLineSegment = bLS[bi];
+                minDistance = minDistance.min(distanceAndEndpoints(aLineSegment, bLineSegment));
+            }
+        }
+        debug("[%d]:\tCalculated min distance: %s", System.currentTimeMillis() - start, minDistance);
+        return minDistance;
     }
 
     @Override

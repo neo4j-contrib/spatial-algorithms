@@ -23,6 +23,8 @@ import org.neo4j.values.storable.Values;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static org.neo4j.spatial.neo4j.CRSConverter.toNeo4jCRS;
+
 public class UserDefinedFunctions {
 
     @Context
@@ -74,7 +76,9 @@ public class UserDefinedFunctions {
         }
     }
 
-    @Procedure(name = "spatial.osm.array.createPolyline", mode = Mode.WRITE)
+    // TODO write tests
+    @Description( "Creates a polyline as a Point[] property named 'polyline' on the node" )
+    @Procedure(name = "spatial.osm.property.createPolyline", mode = Mode.WRITE)
     public void createArrayLine(@Name("main") Node main) {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
@@ -158,6 +162,20 @@ public class UserDefinedFunctions {
     @UserFunction(name = "spatial.osm.property.polygonAsWKT")
     public String getArrayPolygonWKT(@Name("main") Node main) {
         return getArrayPolygon(main).toWKT();
+    }
+
+    // TODO write tests
+    @UserFunction(name = "spatial.osm.property.polygonShell")
+    public List<Point> getArrayPolygonShell(@Name("main") Node main) {
+        org.neo4j.spatial.core.Point[] mainPoints = getArrayPolygon(main).getShell().getPoints();
+        return asNeo4jPoints(toNeo4jCRS(mainPoints[0].getCRS()), mainPoints);
+    }
+
+    // TODO write tests
+    @UserFunction(name = "spatial.osm.graph.polygonShell")
+    public List<Point> getGraphPolygonShell(@Name("main") Node main) {
+        org.neo4j.spatial.core.Point[] mainPoints = getGraphNodePolygon(main).getShell().getPoints();
+        return asNeo4jPoints(toNeo4jCRS(mainPoints[0].getCRS()), mainPoints);
     }
 
     public static MultiPolyline getArrayPolyline(Node main) {
@@ -355,6 +373,32 @@ public class UserDefinedFunctions {
         }
     }
 
+    @UserFunction("spatial.algo.convexHull.distance")
+    public double convexHullDistance(@Name("polygon1") List<Point> polygon1, @Name("polygon2") List<Point> polygon2) {
+        Polygon.SimplePolygon convexHull1 = CartesianConvexHull.convexHull(asInMemoryPoints(polygon1));
+        Polygon.SimplePolygon convexHull2 = CartesianConvexHull.convexHull(asInMemoryPoints(polygon2));
+
+        Distance distance = DistanceCalculator.getCalculator(convexHull1);
+        return distance.distance(convexHull1, convexHull2);
+    }
+
+    @UserFunction("spatial.algo.convexHull.distance.ends")
+    public Map<String, Object> convexHullDistanceAndEndPoints(@Name("polygon1") List<Point> polygon1, @Name("polygon2") List<Point> polygon2) {
+        try {
+            Polygon.SimplePolygon convexHull1 = CartesianConvexHull.convexHull(asInMemoryPoints(polygon1));
+            Polygon.SimplePolygon convexHull2 = CartesianConvexHull.convexHull(asInMemoryPoints(polygon2));
+            final CRS crs = polygon1.get(0).getCRS();
+
+            Distance distance = DistanceCalculator.getCalculator(convexHull1);
+            Distance.DistanceResult dae = distance.distanceAndEndpoints(convexHull1, convexHull2);
+            return dae.asMap(p -> asNeo4jPoint(crs, p));
+        } catch (Exception e) {
+            System.out.println("Failed to calculate polygon distance: " + e.getMessage());
+            e.printStackTrace();
+            return Distance.DistanceResult.NO_RESULT.withError(e).asMap();
+        }
+    }
+
     // TODO write tests
     @UserFunction("spatial.algo.intersection")
     public List<Point> naiveIntersectArray(@Name("polygon1") List<Point> polygon1, @Name("polygon2") List<Point> polygon2) {
@@ -433,7 +477,7 @@ public class UserDefinedFunctions {
     }
 
     private Point asNeo4jPoint(org.neo4j.spatial.core.Point point) {
-        return new Neo4jPoint(CRSConverter.toNeo4jCRS(point.getCRS()), new Coordinate(point.getCoordinate()));
+        return new Neo4jPoint(toNeo4jCRS(point.getCRS()), new Coordinate(point.getCoordinate()));
     }
 
     private Point asNeo4jPoint(CRS crs, double[] coords) {

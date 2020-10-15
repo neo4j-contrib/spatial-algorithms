@@ -156,11 +156,23 @@ public abstract class Distance {
 
     protected abstract DistanceResult distanceAndEndpoints(LineSegment a, LineSegment b);
 
+    private boolean debug;
+
+    protected void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    protected void debug(String format, Object... args) {
+        if (debug) {
+            System.out.printf(format + "\n", args);
+        }
+    }
+
     public static class DistanceResult {
         public static double INVALID_DISTANCE = Double.NaN;
-        private double distance;
-        private Point start;
-        private Point end;
+        protected final double distance;
+        public final Point start;
+        public final Point end;
         private String message;
         private String error;
         public static DistanceResult NO_RESULT = new DistanceResult(INVALID_DISTANCE, null, null);
@@ -170,6 +182,11 @@ public abstract class Distance {
             this.distance = distance;
             this.start = start;
             this.end = end;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("DistanceResult[%f]: start=%s, end=%s", distance, start, end);
         }
 
         public DistanceResult withMessage(String message) {

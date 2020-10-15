@@ -14,6 +14,7 @@ import static java.lang.String.format;
 
 public class CartesianDistance extends Distance {
     public double distance(Polygon a, Polygon b) {
+        debug("Calculating cartesian distance");
         boolean intersects = new CartesianMCSweepLineIntersect().doesIntersect(a, b);
 
         //Check if one polygon is (partially) contained by the other
@@ -26,11 +27,13 @@ public class CartesianDistance extends Distance {
         LineSegment[] aLS = a.toLineSegments();
         LineSegment[] bLS = b.toLineSegments();
 
+        // TODO: use the same performance optimization as coded in WGS84Distance (convex-hull and unnest loops)
         return getMinDistance(aLS, bLS);
     }
 
     @Override
     public DistanceResult distanceAndEndpoints(Polygon a, Polygon b) {
+        debug("Calculating cartesian distance with end-points");
         throw new IllegalStateException("Distance with end-points is not implemented for Cartesian data");
     }
 

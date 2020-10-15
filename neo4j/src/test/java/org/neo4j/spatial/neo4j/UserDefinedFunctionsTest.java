@@ -319,9 +319,6 @@ public class UserDefinedFunctionsTest {
                 for (int j = 0; j < y; j++) {
                     nodes[i][j] = tx.createNode(Label.label("OSMNode"));
                     nodes[i][j].setProperty("location", Values.pointValue(CoordinateReferenceSystem.WGS84, i, j));
-
-                    System.out.printf("%s; [%d, %d]\n", wayNodes[i][j], i, j);
-
                     wayNodes[i][j].createRelationshipTo(nodes[i][j], Relation.NODE);
                 }
             }
@@ -596,7 +593,7 @@ public class UserDefinedFunctionsTest {
 
         testCall(db, "WITH spatial.polygon($a) AS a, spatial.polygon($b) AS b RETURN spatial.algo.distance(a,b) AS distance", map("a", a, "b", b), result -> {
             assertThat("Should have 'distance' key", result.containsKey("distance"), equalTo(true));
-            assertThat("'distance' should be close to a 1x1 degree diagonal in meters", (double) result.get("distance"), closeTo(2 * oneByOneDiagonal, 250));
+            assertThat("'distance' should be close to a 2x2 degree diagonal in meters", (double) result.get("distance"), closeTo(2 * oneByOneDiagonal, 250));
         });
     }
 
@@ -672,6 +669,44 @@ public class UserDefinedFunctionsTest {
             assertThat("Start point x-coord should be interpolated to zero (UTM)", ((Point) dist.get("start")).getCoordinate().getCoordinate().get(0), closeTo(0, 0.000001));
             assertThat("Start point y-coord should be interpolated a little above the one degree line due to great-circle", ((Point) dist.get("start")).getCoordinate().getCoordinate().get(1), closeTo(1, 0.001));
             assertThat(dist.get("end"), equalTo(Values.pointValue(CoordinateReferenceSystem.WGS84, 0, 0)));
+        });
+    }
+
+    @Test
+    public void shouldFindDistanceBetweenTwoPointCloudsUsingConvexHull() {
+        long size = 1000;
+        Random random = new Random(0);
+        ArrayList<Point> a = new ArrayList<>();
+        ArrayList<Point> b = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            // cloud above-right of equator-utm
+            a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 1 + random.nextInt(10), 1 + random.nextInt(10)));
+            // cloud below-left of equator-utm
+            b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -1 - random.nextInt(10), -1 - random.nextInt(10)));
+        }
+
+        testCall(db, "WITH $a AS a, $b AS b RETURN spatial.algo.convexHull.distance(a,b) AS distance", map("a", a, "b", b), result -> {
+            assertThat("Should have 'distance' key", result.containsKey("distance"), equalTo(true));
+            assertThat("'distance' should be close to a 2x2 degree diagonal in meters", (double) result.get("distance"), closeTo(2 * oneByOneDiagonal, 250));
+        });
+    }
+
+    @Test
+    public void shouldFindDistanceBetweenTwoOverlappingPointCloudsUsingConvexHull() {
+        long size = 1000;
+        Random random = new Random(0);
+        ArrayList<Point> a = new ArrayList<>();
+        ArrayList<Point> b = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            // cloud above-right of equator-utm, overlapping origin
+            a.add(Values.pointValue(CoordinateReferenceSystem.WGS84, -0.1 + random.nextInt(10), -0.1 + random.nextInt(10)));
+            // cloud below-left of equator-utm, overlapping origin
+            b.add(Values.pointValue(CoordinateReferenceSystem.WGS84, 0.1 - random.nextInt(10), 0.1 - random.nextInt(10)));
+        }
+
+        testCall(db, "WITH $a AS a, $b AS b RETURN spatial.algo.convexHull.distance(a,b) AS distance", map("a", a, "b", b), result -> {
+            assertThat("Should have 'distance' key", result.containsKey("distance"), equalTo(true));
+            assertThat("overlapping 'distance' should be equal to zero meters", (double) result.get("distance"), equalTo(0.0));
         });
     }
 

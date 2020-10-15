@@ -14,7 +14,7 @@ public class CRSConverter {
         }
     }
 
-    public static org.neo4j.graphdb.spatial.CRS toNeo4jCRS(org.neo4j.spatial.core.CRS  memCRS) {
+    public static org.neo4j.graphdb.spatial.CRS toNeo4jCRS(org.neo4j.spatial.core.CRS memCRS) {
         if (memCRS == CRS.Cartesian) {
             return CoordinateReferenceSystem.Cartesian;
         } else if (memCRS == CRS.WGS84) {

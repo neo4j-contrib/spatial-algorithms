@@ -60,6 +60,31 @@ public interface Polygon extends HasCRS {
     boolean isSimple();
 
     /**
+     * Get the main shell.
+     * Useful for apps that want a SimplePolygon representative of the MultiPolygon.
+     * This is currently defined as the largest shell, based on node count.
+     */
+    default SimplePolygon getShell() {
+        SimplePolygon[] shells = getShells();
+        if (shells.length > 0) {
+            Point[] mainPoints = null;
+            for (Polygon.SimplePolygon shell : shells) {
+                Point[] points = shell.getPoints();
+                if (mainPoints == null || points.length > mainPoints.length) {
+                    mainPoints = points;
+                }
+            }
+            if (mainPoints.length > 0) {
+                return new InMemorySimplePolygon(mainPoints);
+            } else {
+                throw new IllegalStateException("No main shell found - polygon is invalid");
+            }
+        } else {
+            throw new IllegalStateException("No shells found - polygon is invalid");
+        }
+    }
+
+    /**
      * Outputs the WKT string of the polygon
      *
      * @return The WKT string describing the polygon
