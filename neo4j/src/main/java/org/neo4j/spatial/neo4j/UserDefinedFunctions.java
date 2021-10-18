@@ -50,13 +50,17 @@ public class UserDefinedFunctions {
     // TODO write tests
     @Description( "Creates a polygon as a Point[] property named 'polygon' on the node" )
     @Procedure(name = "spatial.osm.property.createPolygon", mode = Mode.WRITE)
-    public void createArrayCache(@Name("main") Node main) {
+    public Stream<PointArraySizeResult> createArrayCache(@Name("main") Node main) {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
-        Result mainResult = tx.execute("MATCH (p:Polygon)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
-
         long relation_osm_id = (long) main.getProperty("relation_osm_id");
 
+        Result mainResult = tx.execute("MATCH (p:Polygon)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
+        if (!mainResult.hasNext()) {
+            throw new IllegalArgumentException("No polygon structure found - does " + main + " really have :POLYGON_STRUCTURE relationships? Perhaps you have not run spatial.osm.graph.createPolygon(" + main + ") yet?");
+        }
+
+        List<PointArraySizeResult> result = new ArrayList<>();
         while (mainResult.hasNext()) {
             Node polygonNode = (Node) mainResult.next().get("polygonNode");
 
@@ -65,27 +69,32 @@ public class UserDefinedFunctions {
             Result startNodeResult = tx.execute("MATCH (p:Polygon)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
 
             if (!startNodeResult.hasNext()) {
-                return;
+                throw new IllegalArgumentException("Broken polygon structure found - polygon " + polygonNode + " is missing a ':POLYGON_START' relationship to an 'OSMWay' node");
             }
 
             Node startNode = (Node) startNodeResult.next().get("startNode");
-
             Neo4jSimpleGraphNodePolygon polygon = new Neo4jSimpleGraphNodePolygon(startNode, relation_osm_id);
-
-            polygonNode.setProperty("polygon", Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new));
+            Point[] polygonPoints = Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new);
+            result.add(new PointArraySizeResult(polygonNode.getId(), polygonPoints.length));
+            polygonNode.setProperty("polygon", polygonPoints);
         }
+        return result.stream();
     }
 
     // TODO write tests
     @Description( "Creates a polyline as a Point[] property named 'polyline' on the node" )
     @Procedure(name = "spatial.osm.property.createPolyline", mode = Mode.WRITE)
-    public void createArrayLine(@Name("main") Node main) {
+    public Stream<PointArraySizeResult> createArrayLine(@Name("main") Node main) {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("main", main.getId());
-        Result mainResult = tx.execute("MATCH (p:Polyline)<-[:POLYLINE_STRUCTURE]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polylineNode", parameters);
-
         long relation_osm_id = (long) main.getProperty("relation_osm_id");
 
+        Result mainResult = tx.execute("MATCH (p:Polyline)<-[:POLYLINE_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polylineNode", parameters);
+        if (!mainResult.hasNext()) {
+            throw new IllegalArgumentException("No polyline structure found - does " + main + " really have :POLYLINE_STRUCTURE relationships? Perhaps you have not run spatial.osm.graph.createPolygon(" + main + ") yet?");
+        }
+
+        List<PointArraySizeResult> result = new ArrayList<>();
         while (mainResult.hasNext()) {
             Node polylineNode = (Node) mainResult.next().get("polylineNode");
 
@@ -94,24 +103,34 @@ public class UserDefinedFunctions {
             Result startNodeResult = tx.execute("MATCH (p:Polyline)-[:POLYLINE_START]->(n:OSMWayNode) WHERE id(p)=$polylineNode RETURN n AS startNode", parameters);
 
             if (!startNodeResult.hasNext()) {
-                return;
+                throw new IllegalArgumentException("Broken polyline structure found - polyline " + polylineNode + " is missing a ':POLYLINE_START' relationship to an 'OSMWayNode' node");
             }
 
-            Node startNode = (Node) startNodeResult.next().get("startNode");
-
-            Neo4jSimpleGraphNodePolyline polyline = new Neo4jSimpleGraphNodePolyline(startNode, relation_osm_id);
-
-            polylineNode.setProperty("polyline", Arrays.stream(polyline.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new));
+            try {
+                Node startNode = (Node) startNodeResult.next().get("startNode");
+                Neo4jSimpleGraphNodePolyline polyline = new Neo4jSimpleGraphNodePolyline(startNode, relation_osm_id);
+                Point[] polylinePoints = Arrays.stream(polyline.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new);
+                result.add(new PointArraySizeResult(polylineNode.getId(), polylinePoints.length));
+                polylineNode.setProperty("polyline", polylinePoints);
+            } catch (Exception e) {
+                log.error("Failed to create polyline at " + polylineNode + ": " + e.getMessage());
+                e.printStackTrace();
+            }
         }
+        return result.stream();
     }
 
     @Procedure(name = "spatial.osm.graph.createPolygon.nodeId", mode = Mode.WRITE)
-    public void createOSMGraphGeometries(@Name("mainId") Long mainId) {
-        createOSMGraphGeometries(tx.getNodeById(mainId));
+    public void createOSMGraphGeometries(
+            @Name("mainId") Long mainId,
+            @Name(value = "proximityThreshold", defaultValue = "250") double proximityThreshold) {
+        createOSMGraphGeometries(tx.getNodeById(mainId), proximityThreshold);
     }
 
     @Procedure(name = "spatial.osm.graph.createPolygon", mode = Mode.WRITE)
-    public void createOSMGraphGeometries(@Name("main") Node main) {
+    public void createOSMGraphGeometries(
+            @Name("main") Node main,
+            @Name(value = "proximityThreshold", defaultValue = "250") double proximityThreshold) {
         long id = (long) main.getProperty("relation_osm_id");
 
         HashMap<String, Object> parameters = new HashMap<>();
@@ -123,18 +142,28 @@ public class UserDefinedFunctions {
 //        tx.execute("MATCH (:OSMWayNode)-[n:NEXT_IN_POLYLINE]->(:OSMWayNode) DELETE n");
 //        tx.execute("MATCH (:OSMWayNode)-[n:END_OF_POLYLINE]->(:OSMWayNode) DELETE n");
 
-        Pair<List<List<Node>>, List<List<Node>>> geometries = OSMTraverser.traverseOSMGraph(tx, main);
+        Pair<List<List<Node>>, List<List<Node>>> geometries = OSMTraverser.traverseOSMGraph(tx, main, proximityThreshold);
         List<List<Node>> polygons = geometries.first();
         List<List<Node>> polylines = geometries.other();
 
-        GraphBuilder builder;
-        if (polylines.isEmpty()) {
-            builder = new GraphPolygonBuilder(tx, main, polygons);
-        } else {
-            polylines.addAll(polygons);
-            builder = new GraphPolylineBuilder(tx, main, polylines);
+        if (!polygons.isEmpty()) {
+            log.info("Building " + polygons.size() + " polygons for node " + main + " with osm-id: " + id);
+            try {
+                new GraphPolygonBuilder(tx, main, polygons).build();
+            } catch (Exception e) {
+                log.error("Failed to build polygon/polyline structures for node id=" + main.getId() + ", osm-id=" + id + ": " + e.getMessage());
+                e.printStackTrace();
+            }
         }
-        builder.build();
+        if (!polylines.isEmpty()) {
+            log.info("Building " + polylines.size() + " polylines for node " + main + " with osm-id: " + id);
+            try {
+                new GraphPolylineBuilder(tx, main, polylines).build();
+            } catch (Exception e) {
+                log.error("Failed to build polygon/polyline structures for node id=" + main.getId() + ", osm-id=" + id + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
     }
 
     public static MultiPolygon getGraphNodePolygon(Node main) {
@@ -509,6 +538,16 @@ public class UserDefinedFunctions {
 
         private PointResult(Point point) {
             this.point = point;
+        }
+    }
+
+    public class PointArraySizeResult {
+        public long node_id;
+        public long count;
+
+        private PointArraySizeResult(long node_id, long count) {
+            this.node_id = node_id;
+            this.count = count;
         }
     }
 }

@@ -53,7 +53,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
                 .relationships(Relation.NEXT_IN_POLYLINE)
-                .uniqueness(Uniqueness.NONE)
+                .uniqueness(Uniqueness.NODE_GLOBAL)
                 .evaluator(new WayEvaluator(osmRelationId, Relation.NEXT, Direction.OUTGOING)).traverse(start);
     }
 
@@ -151,7 +151,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
         return this.nodeIterator.next();
     }
 
-    protected Node[] traverseWholePolygon(Node main) {
+    protected Node[] traverseWholePolyline(Node main) {
         return Iterables.stream(getNewTraverser(main).nodes()).toArray(Node[]::new);
     }
 

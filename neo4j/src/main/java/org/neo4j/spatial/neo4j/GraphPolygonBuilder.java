@@ -129,11 +129,12 @@ public class GraphPolygonBuilder extends GraphBuilder {
         parameters.put("n", polystring.get(0).getId());
         parameters.put("m", main.getId());
 
-        Result result = tx.execute("MATCH (n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER]-(m:OSMRelation) WHERE id(n)=$n AND id(m)=$m RETURN w", parameters);
+        Result result = tx.execute("MATCH (n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER*]-(m:OSMRelation) WHERE id(n)=$n AND id(m)=$m RETURN w", parameters);
 
         if (result.hasNext()) {
             return (Node) result.next().get("w");
         }
+        System.out.println("Failed to find a way node between relation " + main + " and OSMWayNode " + polystring.get(0));
 
         return null;
     }

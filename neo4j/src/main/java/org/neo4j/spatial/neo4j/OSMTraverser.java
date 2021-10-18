@@ -18,26 +18,44 @@ public class OSMTraverser {
      * @param main The node representing the OSMRelation
      * @return A pair of two collections, one of polygons and one of polylines
      */
-    public static Pair<List<List<Node>>, List<List<Node>>> traverseOSMGraph(Transaction tx, Node main) {
+    public static Pair<List<List<Node>>, List<List<Node>>> traverseOSMGraph(Transaction tx, Node main, double proximityThreshold) {
         List<List<Node>> wayNodes = collectWays(tx, main);
         List<EnrichedWay> candidates = wayNodes.stream().map(EnrichedWay::new).collect(Collectors.toList());
+        int totalNodeCount = candidates.stream().mapToInt(EnrichedWay::size).sum();
+        System.out.println("Found " + candidates.size() + " polygon/polyline candidates comprising " + totalNodeCount + " nodes from " + wayNodes.size() + " ways within " + main);
 
         Pair<List<EnrichedWay>, List<EnrichedWay>> enrichedWays = connectWaysByCommonNode(candidates);
 
         List<EnrichedWay> polygons = new ArrayList<>(enrichedWays.first());
         List<EnrichedWay> polylines = new ArrayList<>(enrichedWays.other());
+        debugPolygonPolylines(totalNodeCount, polygons, polylines);
 
         if (enrichedWays.other().size() > 0) {
-            enrichedWays = connectWaysByProximity(polylines);
+            System.out.println("Attempting proximity connections to covert some of " + polylines.size() + " polylines into polygons");
+            enrichedWays = connectWaysByProximity(polylines, proximityThreshold);
 
             polygons.addAll(enrichedWays.first());
             polylines = enrichedWays.other();
+            debugPolygonPolylines(totalNodeCount, polygons, polylines);
         }
 
         List<List<Node>> polygonNodes = polygons.stream().map(p -> p.wayNodes).collect(Collectors.toList());
         List<List<Node>> polylineNodes = polylines.stream().map(p -> p.wayNodes).collect(Collectors.toList());
 
         return Pair.of(polygonNodes, polylineNodes);
+    }
+
+    private static void debugPolygonPolylines(int totalNodeCount, List<EnrichedWay> polygons, List<EnrichedWay> polylines) {
+        int polygonNodeCount = polygons.stream().mapToInt(EnrichedWay::size).sum();
+        int polylineNodeCount = polylines.stream().mapToInt(EnrichedWay::size).sum();
+        System.out.println("We have " + polygons.size() + " polygons (" + polygonNodeCount + "/" + totalNodeCount + " nodes, " + (100 * polygonNodeCount / totalNodeCount) + "%)");
+        for (Pair<EnrichedWay, Integer> top : polygons.stream().map(w -> Pair.of(w, w.size())).sorted((a, b) -> b.other() - a.other()).limit(10).collect(Collectors.toList())) {
+            System.out.println("\t" + top.other() + "\t" + top.first());
+        }
+        System.out.println("We have " + polylines.size() + " polylines (" + polylineNodeCount + "/" + totalNodeCount + " nodes, " + (100 * polylineNodeCount / totalNodeCount) + "%)");
+        for (Pair<EnrichedWay, Integer> top : polylines.stream().map(w -> Pair.of(w, w.size())).sorted((a, b) -> b.other() - a.other()).limit(10).collect(Collectors.toList())) {
+            System.out.println("\t" + top.other() + "\t" + top.first());
+        }
     }
 
     /**
@@ -117,16 +135,14 @@ public class OSMTraverser {
      * @param candidates List of candidate ways
      * @return List of enriched ways where each enriched way describes a polygon
      */
-    private static Pair<List<EnrichedWay>, List<EnrichedWay>> connectWaysByProximity(List<EnrichedWay> candidates) {
+    private static Pair<List<EnrichedWay>, List<EnrichedWay>> connectWaysByProximity(List<EnrichedWay> candidates, double proximityThreshold) {
         List<EnrichedWay> polygons = new ArrayList<>();
         List<EnrichedWay> polylines = new ArrayList<>();
 
-        polylines.add(candidates.get(0));
-        candidates.remove(0);
+        polylines.add(candidates.remove(0));
 
         while (candidates.size() > 0) {
-            EnrichedWay wayToAdd = candidates.get(0);
-            candidates.remove(0);
+            EnrichedWay wayToAdd = candidates.remove(0);
 
             double minDistance = Double.MAX_VALUE;
             int bestIndex = -1;
@@ -144,34 +160,32 @@ public class OSMTraverser {
                 }
             }
 
-            //No other polyline is close
-            if (minDistance > EnrichedWay.PROXIMITY_THRESHOLD) {
+            // Closest polyline is close enough to merge
+            if (minDistance <= proximityThreshold) {
+                EnrichedWay wayToAddTo = polylines.get(bestIndex);
+                wayToAddTo.join(wayToAdd, joinDirection);
+
+                Vector first = new Vector(true, wayToAddTo.first.other());
+                Vector last = new Vector(true, wayToAddTo.last.other());
+                double distance = WGSUtil.distance(first, last);
+
+                //The polyline closes itself
+                if (AlgoUtil.lessOrEqual(distance, proximityThreshold)) {
+                    polygons.add(wayToAddTo);
+                    polylines.remove(wayToAddTo);
+                }
+            } else {
                 Vector first = new Vector(true, wayToAdd.first.other());
                 Vector last = new Vector(true, wayToAdd.last.other());
                 double distance = WGSUtil.distance(first, last);
 
                 //The polyline closes itself
-                if (AlgoUtil.lessOrEqual(distance, EnrichedWay.PROXIMITY_THRESHOLD)) {
+                if (AlgoUtil.lessOrEqual(distance, proximityThreshold)) {
                     polygons.add(wayToAdd);
                     polylines.remove(wayToAdd);
                 } else {
                     polylines.add(wayToAdd);
                 }
-
-                continue;
-            }
-
-            EnrichedWay wayToAddTo = polylines.get(bestIndex);
-            wayToAddTo.join(wayToAdd, joinDirection);
-
-            Vector first = new Vector(true, wayToAddTo.first.other());
-            Vector last = new Vector(true, wayToAddTo.last.other());
-            double distance = WGSUtil.distance(first, last);
-
-            //The polyline closes itself
-            if (AlgoUtil.lessOrEqual(distance, EnrichedWay.PROXIMITY_THRESHOLD)) {
-                polygons.add(wayToAddTo);
-                polylines.remove(wayToAddTo);
             }
         }
 
@@ -179,8 +193,6 @@ public class OSMTraverser {
     }
 
     private static class EnrichedWay {
-        static final double PROXIMITY_THRESHOLD = 250; //in meters
-
         Pair<Node, double[]> first;
         Pair<Node, double[]> last;
         private List<Node> wayNodes;
@@ -193,6 +205,10 @@ public class OSMTraverser {
             this.wayNodes = wayNodes;
             this.first = getOSMNode(wayNodes.get(0));
             this.last = getOSMNode(wayNodes.get(wayNodes.size() - 1));
+        }
+
+        int size() {
+            return wayNodes.size();
         }
 
         boolean joinByCommonNode(EnrichedWay other) {

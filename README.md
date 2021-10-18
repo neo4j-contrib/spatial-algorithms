@@ -70,7 +70,7 @@ The algorithms are designed to be used in two ways:
  * or as a set of procedures directly in a running Neo4j server
  
 The built-in procedures can be used as examples if you wish to build your own.
-Otherwise simply copy the file named something like `dist/target/spatial-algorithms-dist-0.2.4-neo4j-4.2.6.jar`
+Otherwise simply copy the file named something like `dist/target/spatial-algorithms-dist-0.2.5-neo4j-4.2.11.jar`
 into the plugins folder of your Neo4j installation.
 
 ## Using the library in your Java project with Maven ##
@@ -104,12 +104,12 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-core</artifactId>
-        <version>0.2.4-neo4j-4.2.6</version>
+        <version>0.2.5-neo4j-4.2.11</version>
     </dependency>
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-algo</artifactId>
-        <version>0.2.4-neo4j-4.2.6</version>
+        <version>0.2.5-neo4j-4.2.11</version>
     </dependency>
 ~~~
 
@@ -125,8 +125,24 @@ For example, in the _NODES 2020_ presentation by Craig Taverner, the following c
 structures as tree-subgraphs with each node containing a `Point[]` defining each `SimplePolygon`
 for all shells and holes in the `MultiPolygon`. 
 
+First build a sub-graph describing the multi-polygon:
+
 ~~~cypher
-// Make multipolygons for all provinces in Sweden:
+// Make multipolygons as sub-graphs for all provinces in Sweden:
+UNWIND [
+  4116216,54413,52834,941530,52832,54403,52826,54374,54417,54412,52824,43332835,54409,
+  4473774,9691220,54391,54386,54220,3172367,54223,52825,52827,54221,54367,54222,940675
+] AS osm_id
+MATCH (r:OSMRelation)
+  WHERE r.relation_osm_id=osm_id
+CALL spatial.osm.graph.createPolygon(r)
+RETURN r.name;
+~~~
+
+Then create the `Point[]` properties from that sub-graph for use in the algorithms:
+
+~~~cypher
+// Make multipolygons as Point[] for all provinces in Sweden:
 UNWIND [
   4116216,54413,52834,941530,52832,54403,52826,54374,54417,54412,52824,43332835,54409,
   4473774,9691220,54391,54386,54220,3172367,54223,52825,52827,54221,54367,54222,940675
