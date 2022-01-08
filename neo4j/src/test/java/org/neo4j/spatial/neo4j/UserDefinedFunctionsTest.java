@@ -357,7 +357,7 @@ public class UserDefinedFunctionsTest {
 
             if (result.hasNext()) {
                 String WKT = (String) result.next().get("WKT");
-                assertThat(WKT, equalTo("MULTILINESTRING((3.0 2.0,3.0 1.0,3.0 0.0,2.0 2.0,2.0 1.0,2.0 0.0,1.0 2.0,1.0 1.0,1.0 0.0,0.0 2.0,0.0 1.0,0.0 0.0))"));
+                assertThat(WKT, equalTo("MULTILINESTRING((0.0 0.0,0.0 1.0,0.0 2.0,1.0 0.0,1.0 1.0,1.0 2.0,2.0 0.0,2.0 1.0,2.0 2.0,3.0 0.0,3.0 1.0,3.0 2.0))"));
             }
 
             tx.commit();
