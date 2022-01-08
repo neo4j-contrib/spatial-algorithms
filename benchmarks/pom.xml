@@ -36,7 +36,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
     <parent>
         <groupId>org.neo4j</groupId>
         <artifactId>spatial-algorithms-parent</artifactId>
-        <version>0.2.5-neo4j-4.2.11</version>
+        <version>0.2.5-neo4j-4.3.9</version>
     </parent>
 
     <artifactId>spatial-algorithms-benchmarks</artifactId>
@@ -76,13 +76,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>spatial-algorithms-neo4j</artifactId>
-            <version>0.2.5-neo4j-4.2.11</version>
+            <version>0.2.5-neo4j-4.3.9</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>spatial-algorithms-viewer</artifactId>
-            <version>0.2.5-neo4j-4.2.11</version>
+            <version>0.2.5-neo4j-4.3.9</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
