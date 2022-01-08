@@ -4,6 +4,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
@@ -35,7 +36,7 @@ public class UserDefinedFunctionsTest {
     @Before
     public void setUp() throws KernelException {
         List<String> unrestricted = List.of("neo4j.*");
-        databases = new TestDatabaseManagementServiceBuilder().setConfig(GraphDatabaseSettings.procedure_unrestricted, unrestricted).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder().setConfig(GraphDatabaseSettings.procedure_unrestricted, unrestricted).setConfig(GraphDatabaseInternalSettings.trace_cursors, true).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         registerUDFClass(db, UserDefinedFunctions.class);
     }

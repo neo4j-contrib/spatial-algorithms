@@ -1,16 +1,11 @@
 package org.neo4j.spatial.neo4j;
 
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.graphdb.traversal.Uniqueness;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.spatial.algo.Distance;
@@ -19,8 +14,7 @@ import org.neo4j.spatial.core.CRS;
 import org.neo4j.spatial.core.Point;
 import org.neo4j.spatial.core.Polygon;
 
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 
 import static java.lang.String.format;
 
@@ -28,17 +22,12 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     final private long osmRelationId;
     final private CRS crs;
     private Iterator<Node> nodeIterator;
-    boolean traversing;
-    Node start;
-    Node main;
-    Point startPoint;
+    Node firstWayNode;
 
-    public Neo4jSimpleGraphPolygon(Node main, long osmRelationId) {
+    public Neo4jSimpleGraphPolygon(Node firstWayNode, long osmRelationId) {
         this.osmRelationId = osmRelationId;
-        this.traversing = false;
-        this.main = main;
-        this.start = main;
-        crs = extractPoint(main).getCRS();
+        this.firstWayNode = firstWayNode;
+        crs = extractPoint(firstWayNode).getCRS();
     }
 
     @Override
@@ -48,7 +37,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
 
     @Override
     public int dimension() {
-        return extractPoint(this.main).dimension();
+        return extractPoint(this.firstWayNode).dimension();
     }
 
     @Override
@@ -58,7 +47,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
 
     @Override
     public String toString() {
-        return format("Neo4jSimpleGraphNodePolygon%s", Arrays.toString(getPoints()));
+        return format("Neo4jSimpleGraphNodePolygon(%s)", this.firstWayNode);
     }
 
     private Traverser getNewTraverser(Node start) {
@@ -82,19 +71,19 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
     @Override
     public boolean fullyTraversed() {
         if (this.nodeIterator != null) {
-            return !this.nodeIterator.hasNext() && this.traversing;
+            return !this.nodeIterator.hasNext();
         }
         return false;
     }
 
     @Override
     public void startTraversal(Point startPoint, Point directionPoint) {
-        Iterator<Node> iterator = getNewTraverser(this.main).nodes().iterator();
-        this.traversing = false;
+        Iterator<Node> iterator = getNewTraverser(this.firstWayNode).nodes().iterator();
 
         Distance calculator = DistanceCalculator.getCalculator(startPoint);
 
         Point firstPoint = null;
+        Node start = null;
 
         double minDistance = Double.MAX_VALUE;
         while (iterator.hasNext()) {
@@ -109,40 +98,39 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
             double currentDistance = calculator.distance(extracted, startPoint);
             if (currentDistance <= minDistance) {
                 minDistance = currentDistance;
-                this.start = next;
-                this.startPoint = extracted;
+                start = next;
             }
         }
-        Pair<Direction, Direction> directions = getClosestNeighborToDirection(directionPoint);
-        this.nodeIterator = getNewTraverser(this.start, directions.first(), directions.other()).nodes().iterator();
+        Pair<Direction, Direction> directions = getClosestNeighborToDirection(start, directionPoint);
+        this.nodeIterator = getNewTraverser(start, directions.first(), directions.other()).nodes().iterator();
     }
 
-    private Pair<Direction, Direction> getClosestNeighborToDirection(Point directionPoint) {
+    private Pair<Direction, Direction> getClosestNeighborToDirection(Node wayNode, Point directionPoint) {
         double minDistance = Double.MAX_VALUE;
         Direction minDirection = null;
         boolean nextInPolygon = true;
 
         Distance calculator = DistanceCalculator.getCalculator(directionPoint);
 
-        for (Relationship relationship : this.start.getRelationships(Relation.NEXT_IN_POLYGON)) {
+        for (Relationship relationship : wayNode.getRelationships(Relation.NEXT_IN_POLYGON)) {
             if (WayEvaluator.nextInPolygon(relationship, osmRelationId)) {
-                Node other = relationship.getOtherNode(this.start);
+                Node other = relationship.getOtherNode(wayNode);
 
                 double currentDistance = calculator.distance(directionPoint, extractPoint(other));
                 if (currentDistance < minDistance) {
                     minDistance = currentDistance;
-                    minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;
+                    minDirection = relationship.getStartNode().equals(wayNode) ? Direction.OUTGOING : Direction.INCOMING;
                 }
             }
         }
 
-        for (Relationship relationship : this.start.getRelationships(Relation.NEXT)) {
-            Node other = relationship.getOtherNode(this.start);
+        for (Relationship relationship : wayNode.getRelationships(Relation.NEXT)) {
+            Node other = relationship.getOtherNode(wayNode);
 
             double currentDistance = calculator.distance(directionPoint, extractPoint(other));
             if (currentDistance < minDistance) {
                 minDistance = currentDistance;
-                minDirection = relationship.getStartNode().equals(this.start) ? Direction.OUTGOING : Direction.INCOMING;
+                minDirection = relationship.getStartNode().equals(wayNode) ? Direction.OUTGOING : Direction.INCOMING;
                 nextInPolygon = false;
             }
         }
@@ -156,9 +144,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
 
     @Override
     public void startTraversal() {
-        this.start = main;
-        this.traversing = false;
-        this.nodeIterator = getNewTraverser(this.start).nodes().iterator();
+        this.nodeIterator = getNewTraverser(firstWayNode).nodes().iterator();
     }
 
     abstract Point extractPoint(Node node);
@@ -171,8 +157,8 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
         return this.nodeIterator.next();
     }
 
-    protected Node[] traverseWholePolygon(Node main) {
-        return Iterables.stream(getNewTraverser(main).nodes()).toArray(Node[]::new);
+    protected Node[] traverseWholePolygon() {
+        return Iterables.stream(getNewTraverser(firstWayNode).nodes()).toArray(Node[]::new);
     }
 
     private static class WayEvaluator implements Evaluator {

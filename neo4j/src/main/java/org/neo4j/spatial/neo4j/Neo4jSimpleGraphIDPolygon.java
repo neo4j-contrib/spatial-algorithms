@@ -19,7 +19,7 @@ public class Neo4jSimpleGraphIDPolygon extends Neo4jSimpleGraphPolygon {
 
     @Override
     public Point[] getPoints() {
-        Node[] wayNodes = traverseWholePolygon(main);
+        Node[] wayNodes = traverseWholePolygon();
         Point[] unclosed = extractPoints(wayNodes);
         Point[] points = PolygonUtil.closeRing(unclosed);
 
@@ -50,7 +50,6 @@ public class Neo4jSimpleGraphIDPolygon extends Neo4jSimpleGraphPolygon {
 
     @Override
     public Point getNextPoint() {
-        super.traversing = true;
         return extractPoint(getNextNode());
     }
 }

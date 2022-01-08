@@ -21,6 +21,7 @@ import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.trace_cursors;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class Neo4jDataTest {
@@ -29,7 +30,7 @@ public class Neo4jDataTest {
 
     @Before
     public void setUp() {
-        databases = new TestDatabaseManagementServiceBuilder().impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder().impermanent().setConfig(trace_cursors, true).build();
         db = databases.database(DEFAULT_DATABASE_NAME);
     }
 
@@ -95,14 +96,18 @@ public class Neo4jDataTest {
 
     @Test
     public void shouldTraverseSingleWayPolygon() {
-        Polygon.SimplePolygon simplePolygon;
         long osmRelationId = 1;
 
         TestModel model = new TestModel(10, 0);
 
         try (Transaction tx = db.beginTx()) {
             model.buildNodes(tx);
-            simplePolygon = model.buildSingleWayPolygon(osmRelationId);
+            model.buildSingleWayPolygon(osmRelationId);
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+            model.refresh(tx);
+            Polygon.SimplePolygon simplePolygon = new Neo4jSimpleGraphNodePolygon(model.wayNodeAt(0), osmRelationId);
 
             org.neo4j.spatial.core.Point[] polygonPoints = simplePolygon.getPoints();
             for (int i = 0; i < polygonPoints.length; i++) {
@@ -136,21 +141,24 @@ public class Neo4jDataTest {
                 assertThat(point.getCoordinate()[1], equalTo(model.pointAt(i)[1]));
                 i = ((i-1) % (model.n) + (model.n)) % (model.n);
             }
-
             tx.commit();
         }
     }
 
     @Test
     public void shouldTraverseTwoWayPolygon() {
-        Polygon.SimplePolygon simplePolygon;
         long osmRelationId = 1;
 
         TestModel model = new TestModel(10, 2);
 
         try (Transaction tx = db.beginTx()) {
             model.buildNodes(tx);
-            simplePolygon = model.buildTwoWayPolygon(tx, osmRelationId);
+            model.buildTwoWayPolygon(tx, osmRelationId);
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+            model.refresh(tx);
+            Polygon.SimplePolygon simplePolygon = new Neo4jSimpleGraphNodePolygon(model.wayNodeAt(0), osmRelationId);
             int idx;
 
             org.neo4j.spatial.core.Point[] polygonPoints = simplePolygon.getPoints();
@@ -205,14 +213,18 @@ public class Neo4jDataTest {
 
     @Test
     public void shouldTraverseSingleWayPolyline() {
-        Polyline polyline;
         long osmRelationId = 1;
 
         TestModel model = new TestModel(10, 0);
 
         try (Transaction tx = db.beginTx()) {
             model.buildNodes(tx);
-            polyline = model.buildSingleWayPolyline(osmRelationId);
+            model.buildSingleWayPolyline(osmRelationId);
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+            model.refresh(tx);
+            Polyline polyline = new Neo4jSimpleGraphNodePolyline(model.wayNodeAt(0), osmRelationId);
 
             org.neo4j.spatial.core.Point[] polylinePoints = polyline.getPoints();
             for (int i = 0; i < polylinePoints.length; i++) {
@@ -253,14 +265,18 @@ public class Neo4jDataTest {
 
     @Test
     public void shouldTraverseTwoWayPolyline() {
-        Polyline polyline;
         long osmRelationId = 1;
 
         TestModel model = new TestModel(10, 1, false);
 
         try (Transaction tx = db.beginTx()) {
             model.buildNodes(tx);
-            polyline = model.buildTwoWayPolyline(tx, osmRelationId);
+            model.buildTwoWayPolyline(tx, osmRelationId);
+            tx.commit();
+        }
+        try (Transaction tx = db.beginTx()) {
+            model.refresh(tx);
+            Polyline polyline = new Neo4jSimpleGraphNodePolyline(model.wayNodeAt(0), osmRelationId);
             int idx;
 
             org.neo4j.spatial.core.Point[] polylinePoints = polyline.getPoints();
@@ -325,8 +341,22 @@ public class Neo4jDataTest {
             points = makePoints(n);
         }
 
+        /** If using this model in a new TX, reload all nodes in the new TX scope */
+        void refresh(Transaction tx) {
+            for (int i = 0; i < nodes.length; i++) {
+                nodes[i] = tx.getNodeById(nodes[i].getId());
+            }
+            for (int i = 0; i < wayNodes.length; i++) {
+                wayNodes[i] = tx.getNodeById(wayNodes[i].getId());
+            }
+        }
+
         double[] pointAt(int i) {
             return points[i % n];
+        }
+
+        Node wayNodeAt(int i) {
+            return wayNodes[i % n];
         }
 
         void buildNodes(Transaction tx) {
@@ -342,21 +372,19 @@ public class Neo4jDataTest {
             }
         }
 
-        public Neo4jSimpleGraphNodePolyline buildSingleWayPolyline(long osmRelationId) {
+        public void buildSingleWayPolyline(long osmRelationId) {
             for (int i = 0; i < n - 1; i++) {
                 wayNodes[i].createRelationshipTo(wayNodes[i + 1], Relation.NEXT);
             }
-            return new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
         }
 
-        public Neo4jSimpleGraphNodePolygon buildSingleWayPolygon(long osmRelationId) {
+        public void buildSingleWayPolygon(long osmRelationId) {
             for (int i = 0; i < n; i++) {
                 wayNodes[i].createRelationshipTo(wayNodes[(i + 1) % (n)], Relation.NEXT);
             }
-            return new Neo4jSimpleGraphNodePolygon(wayNodes[0], osmRelationId);
         }
 
-        public Neo4jSimpleGraphNodePolyline buildTwoWayPolyline(Transaction tx, long osmRelationId) {
+        public void buildTwoWayPolyline(Transaction tx, long osmRelationId) {
             wayNodes[n] = tx.createNode();
 
             // Connect 0 to 4 in a chain
@@ -377,8 +405,6 @@ public class Neo4jDataTest {
 
             // Connect wayNode-10 to wayNode-6 with NEXT_IN_POLYLINE
             wayNodes[n].createRelationshipTo(wayNodes[n / 2 + 1], Relation.NEXT_IN_POLYLINE).setProperty("relation_osm_ids", new long[]{osmRelationId});
-
-            return new Neo4jSimpleGraphNodePolyline(wayNodes[0], osmRelationId);
         }
 
         public Neo4jSimpleGraphNodePolygon buildTwoWayPolygon(Transaction tx, long osmRelationId) {

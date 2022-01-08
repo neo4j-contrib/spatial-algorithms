@@ -10,13 +10,13 @@ import org.neo4j.spatial.core.PolygonUtil;
 
 public class Neo4jSimpleGraphNodePolygon extends Neo4jSimpleGraphPolygon {
 
-    public Neo4jSimpleGraphNodePolygon(Node main, long osmRelationId) {
-        super(main, osmRelationId);
+    public Neo4jSimpleGraphNodePolygon(Node firstWayNode, long osmRelationId) {
+        super(firstWayNode, osmRelationId);
     }
 
     @Override
     public Point[] getPoints() {
-        Node[] wayNodes = traverseWholePolygon(main);
+        Node[] wayNodes = traverseWholePolygon();
         Point[] unclosed = extractPoints(wayNodes);
         Point[] points = PolygonUtil.closeRing(unclosed);
 
@@ -47,7 +47,6 @@ public class Neo4jSimpleGraphNodePolygon extends Neo4jSimpleGraphPolygon {
 
     @Override
     public Point getNextPoint() {
-        super.traversing = true;
         return extractPoint(getNextNode());
     }
 }
