@@ -94,6 +94,7 @@ public class UserDefinedFunctions {
             throw new IllegalArgumentException("No polyline structure found - does " + main + " really have :POLYLINE_STRUCTURE relationships? Perhaps you have not run spatial.osm.graph.createPolygon(" + main + ") yet?");
         }
 
+        // TODO: We could stream results from this iterator with a mapping function rather than building state
         List<PointArraySizeResult> result = new ArrayList<>();
         while (mainResult.hasNext()) {
             Node polylineNode = (Node) mainResult.next().get("polylineNode");
@@ -146,6 +147,7 @@ public class UserDefinedFunctions {
         List<List<Node>> polygons = geometries.first();
         List<List<Node>> polylines = geometries.other();
 
+        // TODO: Old code would build from a superset of polygons and polylines, but this new code treats them separately - Verify!
         if (!polygons.isEmpty()) {
             log.info("Building " + polygons.size() + " polygons for node " + main + " with osm-id: " + id);
             try {
@@ -158,6 +160,7 @@ public class UserDefinedFunctions {
         if (!polylines.isEmpty()) {
             log.info("Building " + polylines.size() + " polylines for node " + main + " with osm-id: " + id);
             try {
+                // TODO: Can we not build polygons from multiple polylines?
                 new GraphPolylineBuilder(tx, main, polylines).build();
             } catch (Exception e) {
                 log.error("Failed to build polygon/polyline structures for node id=" + main.getId() + ", osm-id=" + id + ": " + e.getMessage());

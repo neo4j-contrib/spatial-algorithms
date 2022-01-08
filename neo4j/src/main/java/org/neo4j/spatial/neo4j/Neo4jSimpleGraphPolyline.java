@@ -49,6 +49,7 @@ public abstract class Neo4jSimpleGraphPolyline implements Polyline {
     }
 
     private Traverser getNewTraverser(Node start) {
+        // TODO: With Direction.BOTH we need uniqueness checks, which cost memory and time. Perhaps better to check in one direction only
         return new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(Relation.NEXT, Direction.BOTH)
