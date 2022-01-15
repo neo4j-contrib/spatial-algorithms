@@ -1,5 +1,6 @@
 package org.neo4j.spatial.neo4j;
 
+import org.bouncycastle.util.Arrays;
 import org.neo4j.graphdb.*;
 
 import java.util.List;
@@ -12,56 +13,9 @@ public class GraphPolylineBuilder extends GraphBuilder {
     }
 
     public void build() {
-        connectPolylines();
+        // TODO: Figure out why the polyline builder needs this offset=1
+        connectPolylines(Relation.NEXT_IN_POLYLINE, 1);
         connectToMain();
-    }
-
-    /**
-     * Connect unconnected way nodes of a polyline via a special relation relating to the OSMRelation
-     */
-    private void connectPolylines() {
-        long relationOsmId = (long) main.getProperty("relation_osm_id");
-
-        for (List<Node> polyline : polylines) {
-
-            pairwise:
-            for (int i = 1; i < polyline.size() - 2; i++) {
-                Node a = polyline.get(i);
-                Node b = polyline.get(i + 1);
-
-                for (Relationship relationship : a.getRelationships(Direction.OUTGOING, Relation.NEXT_IN_POLYLINE)) {
-                    if (b.getId() != relationship.getEndNodeId()) {
-                        continue;
-                    }
-
-                    long[] ids = (long[]) relationship.getProperty("relation_osm_ids");
-
-                    for (long id : ids) {
-                        if (id == relationOsmId) {
-                            continue pairwise;
-                        }
-                    }
-                    long[] idsModified = new long[ids.length + 1];
-                    for (int j = 0; j < ids.length; j++) {
-                        idsModified[j] = ids[j];
-                    }
-                    idsModified[idsModified.length - 1] = relationOsmId;
-
-                    relationship.setProperty("relation_osm_ids", idsModified);
-                    continue pairwise;
-                }
-
-                for (Relationship relationship : a.getRelationships(Relation.NEXT)) {
-                    long otherId = relationship.getOtherNodeId(a.getId());
-                    if (otherId == b.getId()) {
-                        continue pairwise;
-                    }
-                }
-
-                Relationship relation = a.createRelationshipTo(b, Relation.NEXT_IN_POLYLINE);
-                relation.setProperty("relation_osm_ids", new long[]{relationOsmId});
-            }
-        }
     }
 
     private void connectToMain() {

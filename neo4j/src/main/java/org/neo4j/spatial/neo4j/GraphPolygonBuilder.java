@@ -18,63 +18,11 @@ public class GraphPolygonBuilder extends GraphBuilder {
     }
 
     public void build() {
-        connectPolystrings();
+        connectPolylines(Relation.NEXT_IN_POLYGON, 0);
         MultiPolygon root = buildMultiPolygon();
 
         for (MultiPolygon.MultiPolygonNode child : root.getChildren()) {
             buildGraphPolygon(main, (Neo4jMultiPolygonNode) child);
-        }
-    }
-
-    /**
-     * Connect unconnected way nodes of a polygon via a special relation relating to the OSMRelation
-     */
-    private void connectPolystrings() {
-        long relationOsmId = (long) main.getProperty("relation_osm_id");
-
-        for (List<Node> polystring : polylines) {
-
-            pairwise:
-            for (int i = 0; i < polystring.size(); i++) {
-                Node a = polystring.get(i);
-                Node b = polystring.get((i + 1) % polystring.size());
-
-                if (a.getId() == b.getId()) {
-                    continue;
-                }
-
-                for (Relationship relationship : a.getRelationships(Direction.OUTGOING, Relation.NEXT_IN_POLYGON)) {
-                    if (b.getId() != relationship.getOtherNodeId(a.getId())) {
-                        continue;
-                    }
-
-                    long[] ids = (long[]) relationship.getProperty("relation_osm_ids");
-
-                    for (long id : ids) {
-                        if (id == relationOsmId) {
-                            continue pairwise;
-                        }
-                    }
-                    long[] idsModified = new long[ids.length + 1];
-                    for (int j = 0; j < ids.length; j++) {
-                        idsModified[j] = ids[j];
-                    }
-                    idsModified[idsModified.length - 1] = relationOsmId;
-
-                    relationship.setProperty("relation_osm_ids", idsModified);
-                    continue pairwise;
-                }
-
-                for (Relationship relationship : a.getRelationships(Relation.NEXT)) {
-                    long otherId = relationship.getOtherNodeId(a.getId());
-                    if (otherId == b.getId()) {
-                        continue pairwise;
-                    }
-                }
-
-                Relationship relation = a.createRelationshipTo(b, Relation.NEXT_IN_POLYGON);
-                relation.setProperty("relation_osm_ids", new long[]{relationOsmId});
-            }
         }
     }
 

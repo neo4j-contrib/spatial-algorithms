@@ -92,6 +92,7 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
             if (firstPoint == null) {
                 firstPoint = extracted;
             } else if (firstPoint.equals(extracted)) {
+                // Having a ´break' in node.getRelationship causes a RelationshipTraversalCursor cleanup error, so we need to exhaust the iterator later to avoid this
                 break;
             }
 
@@ -100,6 +101,10 @@ public abstract class Neo4jSimpleGraphPolygon implements Polygon.SimplePolygon {
                 minDistance = currentDistance;
                 start = next;
             }
+        }
+        // Exhaust iterator to avoid transaction closing bug with RelationshipTraversalCursor
+        while (iterator.hasNext()) {
+            iterator.next();
         }
         Pair<Direction, Direction> directions = getClosestNeighborToDirection(start, directionPoint);
         this.nodeIterator = getNewTraverser(start, directions.first(), directions.other()).nodes().iterator();

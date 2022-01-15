@@ -67,7 +67,7 @@ public class OSMTraverser {
      */
     private static List<List<Node>> collectWays(Transaction tx, Node main) {
         List<List<Node>> wayNodes = new ArrayList<>();
-        String findWayNodes = null;
+        String findWayNodes;
         if (main.hasProperty("relation_osm_id")) {
             findWayNodes = "MATCH (r:OSMRelation)-[:MEMBER*]->(w:OSMWay)-[:FIRST_NODE]->(f:OSMWayNode), " +
                     "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE id(r) = $main " +
@@ -104,8 +104,7 @@ public class OSMTraverser {
 
         while (!candidates.isEmpty()) {
             boolean joinedSome;
-            EnrichedWay way = candidates.get(0);
-            candidates.remove(0);
+            EnrichedWay way = candidates.remove(0);
 
             do {
                 joinedSome = false;
@@ -232,17 +231,17 @@ public class OSMTraverser {
             switch (direction) {
                 case FF:
                     Collections.reverse(other.wayNodes);
-                    other.wayNodes.addAll(wayNodes);
-                    wayNodes = other.wayNodes;
+                    other.wayNodes.addAll(this.wayNodes);
+                    this.wayNodes = other.wayNodes;
                     this.first = other.last;
                     break;
                 case FL:
-                    other.wayNodes.addAll(wayNodes);
-                    wayNodes = other.wayNodes;
+                    other.wayNodes.addAll(this.wayNodes);
+                    this.wayNodes = other.wayNodes;
                     this.first = other.first;
                     break;
                 case LF:
-                    wayNodes.addAll(other.wayNodes);
+                    this.wayNodes.addAll(other.wayNodes);
                     this.last = other.last;
                     break;
                 case LL:
