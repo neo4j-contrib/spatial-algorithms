@@ -11,7 +11,7 @@ import org.neo4j.spatial.algo.*;
 import org.neo4j.spatial.algo.cartesian.CartesianConvexHull;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianMCSweepLineIntersect;
 import org.neo4j.spatial.algo.cartesian.intersect.CartesianNaiveIntersect;
-import org.neo4j.spatial.algo.cartesian.CartesianWithin;
+import org.neo4j.spatial.algo.WithinCalculator;
 import org.neo4j.spatial.algo.wgs84.WGS84ConvexHull;
 import org.neo4j.spatial.core.MultiPolygon;
 import org.neo4j.spatial.core.MultiPolyline;
@@ -342,7 +342,7 @@ public class UserDefinedFunctions {
                 throw new IllegalArgumentException("Cannot compare geometries of different CRS: " + polyCrs + " !+ " + pointCrs);
             } else {
                 Polygon.SimplePolygon geometry = Polygon.simple(asInMemoryPoints(polygon));
-                return CartesianWithin.within(geometry, asInMemoryPoint(point));
+                return WithinCalculator.within(geometry, asInMemoryPoint(point));
             }
         }
     }
