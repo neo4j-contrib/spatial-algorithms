@@ -1,9 +1,10 @@
 package org.neo4j.spatial.neo4j;
 
-import org.bouncycastle.util.Arrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.graphdb.*;
 
 import java.util.List;
+import java.util.Objects;
 
 public abstract class GraphBuilder {
     protected Node main;
@@ -30,7 +31,7 @@ public abstract class GraphBuilder {
                 Node a = polyline.get(i);
                 Node b = polyline.get((i + 1) % polyline.size());
 
-                if (a.getId() == b.getId()) {
+                if (Objects.equals(a.getElementId(), b.getElementId())) {
                     continue;
                 }
 
@@ -40,7 +41,7 @@ public abstract class GraphBuilder {
 
                     // If the relationship does not contain this relation ID, add it
                     long[] ids = (long[]) nextPolyRel.getProperty("relation_osm_ids");
-                    if (!Arrays.contains(ids, relationOsmId)) {
+                    if (!ArrayUtils.contains(ids, relationOsmId)) {
                         long[] idsModified = new long[ids.length + 1];
                         System.arraycopy(ids, 0, idsModified, 0, ids.length);
                         idsModified[idsModified.length - 1] = relationOsmId;
@@ -63,7 +64,7 @@ public abstract class GraphBuilder {
     private Relationship findPolyRel(Node from, Node to, RelationshipType relType) {
         Relationship found = null;
         for (Relationship relationship : from.getRelationships(Direction.OUTGOING, relType)) {
-            if (to.getId() == relationship.getOtherNodeId(from.getId())) {
+            if (to == relationship.getOtherNode(from)) {
                 found = relationship;
             }
         }
@@ -73,7 +74,7 @@ public abstract class GraphBuilder {
     private Relationship findNextRelationship(Node from, Node to) {
         Relationship found = null;
         for (Relationship relationship : from.getRelationships(Relation.NEXT)) {
-            if (to.getId() == relationship.getOtherNodeId(from.getId())) {
+            if (to == relationship.getOtherNode(from)) {
                 found = relationship;
             }
         }

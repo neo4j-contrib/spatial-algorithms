@@ -74,10 +74,10 @@ public class GraphPolygonBuilder extends GraphBuilder {
      */
     private Node getWay(List<Node> polystring) {
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put("n", polystring.get(0).getId());
-        parameters.put("m", main.getId());
+        parameters.put("n", polystring.get(0).getElementId());
+        parameters.put("m", main.getElementId());
 
-        Result result = tx.execute("MATCH (n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER*]-(m:OSMRelation) WHERE id(n)=$n AND id(m)=$m RETURN w", parameters);
+        Result result = tx.execute("MATCH (n:OSMWayNode)<-[:NEXT*0..]-(:OSMWayNode)<-[:FIRST_NODE]-(w:OSMWay)<-[:MEMBER*]-(m:OSMRelation) WHERE elementId(n)=$n AND elementId(m)=$m RETURN w", parameters);
 
         if (result.hasNext()) {
             return (Node) result.next().get("w");

@@ -19,8 +19,12 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.neo4j.driver.v1.*;
-import org.neo4j.driver.v1.types.Point;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
@@ -119,7 +123,7 @@ public class Viewer {
     }
 
     private static void addPolygonWKTFromDB(String query, Map<String, Object> parameters, Viewer viewer, Session session, int colorId) {
-        StatementResult result = session.run(query, parameters);
+        Result result = session.run(query, parameters);
         if (!result.hasNext()) {
             System.out.println("No result found for parameters: " + parameters);
             return;
@@ -134,7 +138,7 @@ public class Viewer {
     }
 
     private static void addPolylineWKTFromDB(String query, Map<String, Object> parameters, Viewer viewer, Session session, int colorId) {
-        StatementResult result = session.run(query, parameters);
+        Result result = session.run(query, parameters);
         if (!result.hasNext()) {
             System.out.println("No result found for parameters: " + parameters);
             return;
@@ -149,7 +153,7 @@ public class Viewer {
     }
 
     private static void addPolygonFromDB(String query, Map<String, Object> parameters, Viewer viewer, Session session, int colorId) {
-        StatementResult result = session.run(query, parameters);
+        Result result = session.run(query, parameters);
         if (!result.hasNext()) {
             System.out.println("No result found for parameters: " + parameters);
             return;
@@ -167,9 +171,9 @@ public class Viewer {
             joiner = new StringJoiner(",", "POLYGON((", "))");
 
             for (Point point : locations) {
-                joiner.add(point.x() + " " + point.y());
+                joiner.add(point.getX() + " " + point.getY());
             }
-            joiner.add(locations.get(0).x() + " " + locations.get(0).y());
+            joiner.add(locations.get(0).getX() + " " + locations.get(0).getY());
 
 
             viewer.addPolygon(joiner.toString(), colorId);

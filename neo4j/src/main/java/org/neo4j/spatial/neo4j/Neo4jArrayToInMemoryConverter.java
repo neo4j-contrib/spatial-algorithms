@@ -17,7 +17,7 @@ public class Neo4jArrayToInMemoryConverter {
         for (int i = 0; i < neo4jPoints.length; i++) {
             CRS neo4jCRS = neo4jPoints[i].getCRS();
             org.neo4j.spatial.core.CRS crs = CRSConverter.toInMemoryCRS(neo4jCRS);
-            result[i] = Point.point(crs, neo4jPoints[i].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
+            result[i] = Point.point(crs, neo4jPoints[i].getCoordinate().getCoordinate().clone());
         }
 
         return Polygon.simple(result);
@@ -30,7 +30,7 @@ public class Neo4jArrayToInMemoryConverter {
         for (int i = 0; i < neo4jPoints.length; i++) {
             CRS neo4jCRS = neo4jPoints[i].getCRS();
             org.neo4j.spatial.core.CRS crs = CRSConverter.toInMemoryCRS(neo4jCRS);
-            result[i] = Point.point(crs, neo4jPoints[i].getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray());
+            result[i] = Point.point(crs, neo4jPoints[i].getCoordinate().getCoordinate().clone());
         }
 
         return Polyline.polyline(result);

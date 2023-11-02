@@ -52,10 +52,10 @@ public class UserDefinedFunctions {
     @Procedure(name = "spatial.osm.property.createPolygon", mode = Mode.WRITE)
     public Stream<PointArraySizeResult> createArrayCache(@Name("main") Node main) {
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put("main", main.getId());
+        parameters.put("main", main.getElementId());
         long relation_osm_id = (long) main.getProperty("relation_osm_id");
 
-        Result mainResult = tx.execute("MATCH (p:Polygon)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polygonNode", parameters);
+        Result mainResult = tx.execute("MATCH (p:Polygon)<-[:POLYGON_STRUCTURE*]-(m:OSMRelation) WHERE elementId(m)=$main RETURN p AS polygonNode", parameters);
         if (!mainResult.hasNext()) {
             throw new IllegalArgumentException("No polygon structure found - does " + main + " really have :POLYGON_STRUCTURE relationships? Perhaps you have not run spatial.osm.graph.createPolygon(" + main + ") yet?");
         }
@@ -65,8 +65,8 @@ public class UserDefinedFunctions {
             Node polygonNode = (Node) mainResult.next().get("polygonNode");
 
             parameters = new HashMap<>();
-            parameters.put("polygonNode", polygonNode.getId());
-            Result startNodeResult = tx.execute("MATCH (p:Polygon)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE id(p)=$polygonNode RETURN n AS startNode", parameters);
+            parameters.put("polygonNode", polygonNode.getElementId());
+            Result startNodeResult = tx.execute("MATCH (p:Polygon)-[:POLYGON_START]->(:OSMWay)-[:FIRST_NODE]->(n:OSMWayNode) WHERE elementId(p)=$polygonNode RETURN n AS startNode", parameters);
 
             if (!startNodeResult.hasNext()) {
                 throw new IllegalArgumentException("Broken polygon structure found - polygon " + polygonNode + " is missing a ':POLYGON_START' relationship to an 'OSMWay' node");
@@ -74,8 +74,8 @@ public class UserDefinedFunctions {
 
             Node startNode = (Node) startNodeResult.next().get("startNode");
             Neo4jSimpleGraphNodePolygon polygon = new Neo4jSimpleGraphNodePolygon(startNode, relation_osm_id);
-            Point[] polygonPoints = Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new);
-            result.add(new PointArraySizeResult(polygonNode.getId(), polygonPoints.length));
+            Point[] polygonPoints = Arrays.stream(polygon.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS_84, p.getCoordinate())).toArray(Point[]::new);
+            result.add(new PointArraySizeResult(polygonNode.getElementId(), polygonPoints.length));
             polygonNode.setProperty("polygon", polygonPoints);
         }
         return result.stream();
@@ -86,10 +86,10 @@ public class UserDefinedFunctions {
     @Procedure(name = "spatial.osm.property.createPolyline", mode = Mode.WRITE)
     public Stream<PointArraySizeResult> createArrayLine(@Name("main") Node main) {
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put("main", main.getId());
+        parameters.put("main", main.getElementId());
         long relation_osm_id = (long) main.getProperty("relation_osm_id");
 
-        Result mainResult = tx.execute("MATCH (p:Polyline)<-[:POLYLINE_STRUCTURE*]-(m:OSMRelation) WHERE id(m)=$main RETURN p AS polylineNode", parameters);
+        Result mainResult = tx.execute("MATCH (p:Polyline)<-[:POLYLINE_STRUCTURE*]-(m:OSMRelation) WHERE elementId(m)=$main RETURN p AS polylineNode", parameters);
         if (!mainResult.hasNext()) {
             throw new IllegalArgumentException("No polyline structure found - does " + main + " really have :POLYLINE_STRUCTURE relationships? Perhaps you have not run spatial.osm.graph.createPolygon(" + main + ") yet?");
         }
@@ -100,8 +100,8 @@ public class UserDefinedFunctions {
             Node polylineNode = (Node) mainResult.next().get("polylineNode");
 
             parameters = new HashMap<>();
-            parameters.put("polylineNode", polylineNode.getId());
-            Result startNodeResult = tx.execute("MATCH (p:Polyline)-[:POLYLINE_START]->(n:OSMWayNode) WHERE id(p)=$polylineNode RETURN n AS startNode", parameters);
+            parameters.put("polylineNode", polylineNode.getElementId());
+            Result startNodeResult = tx.execute("MATCH (p:Polyline)-[:POLYLINE_START]->(n:OSMWayNode) WHERE elementId(p)=$polylineNode RETURN n AS startNode", parameters);
 
             if (!startNodeResult.hasNext()) {
                 throw new IllegalArgumentException("Broken polyline structure found - polyline " + polylineNode + " is missing a ':POLYLINE_START' relationship to an 'OSMWayNode' node");
@@ -110,8 +110,8 @@ public class UserDefinedFunctions {
             try {
                 Node startNode = (Node) startNodeResult.next().get("startNode");
                 Neo4jSimpleGraphNodePolyline polyline = new Neo4jSimpleGraphNodePolyline(startNode, relation_osm_id);
-                Point[] polylinePoints = Arrays.stream(polyline.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS84, p.getCoordinate())).toArray(Point[]::new);
-                result.add(new PointArraySizeResult(polylineNode.getId(), polylinePoints.length));
+                Point[] polylinePoints = Arrays.stream(polyline.getPoints()).map(p -> Values.pointValue(CoordinateReferenceSystem.WGS_84, p.getCoordinate())).toArray(Point[]::new);
+                result.add(new PointArraySizeResult(polylineNode.getElementId(), polylinePoints.length));
                 polylineNode.setProperty("polyline", polylinePoints);
             } catch (Exception e) {
                 log.error("Failed to create polyline at " + polylineNode + ": " + e.getMessage());
@@ -123,9 +123,9 @@ public class UserDefinedFunctions {
 
     @Procedure(name = "spatial.osm.graph.createPolygon.nodeId", mode = Mode.WRITE)
     public void createOSMGraphGeometries(
-            @Name("mainId") Long mainId,
+            @Name("mainId") String mainId,
             @Name(value = "proximityThreshold", defaultValue = "250") double proximityThreshold) {
-        createOSMGraphGeometries(tx.getNodeById(mainId), proximityThreshold);
+        createOSMGraphGeometries(tx.getNodeByElementId(mainId), proximityThreshold);
     }
 
     @Procedure(name = "spatial.osm.graph.createPolygon", mode = Mode.WRITE)
@@ -153,7 +153,7 @@ public class UserDefinedFunctions {
             try {
                 new GraphPolygonBuilder(tx, main, polygons).build();
             } catch (Exception e) {
-                log.error("Failed to build polygon/polyline structures for node id=" + main.getId() + ", osm-id=" + id + ": " + e.getMessage());
+                log.error("Failed to build polygon/polyline structures for node elementId=" + main.getElementId() + ", osm-id=" + id + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -163,7 +163,7 @@ public class UserDefinedFunctions {
                 // TODO: Can we not build polygons from multiple polylines?
                 new GraphPolylineBuilder(tx, main, polylines).build();
             } catch (Exception e) {
-                log.error("Failed to build polygon/polyline structures for node id=" + main.getId() + ", osm-id=" + id + ": " + e.getMessage());
+                log.error("Failed to build polygon/polyline structures for node elementId=" + main.getElementId() + ", osm-id=" + id + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -351,7 +351,7 @@ public class UserDefinedFunctions {
     public List<Point> convexHullPoints(@Name("points") List<Point> points) {
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(asInMemoryPoints(points));
 
-        return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
+        return asNeo4jPoints(CoordinateReferenceSystem.WGS_84, convexHull.getPoints());
     }
 
     // TODO: write tests
@@ -360,7 +360,7 @@ public class UserDefinedFunctions {
         MultiPolygon multiPolygon = getArrayPolygon(main);
         Polygon.SimplePolygon convexHull = CartesianConvexHull.convexHull(multiPolygon);
 
-        return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
+        return asNeo4jPoints(CoordinateReferenceSystem.WGS_84, convexHull.getPoints());
     }
 
     // TODO: write tests
@@ -369,7 +369,7 @@ public class UserDefinedFunctions {
         MultiPolygon multiPolygon = getGraphNodePolygon(main);
         Polygon.SimplePolygon convexHull = WGS84ConvexHull.convexHull(multiPolygon);
 
-        return asNeo4jPoints(CoordinateReferenceSystem.WGS84, convexHull.getPoints());
+        return asNeo4jPoints(CoordinateReferenceSystem.WGS_84, convexHull.getPoints());
     }
 
     @UserFunction("spatial.algo.area")
@@ -487,11 +487,7 @@ public class UserDefinedFunctions {
     }
 
     private org.neo4j.spatial.core.Point asInMemoryPoint(Point point) {
-        List<Double> coordinates = point.getCoordinate().getCoordinate();
-        double[] coords = new double[coordinates.size()];
-        for (int i = 0; i < coords.length; i++) {
-            coords[i] = coordinates.get(i);
-        }
+        double[] coords = point.getCoordinate().getCoordinate().clone();
         org.neo4j.spatial.core.CRS crs = CRSConverter.toInMemoryCRS(point.getCRS());
         return org.neo4j.spatial.core.Point.point(crs, coords);
     }
@@ -545,10 +541,10 @@ public class UserDefinedFunctions {
     }
 
     public class PointArraySizeResult {
-        public long node_id;
+        public String node_id;
         public long count;
 
-        private PointArraySizeResult(long node_id, long count) {
+        private PointArraySizeResult(String node_id, long count) {
             this.node_id = node_id;
             this.count = count;
         }

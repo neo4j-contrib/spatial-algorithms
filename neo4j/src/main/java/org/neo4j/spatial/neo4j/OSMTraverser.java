@@ -70,18 +70,18 @@ public class OSMTraverser {
         String findWayNodes;
         if (main.hasProperty("relation_osm_id")) {
             findWayNodes = "MATCH (r:OSMRelation)-[:MEMBER*]->(w:OSMWay)-[:FIRST_NODE]->(f:OSMWayNode), " +
-                    "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE id(r) = $main " +
+                    "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE elementId(r) = $main " +
                     "RETURN f, collect(wn) AS nodes";
         } else if (main.hasProperty("way_osm_id")) {
             findWayNodes = "MATCH (w:OSMWay)-[:FIRST_NODE]->(f:OSMWayNode), " +
-                    "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE id(w) = $main " +
+                    "(f)-[:NEXT*0..]->(wn:OSMWayNode) WHERE elementId(w) = $main " +
                     "RETURN f, collect(wn) AS nodes";
         } else {
             throw new IllegalArgumentException("Cannot find ways from OSM node that is neither a Relation nor a Way: " + main);
         }
 
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put("main", main.getId());
+        parameters.put("main", main.getElementId());
         Result result = tx.execute(findWayNodes, parameters);
         while(result.hasNext()) {
             Map<String, Object> next = result.next();
@@ -291,7 +291,7 @@ public class OSMTraverser {
 
             Point point = (Point) node.getProperty("location");
 
-            return Pair.of(node, point.getCoordinate().getCoordinate().stream().mapToDouble(i -> i).toArray());
+            return Pair.of(node, point.getCoordinate().getCoordinate().clone());
         }
     }
 }

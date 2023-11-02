@@ -1,8 +1,6 @@
 package org.neo4j.spatial.algo.wgs84.intersect;
 
-import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.spatial.algo.AlgoUtil;
-import org.neo4j.spatial.algo.cartesian.intersect.CartesianMonotoneChainPartitioner;
 import org.neo4j.spatial.algo.wgs84.WGSUtil;
 import org.neo4j.spatial.core.*;
 
@@ -643,5 +641,11 @@ public class WGS84MCSweepLineIntersect extends WGS84Intersect {
         }
 
         return list.get(index - 1);
+    }
+
+    record Pair<T, U>(T first, U other) {
+      public static <T, U> Pair<T,U> of(T first, U other) {
+        return new Pair<>(first, other);
+      }
     }
 }
