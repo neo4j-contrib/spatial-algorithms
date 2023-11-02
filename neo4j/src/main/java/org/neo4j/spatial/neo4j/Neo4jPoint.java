@@ -18,20 +18,19 @@ class Neo4jPoint implements Point {
         this.node = node;
     }
 
+    @Override
     public boolean equals(Point other) {
         return Arrays.equals(this.getCoordinate(), other.getCoordinate());
     }
 
     public boolean equals(Object other) {
-        return other instanceof Point && this.equals((Point) other);
+        return other instanceof Point point && this.equals(point);
     }
 
     @Override
     public double[] getCoordinate() {
         org.neo4j.graphdb.spatial.Point location = (org.neo4j.graphdb.spatial.Point) this.node.getProperty(property);
-        List<Double> coordinateList = location.getCoordinate().getCoordinate();
-
-        return coordinateList.stream().mapToDouble(d -> d).toArray();
+        return location.getCoordinate().getCoordinate().clone();
     }
 
     public CRS getCRS() {

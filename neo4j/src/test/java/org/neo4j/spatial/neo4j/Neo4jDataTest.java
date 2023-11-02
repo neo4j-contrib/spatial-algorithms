@@ -45,7 +45,7 @@ public class Neo4jDataTest {
 
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode(Label.label("PoI"));
-            node.setProperty("location", Values.pointValue(CoordinateReferenceSystem.Cartesian, 5.3, 9.1));
+            node.setProperty("location", Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 5.3, 9.1));
             neo4jPoint = new Neo4jPoint(node);
             assertThat("expected Neo4jPoint to contain correct coordinates", neo4jPoint.getCoordinate(), equalTo(new double[]{5.3, 9.1}));
             tx.commit();
@@ -75,11 +75,11 @@ public class Neo4jDataTest {
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode(Label.label("Building"));
             node.setProperty("polygon", new Point[]{
-                    Values.pointValue(CoordinateReferenceSystem.Cartesian, -10, -10),
-                    Values.pointValue(CoordinateReferenceSystem.Cartesian, 10, -10),
-                    Values.pointValue(CoordinateReferenceSystem.Cartesian, 10, 10),
-                    Values.pointValue(CoordinateReferenceSystem.Cartesian, 0, 20),
-                    Values.pointValue(CoordinateReferenceSystem.Cartesian, -10, 10)
+                    Values.pointValue(CoordinateReferenceSystem.CARTESIAN, -10, -10),
+                    Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 10, -10),
+                    Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 10, 10),
+                    Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 0, 20),
+                    Values.pointValue(CoordinateReferenceSystem.CARTESIAN, -10, 10)
             });
             simplePolygon = Neo4jArrayToInMemoryConverter.convertToInMemoryPolygon(node);
             tx.commit();
@@ -344,10 +344,10 @@ public class Neo4jDataTest {
         /** If using this model in a new TX, reload all nodes in the new TX scope */
         void refresh(Transaction tx) {
             for (int i = 0; i < nodes.length; i++) {
-                nodes[i] = tx.getNodeById(nodes[i].getId());
+                nodes[i] = tx.getNodeByElementId(nodes[i].getElementId());
             }
             for (int i = 0; i < wayNodes.length; i++) {
-                wayNodes[i] = tx.getNodeById(wayNodes[i].getId());
+                wayNodes[i] = tx.getNodeByElementId(wayNodes[i].getElementId());
             }
         }
 
@@ -364,7 +364,7 @@ public class Neo4jDataTest {
                 wayNodes[i] = tx.createNode();
                 nodes[i] = tx.createNode();
 
-                PointValue point = Values.pointValue(CoordinateReferenceSystem.Cartesian, points[i][0], points[i][1]);
+                PointValue point = Values.pointValue(CoordinateReferenceSystem.CARTESIAN, points[i][0], points[i][1]);
                 if (debug) System.out.printf("%s: %s\n", wayNodes[i], Arrays.toString(points[i]));
 
                 nodes[i].setProperty("location", point);

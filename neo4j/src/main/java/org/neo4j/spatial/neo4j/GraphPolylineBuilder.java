@@ -1,6 +1,5 @@
 package org.neo4j.spatial.neo4j;
 
-import org.bouncycastle.util.Arrays;
 import org.neo4j.graphdb.*;
 
 import java.util.List;

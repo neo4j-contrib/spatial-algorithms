@@ -21,7 +21,7 @@ class Neo4jIDPoint implements Point {
     private static int propertyId = -1;
     private final static String property = "location";
 
-    public Neo4jIDPoint(Long nodeId, KernelTransaction ktx) {
+    public Neo4jIDPoint(long nodeId, KernelTransaction ktx) {
         this.nodeId = nodeId;
         this.ktx = ktx;
 
@@ -41,8 +41,8 @@ class Neo4jIDPoint implements Point {
     @Override
     public double[] getCoordinate() {
         double[] coordinates = new double[2];
-        try (NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor(CursorContext.NULL);
-             PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor(CursorContext.NULL, EmptyMemoryTracker.INSTANCE)) {
+        try (NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor(CursorContext.NULL_CONTEXT);
+             PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor(CursorContext.NULL_CONTEXT, EmptyMemoryTracker.INSTANCE)) {
             ktx.dataRead().singleNode(nodeId, nodeCursor);
             outer:
             while (nodeCursor.next()) {
@@ -50,7 +50,7 @@ class Neo4jIDPoint implements Point {
                 while (propertyCursor.next()) {
                     if (propertyCursor.propertyKey() == propertyId) {
                         org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) propertyCursor.propertyValue();
-                        coordinates = point.getCoordinate().getCoordinate().stream().mapToDouble(d -> d).toArray();
+                        coordinates = point.getCoordinate().getCoordinate().clone();
                         break outer;
                     }
                 }
@@ -62,8 +62,8 @@ class Neo4jIDPoint implements Point {
     @Override
     public CRS getCRS() {
         CRS crs = CRS.Cartesian;
-        try ( NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor(CursorContext.NULL);
-              PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor(CursorContext.NULL, EmptyMemoryTracker.INSTANCE) ) {
+        try ( NodeCursor nodeCursor = ktx.cursors().allocateNodeCursor(CursorContext.NULL_CONTEXT);
+              PropertyCursor propertyCursor = ktx.cursors().allocatePropertyCursor(CursorContext.NULL_CONTEXT, EmptyMemoryTracker.INSTANCE) ) {
             ktx.dataRead().singleNode(nodeId, nodeCursor);
             outer:
             while (nodeCursor.next()) {
@@ -82,7 +82,7 @@ class Neo4jIDPoint implements Point {
     }
 
     private void getPropertyId() {
-        String[] properties = Iterators.stream(TokenAccess.PROPERTY_KEYS.inUse(ktx)).toArray(String[]::new);
+        String[] properties = Iterators.stream(TokenAccess.PROPERTY_KEYS.inUse(ktx.dataRead(), ktx.schemaRead(), ktx.tokenRead())).toArray(String[]::new);
         for (int i = 0; i < properties.length; i++) {
             if (properties[i].equals(property)) {
                 propertyId = i;
